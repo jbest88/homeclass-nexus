@@ -5,19 +5,30 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 
-const Index = () => {
+const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Passwords do not match",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -31,12 +42,12 @@ const Index = () => {
       } else {
         toast({
           title: "Success",
-          description: "Logged in successfully!",
+          description: "Check your email to confirm your account!",
         });
-        navigate("/dashboard");
+        navigate("/");
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Signup error:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -52,14 +63,14 @@ const Index = () => {
       <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-lg shadow-lg animate-fade-in">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2C]">
-            Welcome Back
+            Create Account
           </h1>
           <p className="text-sm text-gray-500">
-            Enter your credentials to access your account
+            Sign up to get started with your new account
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="mt-8 space-y-6">
+        <form onSubmit={handleSignUp} className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-[#1A1F2C] mb-1">
@@ -90,6 +101,21 @@ const Index = () => {
                 className="w-full"
               />
             </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#1A1F2C] mb-1">
+                Confirm Password
+              </label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                required
+                className="w-full"
+              />
+            </div>
           </div>
 
           <Button
@@ -97,14 +123,14 @@ const Index = () => {
             className="w-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white transition-colors"
             disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign in"}
+            {isLoading ? "Creating account..." : "Create account"}
           </Button>
 
           <div className="text-center">
             <p className="text-sm text-gray-500">
-              Don't have an account?{" "}
-              <a href="/signup" className="text-[#9b87f5] hover:text-[#7E69AB] font-medium">
-                Sign up
+              Already have an account?{" "}
+              <a href="/" className="text-[#9b87f5] hover:text-[#7E69AB] font-medium">
+                Sign in
               </a>
             </p>
           </div>
@@ -114,4 +140,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default SignUp;

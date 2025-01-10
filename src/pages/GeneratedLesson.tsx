@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ const GeneratedLesson = () => {
   const navigate = useNavigate();
   const [answers, setAnswers] = useState<Record<number, AnswerState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: lesson, isLoading } = useQuery({
     queryKey: ["generated-lesson", lessonId],
@@ -62,6 +63,28 @@ const GeneratedLesson = () => {
       return data;
     },
   });
+
+  const handleDelete = async () => {
+    if (!lessonId || isDeleting) return;
+    
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase
+        .from("generated_lessons")
+        .delete()
+        .eq("id", lessonId);
+
+      if (error) throw error;
+
+      toast.success("Lesson deleted successfully");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error deleting lesson:", error);
+      toast.error("Failed to delete lesson");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleTextAnswerChange = (index: number, value: string) => {
     setAnswers(prev => ({
@@ -210,14 +233,24 @@ const GeneratedLesson = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <Button
-        variant="ghost"
-        className="mb-6"
-        onClick={() => navigate("/dashboard")}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Dashboard
-      </Button>
+      <div className="flex justify-between items-center mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/dashboard")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="flex items-center gap-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          {isDeleting ? "Deleting..." : "Delete Lesson"}
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>

@@ -104,57 +104,55 @@ serve(async (req) => {
 
     const questionsPrompt = `Based on this lesson: "${content}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
-    Include a mix of these question types:
-    1. Multiple choice (1 question)
-    2. Multiple answer (1 question)
-    3. True/False (1 question)
-    4. Slider (1 question) - for numerical answers
-    5. Dropdown (1 question)
+    Include these EXACT 5 question types in this order:
+    1. Multiple choice
+    2. Multiple answer (with multiple correct answers)
+    3. True/False
+    4. Text input
+    5. Dropdown
 
     Return ONLY a JSON array with these structures:
 
     Multiple choice:
     {
-      "question": "What is...?",
       "type": "multiple-choice",
+      "question": "What is...?",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "correct option"
     }
 
     Multiple answer:
     {
-      "question": "Select all that apply...",
       "type": "multiple-answer",
+      "question": "Select all that apply...",
       "options": ["option1", "option2", "option3", "option4"],
+      "answer": ["correct1", "correct2"],
       "correctAnswers": ["correct1", "correct2"]
     }
 
     True/False:
     {
-      "question": "Is this statement true...?",
       "type": "true-false",
+      "question": "Is this statement true...?",
       "answer": "true"
     }
 
-    Slider:
+    Text input:
     {
-      "question": "What is the value...?",
-      "type": "slider",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "answer": "50"
+      "type": "text",
+      "question": "Explain in your own words...",
+      "answer": "example correct answer"
     }
 
     Dropdown:
     {
-      "question": "Choose the correct...?",
       "type": "dropdown",
+      "question": "Choose the correct...?",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "correct option"
     }
 
-    Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
+    Return only the raw JSON array with EXACTLY these 5 questions in this order, no additional text or formatting.`;
     
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
@@ -191,14 +189,34 @@ serve(async (req) => {
         throw new Error('Generated questions must be an array of exactly 5 questions');
       }
 
-      // Validate question types
+      // Validate question types and order
+      const expectedTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'text', 'dropdown'];
       const types = questions.map(q => q.type);
-      const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'slider', 'dropdown'];
-      const hasAllTypes = requiredTypes.every(type => types.includes(type));
       
-      if (!hasAllTypes) {
-        throw new Error('Missing required question types. Each type should appear exactly once.');
+      if (!expectedTypes.every((type, index) => types[index] === type)) {
+        throw new Error('Questions must be in the correct order with the specified types');
       }
+
+      // Ensure all questions have the required properties
+      questions.forEach((q, index) => {
+        if (!q.question || !q.answer) {
+          throw new Error(`Question ${index + 1} is missing required properties`);
+        }
+        
+        // Validate specific question type properties
+        if ((q.type === 'multiple-choice' || q.type === 'dropdown') && (!Array.isArray(q.options) || q.options.length < 2)) {
+          throw new Error(`Question ${index + 1} is missing valid options array`);
+        }
+        
+        if (q.type === 'multiple-answer') {
+          if (!Array.isArray(q.options) || q.options.length < 2) {
+            throw new Error(`Question ${index + 1} is missing valid options array`);
+          }
+          if (!Array.isArray(q.answer) || !Array.isArray(q.correctAnswers)) {
+            throw new Error(`Question ${index + 1} is missing valid answers arrays`);
+          }
+        }
+      });
       
     } catch (error) {
       console.error('Error parsing or validating questions:', error);

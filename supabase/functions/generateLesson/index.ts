@@ -89,9 +89,14 @@ serve(async (req) => {
     // Updated questions prompt to generate exactly 5 questions with no text input
     const questionsPrompt = `Based on this lesson: "${lessonContent}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
     
-    Include a mix of:
-    1. Multiple choice questions with 4 options (3 questions)
-    2. Multiple answer questions where more than one option is correct (2 questions)
+    Include this EXACT distribution:
+    1. Multiple choice questions with 4 options (2 questions)
+      - One should test basic recall
+      - One should test understanding of concepts
+    2. Multiple answer questions where more than one option is correct (3 questions)
+      - One should test relationships between concepts
+      - One should test application of knowledge
+      - One should test analysis of information
     
     DO NOT include any text/open-ended questions.
     
@@ -156,8 +161,8 @@ serve(async (req) => {
       const multipleChoiceCount = questions.filter(q => q.type === 'multiple-choice').length;
       const multipleAnswerCount = questions.filter(q => q.type === 'multiple-answer').length;
       
-      if (multipleChoiceCount !== 3 || multipleAnswerCount !== 2) {
-        throw new Error('Invalid question distribution. Expected 3 multiple-choice and 2 multiple-answer questions.');
+      if (multipleChoiceCount !== 2 || multipleAnswerCount !== 3) {
+        throw new Error('Invalid question distribution. Expected 2 multiple-choice and 3 multiple-answer questions.');
       }
       
     } catch (error) {

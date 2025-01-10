@@ -19,7 +19,7 @@ serve(async (req) => {
     }
 
     const { question, userAnswer, correctAnswer, type, correctAnswers } = await req.json();
-    console.log('Validating answer:', { question, userAnswer, type });
+    console.log('Validating answer:', { question, userAnswer, type, correctAnswer });
 
     // Handle different question types
     if (type === 'multiple-choice') {
@@ -63,39 +63,59 @@ serve(async (req) => {
       Format the response as valid JSON.
     `;
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${geminiApiKey}`,
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
+    console.log('Sending prompt to Gemini:', prompt);
+
+    try {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${geminiApiKey}`,
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
           }]
-        }]
-      })
-    });
+        })
+      });
 
-    if (!response.ok) {
-      console.error('Gemini API error:', await response.text());
-      throw new Error('Failed to validate text answer');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error response:', errorText);
+        throw new Error(`Gemini API returned status ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Gemini API response:', JSON.stringify(data, null, 2));
+
+      if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        console.error('Invalid Gemini API response format:', data);
+        throw new Error('Invalid response format from Gemini API');
+      }
+
+      const result = JSON.parse(data.candidates[0].content.parts[0].text);
+      console.log('Parsed validation result:', result);
+
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (geminiError) {
+      console.error('Error with Gemini API:', geminiError);
+      // Return a more graceful response for Gemini API errors
+      return new Response(
+        JSON.stringify({
+          isCorrect: false,
+          explanation: "We couldn't automatically validate your answer. Please try again or contact support if the issue persists."
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 // Return 200 to avoid client-side errors
+        }
+      );
     }
-
-    const data = await response.json();
-    console.log('Gemini API response:', data);
-
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Invalid response format from Gemini API');
-    }
-
-    const result = JSON.parse(data.candidates[0].content.parts[0].text);
-
-    return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
   } catch (error) {
     console.error('Error in validateAnswers function:', error);

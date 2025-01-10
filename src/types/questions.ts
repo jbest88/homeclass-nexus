@@ -1,7 +1,7 @@
 export type BaseQuestion = {
   question: string;
   answer: string;
-  type: 'text' | 'multiple-choice' | 'multiple-answer' | 'true-false' | 'slider' | 'dropdown';
+  type: 'text' | 'multiple-choice' | 'multiple-answer' | 'true-false' | 'dropdown';
 };
 
 export type TextQuestion = BaseQuestion & {
@@ -23,13 +23,6 @@ export type TrueFalseQuestion = BaseQuestion & {
   type: 'true-false';
 };
 
-export type SliderQuestion = BaseQuestion & {
-  type: 'slider';
-  min: number;
-  max: number;
-  step: number;
-};
-
 export type DropdownQuestion = BaseQuestion & {
   type: 'dropdown';
   options: string[];
@@ -40,7 +33,6 @@ export type Question =
   | MultipleChoiceQuestion 
   | MultipleAnswerQuestion 
   | TrueFalseQuestion 
-  | SliderQuestion 
   | DropdownQuestion;
 
 export interface QuestionInputProps {
@@ -48,9 +40,6 @@ export interface QuestionInputProps {
   value: string | string[];
   onChange: (value: string | string[]) => void;
   disabled?: boolean;
-  min?: number;
-  max?: number;
-  step?: number;
 }
 
 export type AnswerState = {

@@ -1,7 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,16 +6,19 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
     const { question, userAnswer, correctAnswer } = await req.json();
+    console.log('Validating answer:', { question, userAnswer, correctAnswer });
 
     const prompt = `
       Question: "${question}"
@@ -46,20 +46,34 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error('Gemini API error:', await response.text());
       throw new Error('Failed to validate answer');
     }
 
     const data = await response.json();
+    console.log('Gemini API response:', data);
+
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+
     const result = JSON.parse(data.candidates[0].content.parts[0].text);
+    console.log('Parsed result:', result);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in validateAnswers function:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        isCorrect: false,
+        explanation: 'Sorry, we encountered an error while validating your answer. Please try again.' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    );
   }
 });

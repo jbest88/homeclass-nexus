@@ -10,6 +10,7 @@ interface ModuleData {
   id: string;
   title: string;
   completed: boolean;
+  created_at: string;
 }
 
 interface SubjectProgressProps {
@@ -54,6 +55,16 @@ const SubjectProgress = ({
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <div className="mb-8">
       <div className="flex justify-between items-center mb-2">
@@ -70,28 +81,33 @@ const SubjectProgress = ({
         {modules.map((module) => (
           <div
             key={module.id}
-            className="flex items-center justify-between bg-muted/50 p-3 rounded-lg"
+            className="flex flex-col bg-muted/50 p-3 rounded-lg"
           >
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span className="text-sm">{module.title}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <span className="text-sm">{module.title}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/generated-lesson/${module.id}`)}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(module.id)}
+                  disabled={deletingLessonId === module.id}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/generated-lesson/${module.id}`)}
-              >
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(module.id)}
-                disabled={deletingLessonId === module.id}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+            <div className="text-xs text-muted-foreground mt-2">
+              {formatDate(module.created_at)}
             </div>
           </div>
         ))}

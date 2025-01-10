@@ -16,6 +16,7 @@ export type MultipleChoiceQuestion = BaseQuestion & {
 export type MultipleAnswerQuestion = BaseQuestion & {
   type: 'multiple-answer';
   options: string[];
+  correctAnswers: string[];
 };
 
 export type TrueFalseQuestion = BaseQuestion & {
@@ -45,5 +46,7 @@ export interface QuestionInputProps {
 export type AnswerState = {
   answer: string | string[];
   isCorrect?: boolean;
+  explanation?: string;
+  startTime?: number;
   isSubmitted: boolean;
 };

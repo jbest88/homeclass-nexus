@@ -34,9 +34,8 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
           <QuestionComponent
             key={index}
             question={question}
-            index={index}
-            answer={answers[index]}
-            onAnswerChange={handleAnswerChange}
+            answerState={answers[index] || { answer: "", isSubmitted: false }}
+            onAnswerChange={(answer) => handleAnswerChange(index, answer)}
             isLocked={isSubmitted}
           />
         ))}

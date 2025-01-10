@@ -15,7 +15,9 @@ export const useAnswerValidation = () => {
         userAnswer,
         correctAnswer: question.answer,
         type: question.type,
-        ...(question.type === 'multiple-answer' && { correctAnswers: question.correctAnswers }),
+        ...(question.type === 'multiple-answer' && { 
+          correctAnswers: (question as any).correctAnswers 
+        }),
       },
     });
 

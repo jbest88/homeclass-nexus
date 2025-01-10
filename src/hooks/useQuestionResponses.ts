@@ -20,9 +20,10 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
     if (isSubmitted) return;
     setAnswers(prev => ({
       ...prev,
-      [index]: { 
-        value,
-        startTime: prev[index]?.startTime || Date.now()
+      [index]: {
+        answer: value,
+        startTime: prev[index]?.startTime || Date.now(),
+        isSubmitted: false,
       }
     }));
   };
@@ -34,7 +35,7 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
     try {
       const results = await Promise.all(
         questions.map(async (question, index) => {
-          const userAnswer = answers[index]?.value || "";
+          const userAnswer = answers[index]?.answer || "";
           const startTime = answers[index]?.startTime || Date.now();
 
           const result = await validateAnswer(question, userAnswer, startTime);
@@ -62,6 +63,7 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
           ...newAnswers[index],
           isCorrect,
           explanation,
+          isSubmitted: true,
         };
       });
 

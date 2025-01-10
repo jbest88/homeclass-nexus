@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,10 +21,30 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    const { subject } = await req.json();
+    const { subject, userId } = await req.json();
 
-    // Generate lesson content
-    const lessonPrompt = `Create an educational lesson about ${subject}. The lesson should be comprehensive but concise, focusing on key concepts. Include a title for the lesson.`;
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+
+    // Fetch user's grade level
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('grade_level')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      throw new Error('Failed to fetch user profile');
+    }
+
+    const gradeLevel = profile.grade_level ?? 5; // Default to 5th grade if not set
+    const gradeLevelText = gradeLevel === 0 ? 'Kindergarten' : `${gradeLevel}th grade`;
+
+    // Generate lesson content with grade level consideration
+    const lessonPrompt = `Create an educational lesson about ${subject} appropriate for a ${gradeLevelText} student. 
+    The lesson should be comprehensive but concise, focusing on key concepts that are grade-appropriate. 
+    Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.`;
+
     const lessonResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
@@ -48,11 +71,11 @@ serve(async (req) => {
 
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
-    // Generate questions with improved formatting
-    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 questions to test understanding. Include a mix of:
-    1. Multiple choice questions with 4 options
-    2. Multiple answer questions where more than one option is correct
-    3. Text questions requiring a written response
+    // Generate questions with grade-level consideration
+    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 questions to test understanding for a ${gradeLevelText} student. Include a mix of:
+    1. Multiple choice questions with 4 options (grade-appropriate complexity)
+    2. Multiple answer questions where more than one option is correct (grade-appropriate)
+    3. Text questions requiring a written response (grade-appropriate length and complexity)
     
     Return ONLY a JSON array with this structure for each type:
     

@@ -27,6 +27,11 @@ export const useGenerateLesson = () => {
   });
 
   const handleGenerateLesson = async (subject: string) => {
+    if (!user) {
+      toast.error("Please sign in to generate lessons");
+      return;
+    }
+
     try {
       setIsGenerating(true);
       
@@ -35,7 +40,7 @@ export const useGenerateLesson = () => {
       ) ?? -1;
       
       const { data: lessonData, error: generateError } = await supabase.functions.invoke("generateLesson", {
-        body: { subject },
+        body: { subject, userId: user.id },
       });
 
       if (generateError) throw generateError;
@@ -43,7 +48,7 @@ export const useGenerateLesson = () => {
       const { data: insertData, error: insertError } = await supabase
         .from("generated_lessons")
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           subject,
           title: lessonData.title,
           content: lessonData.content,

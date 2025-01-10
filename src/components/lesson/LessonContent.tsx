@@ -8,10 +8,13 @@ interface LessonContentProps {
 }
 
 export const LessonContent = ({ title, subject, content }: LessonContentProps) => {
+  // Remove markdown formatting from title (e.g., stars)
+  const cleanTitle = title.replace(/[*#]/g, '').trim();
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>{cleanTitle}</CardTitle>
         <div className="text-sm text-muted-foreground">
           Subject: {subject}
         </div>

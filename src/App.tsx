@@ -28,12 +28,12 @@ const App = () => {
   }
 
   return (
-    <SessionContextProvider supabaseClient={supabase}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <SessionContextProvider supabaseClient={supabase}>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
             <Routes>
               <Route
                 path="/"
@@ -86,10 +86,10 @@ const App = () => {
                 }
               />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </SessionContextProvider>
+          </TooltipProvider>
+        </BrowserRouter>
+      </SessionContextProvider>
+    </QueryClientProvider>
   );
 };
 

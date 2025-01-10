@@ -1,5 +1,5 @@
-import { ValidationResult } from './types';
-import { normalizeText, isAllOfTheAbove, evaluateExponentExpression, isMathQuestion } from './utils';
+import { ValidationResult } from './types.ts';
+import { normalizeText, isAllOfTheAbove, evaluateExponentExpression, isMathQuestion } from './utils.ts';
 
 // Validate multiple choice questions
 export const validateMultipleChoice = (

@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Wand2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface LearningProgressProps {
   learningPlan: Array<{
@@ -22,6 +23,15 @@ const LearningProgress = ({
   selectedSubject,
   onGeneratePlan,
 }: LearningProgressProps) => {
+  const handleGenerateClick = async (subject: string) => {
+    try {
+      await onGeneratePlan(subject);
+    } catch (error) {
+      console.error('Error in handleGenerateClick:', error);
+      toast.error(`Failed to generate plan for ${subject}`);
+    }
+  };
+
   return (
     <Card className="col-span-2">
       <CardHeader>
@@ -39,7 +49,7 @@ const LearningProgress = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onGeneratePlan(subject.subject)}
+                  onClick={() => handleGenerateClick(subject.subject)}
                   disabled={isGenerating && selectedSubject === subject.subject}
                 >
                   {isGenerating && selectedSubject === subject.subject ? (

@@ -13,36 +13,62 @@ const ProfileSettings = () => {
   const user = useUser();
   const [birthday, setBirthday] = useState<Date>();
   const [gradeLevel, setGradeLevel] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch profile data on component mount
+  // Fetch or create profile on component mount
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchOrCreateProfile = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("birthday, grade_level")
-        .eq("id", user.id)
-        .single();
+      try {
+        setIsLoading(true);
+        
+        // Try to fetch existing profile
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("birthday, grade_level")
+          .eq("id", user.id)
+          .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        return;
-      }
+        if (error) throw error;
 
-      if (data.birthday) {
-        setBirthday(new Date(data.birthday));
-      }
-      if (data.grade_level !== null) {
-        setGradeLevel(data.grade_level);
+        // If no profile exists, create one
+        if (!profile) {
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({ id: user.id });
+
+          if (insertError) throw insertError;
+          
+          // Profile created, but no birthday/grade_level yet
+          setGradeLevel(null);
+          setBirthday(undefined);
+          return;
+        }
+
+        // Profile exists, set the data
+        if (profile.birthday) {
+          setBirthday(new Date(profile.birthday));
+        }
+        if (profile.grade_level !== null) {
+          setGradeLevel(profile.grade_level);
+        }
+      } catch (error) {
+        console.error("Error fetching/creating profile:", error);
+        toast.error("Failed to load profile settings");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchOrCreateProfile();
   }, [user]);
 
   const handleSave = async () => {
-    if (!user || !birthday) return;
+    if (!user || !birthday) {
+      toast.error("Please select a birthday");
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -60,6 +86,10 @@ const ProfileSettings = () => {
       toast.error("Failed to update profile");
     }
   };
+
+  if (isLoading) {
+    return <div>Loading profile settings...</div>;
+  }
 
   return (
     <div className="space-y-4">

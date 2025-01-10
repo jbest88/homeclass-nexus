@@ -8,16 +8,37 @@ import { Database } from "@/integrations/supabase/types";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
-type Question = {
+type BaseQuestion = {
   question: string;
   answer: string;
+  type: 'text' | 'multiple-choice' | 'multiple-answer';
 };
+
+type TextQuestion = BaseQuestion & {
+  type: 'text';
+};
+
+type MultipleChoiceQuestion = BaseQuestion & {
+  type: 'multiple-choice';
+  options: string[];
+};
+
+type MultipleAnswerQuestion = BaseQuestion & {
+  type: 'multiple-answer';
+  options: string[];
+  correctAnswers: string[];
+};
+
+type Question = TextQuestion | MultipleChoiceQuestion | MultipleAnswerQuestion;
 
 type Lesson = Database['public']['Tables']['generated_lessons']['Row'];
 
 type AnswerState = {
-  value: string;
+  value: string | string[];
   isCorrect?: boolean;
   explanation?: string;
 };
@@ -42,11 +63,36 @@ const GeneratedLesson = () => {
     },
   });
 
-  const handleAnswerChange = (index: number, value: string) => {
+  const handleTextAnswerChange = (index: number, value: string) => {
     setAnswers(prev => ({
       ...prev,
       [index]: { value }
     }));
+  };
+
+  const handleMultipleChoiceChange = (index: number, value: string) => {
+    setAnswers(prev => ({
+      ...prev,
+      [index]: { value }
+    }));
+  };
+
+  const handleMultipleAnswerChange = (index: number, value: string, checked: boolean) => {
+    setAnswers(prev => {
+      const currentAnswers = Array.isArray(prev[index]?.value) ? prev[index].value : [];
+      let newAnswers: string[];
+      
+      if (checked) {
+        newAnswers = [...currentAnswers, value];
+      } else {
+        newAnswers = currentAnswers.filter(answer => answer !== value);
+      }
+
+      return {
+        ...prev,
+        [index]: { value: newAnswers }
+      };
+    });
   };
 
   const handleSubmit = async () => {
@@ -64,6 +110,8 @@ const GeneratedLesson = () => {
               question: question.question,
               userAnswer,
               correctAnswer: question.answer,
+              type: question.type,
+              ...(question.type === 'multiple-answer' && { correctAnswers: question.correctAnswers }),
             },
           });
 
@@ -108,6 +156,57 @@ const GeneratedLesson = () => {
   const hasQuestions = Array.isArray(lesson.questions);
   const questions = hasQuestions ? lesson.questions as Question[] : [];
 
+  const renderQuestionInput = (question: Question, index: number) => {
+    switch (question.type) {
+      case 'multiple-choice':
+        return (
+          <RadioGroup
+            value={answers[index]?.value as string || ""}
+            onValueChange={(value) => handleMultipleChoiceChange(index, value)}
+            className="space-y-2"
+          >
+            {question.options.map((option, optionIndex) => (
+              <div key={optionIndex} className="flex items-center space-x-2">
+                <RadioGroupItem value={option} id={`option-${index}-${optionIndex}`} />
+                <Label htmlFor={`option-${index}-${optionIndex}`}>{option}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        );
+      
+      case 'multiple-answer':
+        return (
+          <div className="space-y-2">
+            {question.options.map((option, optionIndex) => {
+              const currentAnswers = (answers[index]?.value as string[]) || [];
+              return (
+                <div key={optionIndex} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`option-${index}-${optionIndex}`}
+                    checked={currentAnswers.includes(option)}
+                    onCheckedChange={(checked) => 
+                      handleMultipleAnswerChange(index, option, checked as boolean)
+                    }
+                  />
+                  <Label htmlFor={`option-${index}-${optionIndex}`}>{option}</Label>
+                </div>
+              );
+            })}
+          </div>
+        );
+      
+      default:
+        return (
+          <Input
+            placeholder="Type your answer here..."
+            value={answers[index]?.value as string || ""}
+            onChange={(e) => handleTextAnswerChange(index, e.target.value)}
+            className="mb-2"
+          />
+        );
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
       <Button
@@ -139,12 +238,7 @@ const GeneratedLesson = () => {
                   <div key={index} className="space-y-4">
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="font-medium mb-4">Q: {question.question}</p>
-                      <Input
-                        placeholder="Type your answer here..."
-                        value={answers[index]?.value || ""}
-                        onChange={(e) => handleAnswerChange(index, e.target.value)}
-                        className="mb-2"
-                      />
+                      {renderQuestionInput(question, index)}
                       {answers[index]?.isCorrect !== undefined && (
                         <div className={`mt-2 p-2 rounded ${
                           answers[index].isCorrect 

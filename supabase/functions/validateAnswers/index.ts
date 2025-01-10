@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 serve(async (req) => {
@@ -17,32 +18,66 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    const { question, userAnswer, correctAnswer } = await req.json();
-    console.log('Validating answer:', { question, userAnswer, correctAnswer });
+    const { question, userAnswer, correctAnswer, type, correctAnswers } = await req.json();
+    console.log('Validating answer:', { question, userAnswer, correctAnswer, type });
 
+    // Handle different question types
+    if (type === 'multiple-choice') {
+      const isCorrect = userAnswer === correctAnswer;
+      return new Response(JSON.stringify({
+        isCorrect,
+        explanation: isCorrect ? 'Correct choice!' : 'That\'s not the right option. Try again!'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (type === 'multiple-answer') {
+      const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
+      const isCorrect = correctAnswers.length === userAnswers.length &&
+        correctAnswers.every(answer => userAnswers.includes(answer));
+      
+      return new Response(JSON.stringify({
+        isCorrect,
+        explanation: isCorrect 
+          ? 'All correct answers selected!' 
+          : 'Some answers are incorrect. Make sure you\'ve selected all the right options.'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // For text answers, use Gemini API to check semantic meaning
     const prompt = `
       Question: "${question}"
-      Correct answer: "${correctAnswer}"
-      Student's answer: "${userAnswer}"
+      Student's Answer: "${userAnswer}"
+      Correct Answer: "${correctAnswer}"
+
+      Evaluate if the student's answer is correct, considering semantic meaning rather than exact wording.
+      Return a JSON object with:
+      1. "isCorrect": boolean indicating if the answer is correct
+      2. "explanation": string explaining why the answer is correct or incorrect
       
-      Is the student's answer correct? Consider semantic meaning rather than exact wording.
-      Respond with a JSON object containing:
+      Format the response as valid JSON like this:
       {
-        "isCorrect": boolean,
-        "explanation": "Brief explanation of why the answer is correct or incorrect"
+        "isCorrect": true/false,
+        "explanation": "explanation text here"
       }
-      Only return the JSON, no other text.
     `;
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': geminiApiKey,
+        'Authorization': `Bearer ${geminiApiKey}`,
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
     });
 
     if (!response.ok) {

@@ -67,14 +67,18 @@ const GeneratedLesson = () => {
 
   const updateProficiencyMutation = useMutation({
     mutationFn: async ({ subject, isCorrect }: { subject: string; isCorrect: boolean }) => {
+      if (!user?.id) throw new Error("User not authenticated");
+
+      // First try to get existing proficiency
       const { data: existing } = await supabase
         .from("subject_proficiency")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .eq("subject", subject)
-        .single();
+        .maybeSingle();
 
       if (existing) {
+        // Update existing record
         const newProficiency = isCorrect 
           ? Math.min(existing.proficiency_level + 1, 10)
           : Math.max(existing.proficiency_level - 1, 1);
@@ -85,22 +89,30 @@ const GeneratedLesson = () => {
             proficiency_level: newProficiency,
             total_questions_attempted: existing.total_questions_attempted + 1,
             correct_answers: existing.correct_answers + (isCorrect ? 1 : 0),
+            updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id);
       } else {
+        // Insert new record
         return supabase
           .from("subject_proficiency")
           .insert({
-            user_id: user?.id,
+            user_id: user.id,
             subject,
             proficiency_level: isCorrect ? 2 : 1,
             total_questions_attempted: 1,
             correct_answers: isCorrect ? 1 : 0,
-          });
+          })
+          .select()
+          .single();
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subject-proficiency"] });
+    },
+    onError: (error) => {
+      console.error("Error updating proficiency:", error);
+      toast.error("Failed to update proficiency level");
     },
   });
 
@@ -147,7 +159,7 @@ const GeneratedLesson = () => {
         questions.map(async (question, index) => {
           const userAnswer = answers[index]?.value || "";
           const startTime = answers[index]?.startTime || Date.now();
-          const responseTime = Math.round((Date.now() - startTime) / 1000); // Convert to seconds
+          const responseTime = Math.round((Date.now() - startTime) / 1000);
 
           const response = await supabase.functions.invoke("validateAnswers", {
             body: {

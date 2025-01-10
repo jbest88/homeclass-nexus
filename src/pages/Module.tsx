@@ -34,7 +34,7 @@ const Module = () => {
         .select("*")
         .eq("module_id", moduleId)
         .eq("user_id", user?.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== "PGRST116") throw error;
       return data;

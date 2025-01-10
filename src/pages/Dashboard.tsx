@@ -14,12 +14,6 @@ const Dashboard = () => {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [generatedPlans, setGeneratedPlans] = useState<Record<string, string>>({});
   const navigate = useNavigate();
-  
-  const learningPlan = [
-    { id: 1, subject: "Mathematics", progress: 75, nextTopic: "Calculus" },
-    { id: 2, subject: "Physics", progress: 60, nextTopic: "Mechanics" },
-    { id: 3, subject: "Chemistry", progress: 45, nextTopic: "Organic Chemistry" },
-  ];
 
   const upcomingAssignments = [
     { id: 1, title: "Math Quiz", due: "2024-03-20", subject: "Mathematics" },
@@ -67,13 +61,7 @@ const Dashboard = () => {
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <LearningProgress
-          learningPlan={learningPlan}
-          isGenerating={isGenerating}
-          selectedSubject={selectedSubject}
-          onGeneratePlan={handleGeneratePlan}
-          generatedPlans={generatedPlans}
-        />
+        <LearningProgress />
         <StudyStats />
         <UpcomingAssignments assignments={upcomingAssignments} />
       </div>

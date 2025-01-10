@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GraduationCap } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@supabase/auth-helpers-react";
 import SubjectProgress from "./SubjectProgress";
@@ -12,6 +12,7 @@ interface LearningProgressProps {
 
 const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const user = useUser();
+  const queryClient = useQueryClient();
 
   const { data: generatedLessons } = useQuery({
     queryKey: ["generated-lessons"],
@@ -29,6 +30,10 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     },
     enabled: !!user,
   });
+
+  const handleLessonDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ["generated-lessons"] });
+  };
 
   const subjectProgress = generatedLessons?.reduce((acc, lesson) => {
     if (!acc[lesson.subject]) {
@@ -69,6 +74,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
               completedModules={data.completedModules}
               modules={data.modules}
               isGenerating={isGenerating}
+              onLessonDeleted={handleLessonDeleted}
             />
           ))}
         </ScrollArea>

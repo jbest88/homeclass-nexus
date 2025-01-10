@@ -1,7 +1,10 @@
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface ModuleData {
   id: string;
@@ -15,6 +18,7 @@ interface SubjectProgressProps {
   completedModules: number;
   modules: ModuleData[];
   isGenerating: boolean;
+  onLessonDeleted: () => void;
 }
 
 const SubjectProgress = ({
@@ -23,8 +27,32 @@ const SubjectProgress = ({
   completedModules,
   modules,
   isGenerating,
+  onLessonDeleted,
 }: SubjectProgressProps) => {
   const navigate = useNavigate();
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
+
+  const handleDelete = async (lessonId: string) => {
+    if (deletingLessonId) return;
+    
+    try {
+      setDeletingLessonId(lessonId);
+      const { error } = await supabase
+        .from("generated_lessons")
+        .delete()
+        .eq("id", lessonId);
+
+      if (error) throw error;
+
+      toast.success("Lesson deleted successfully");
+      onLessonDeleted();
+    } catch (error) {
+      console.error("Error deleting lesson:", error);
+      toast.error("Failed to delete lesson");
+    } finally {
+      setDeletingLessonId(null);
+    }
+  };
 
   return (
     <div className="mb-8">
@@ -48,13 +76,23 @@ const SubjectProgress = ({
               <div className="w-2 h-2 bg-green-500 rounded-full" />
               <span className="text-sm">{module.title}</span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/generated-lesson/${module.id}`)}
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/generated-lesson/${module.id}`)}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDelete(module.id)}
+                disabled={deletingLessonId === module.id}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>

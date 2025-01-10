@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ReactMarkdown from "react-markdown";
 
 interface LessonContentProps {
   title: string;
@@ -8,18 +8,16 @@ interface LessonContentProps {
 
 export const LessonContent = ({ title, subject, content }: LessonContentProps) => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <div className="text-sm text-muted-foreground">
-          Subject: {subject}
+    <div className="mb-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">{title}</h1>
+        <div className="inline-block bg-primary/10 px-3 py-1 rounded-full text-sm font-medium text-primary">
+          {subject}
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="prose max-w-none">
-          <div className="whitespace-pre-wrap">{content}</div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="prose prose-slate max-w-none dark:prose-invert">
+        <ReactMarkdown>{content}</ReactMarkdown>
+      </div>
+    </div>
   );
 };

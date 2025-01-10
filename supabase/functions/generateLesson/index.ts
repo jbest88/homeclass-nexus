@@ -11,6 +11,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const formatContent = (content: string) => {
+  // Remove any potential markdown title since we handle it separately
+  const lines = content.split('\n');
+  let title = lines[0].replace(/^#*\s*/, '').trim();
+  let mainContent = lines.slice(1).join('\n').trim();
+
+  // Format headers properly
+  mainContent = mainContent.replace(/\*\*(.*?)\*\*/g, (_, text) => `### ${text}`);
+  
+  // Format lists properly
+  mainContent = mainContent.replace(/^\*\s/gm, '- ');
+  
+  // Add proper spacing around headers and sections
+  mainContent = mainContent.replace(/###/g, '\n###');
+  
+  // Clean up any double spaces or multiple newlines
+  mainContent = mainContent.replace(/\n{3,}/g, '\n\n');
+  
+  return { title, content: mainContent };
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -78,9 +99,10 @@ serve(async (req) => {
       throw new Error('Invalid lesson response format from Gemini API');
     }
 
-    const lessonContent = lessonData.candidates[0].content.parts[0].text;
+    const rawContent = lessonData.candidates[0].content.parts[0].text;
+    const { title, content } = formatContent(rawContent);
 
-    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+    const questionsPrompt = `Based on this lesson: "${content}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
     Include a mix of these question types:
     1. Multiple choice (1 question)
@@ -183,9 +205,6 @@ serve(async (req) => {
       console.log('Raw questions text:', questionsText);
       throw new Error('Failed to parse or validate questions JSON');
     }
-
-    const title = lessonContent.split('\n')[0].replace('#', '').trim();
-    const content = lessonContent.split('\n').slice(1).join('\n').trim();
 
     return new Response(
       JSON.stringify({

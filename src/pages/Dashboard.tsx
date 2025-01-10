@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -7,10 +7,29 @@ import LearningProgress from "@/components/dashboard/LearningProgress";
 import StudyStats from "@/components/dashboard/StudyStats";
 import UpcomingAssignments from "@/components/dashboard/UpcomingAssignments";
 import { useGenerateLesson } from "@/hooks/useGenerateLesson";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useState } from "react";
+
+const SUBJECTS = ["Mathematics", "Physics", "Chemistry", "Biology", "Computer Science"];
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isGenerating, handleGenerateLesson } = useGenerateLesson();
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -20,6 +39,16 @@ const Dashboard = () => {
       console.error('Error logging out:', error);
       toast.error('Error logging out');
     }
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedSubject) {
+      toast.error("Please select a subject");
+      return;
+    }
+    await handleGenerateLesson(selectedSubject);
+    setIsDialogOpen(false);
+    setSelectedSubject("");
   };
 
   const upcomingAssignments = [
@@ -32,21 +61,59 @@ const Dashboard = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-primary">Learning Dashboard</h1>
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </Button>
+        <div className="flex items-center gap-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Generate Lesson
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate New Lesson</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Select
+                    value={selectedSubject}
+                    onValueChange={setSelectedSubject}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUBJECTS.map((subject) => (
+                        <SelectItem key={subject} value={subject}>
+                          {subject}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !selectedSubject}
+                  className="w-full"
+                >
+                  {isGenerating ? "Generating..." : "Generate"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <LearningProgress 
-          onGenerateLesson={handleGenerateLesson} 
-          isGenerating={isGenerating} 
-        />
+        <LearningProgress isGenerating={isGenerating} />
         <StudyStats />
         <UpcomingAssignments assignments={upcomingAssignments} />
       </div>

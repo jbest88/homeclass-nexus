@@ -1,6 +1,6 @@
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface ModuleData {
@@ -14,7 +14,6 @@ interface SubjectProgressProps {
   totalModules: number;
   completedModules: number;
   modules: ModuleData[];
-  onGenerateLesson: (subject: string) => Promise<void>;
   isGenerating: boolean;
 }
 
@@ -23,7 +22,6 @@ const SubjectProgress = ({
   totalModules,
   completedModules,
   modules,
-  onGenerateLesson,
   isGenerating,
 }: SubjectProgressProps) => {
   const navigate = useNavigate();
@@ -32,20 +30,9 @@ const SubjectProgress = ({
     <div className="mb-8">
       <div className="flex justify-between items-center mb-2">
         <span className="font-medium">{subject}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            {completedModules} / {totalModules} lessons
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onGenerateLesson(subject)}
-            disabled={isGenerating}
-          >
-            <Plus className="h-4 w-4" />
-            Generate
-          </Button>
-        </div>
+        <span className="text-sm text-muted-foreground">
+          {completedModules} / {totalModules} lessons
+        </span>
       </div>
       <Progress
         value={(completedModules / totalModules) * 100}

@@ -7,11 +7,10 @@ import { useUser } from "@supabase/auth-helpers-react";
 import SubjectProgress from "./SubjectProgress";
 
 interface LearningProgressProps {
-  onGenerateLesson: (subject: string) => Promise<void>;
   isGenerating: boolean;
 }
 
-const LearningProgress = ({ onGenerateLesson, isGenerating }: LearningProgressProps) => {
+const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const user = useUser();
 
   const { data: generatedLessons } = useQuery({
@@ -44,7 +43,7 @@ const LearningProgress = ({ onGenerateLesson, isGenerating }: LearningProgressPr
     acc[lesson.subject].modules.push({
       id: lesson.id,
       title: lesson.title,
-      completed: true, // Generated lessons are considered completed since they can be reviewed
+      completed: true,
     });
 
     acc[lesson.subject].completedModules++;
@@ -69,7 +68,6 @@ const LearningProgress = ({ onGenerateLesson, isGenerating }: LearningProgressPr
               totalModules={data.totalModules}
               completedModules={data.completedModules}
               modules={data.modules}
-              onGenerateLesson={onGenerateLesson}
               isGenerating={isGenerating}
             />
           ))}

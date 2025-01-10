@@ -1,6 +1,9 @@
 import { TextQuestion } from "./question-types/TextQuestion";
 import { MultipleChoiceQuestion } from "./question-types/MultipleChoiceQuestion";
 import { MultipleAnswerQuestion } from "./question-types/MultipleAnswerQuestion";
+import { TrueFalseQuestion } from "./question-types/TrueFalseQuestion";
+import { SliderQuestion } from "./question-types/SliderQuestion";
+import { DropdownQuestion } from "./question-types/DropdownQuestion";
 import { Question, AnswerState } from "@/types/questions";
 
 interface QuestionComponentProps {
@@ -29,6 +32,9 @@ export const QuestionComponent = ({
       onChange: handleAnswerChange,
       disabled: isLocked,
       options: 'options' in question ? question.options : undefined,
+      min: 'min' in question ? question.min : undefined,
+      max: 'max' in question ? question.max : undefined,
+      step: 'step' in question ? question.step : undefined,
     };
 
     switch (question.type) {
@@ -36,6 +42,12 @@ export const QuestionComponent = ({
         return <MultipleChoiceQuestion {...props} />;
       case 'multiple-answer':
         return <MultipleAnswerQuestion {...props} />;
+      case 'true-false':
+        return <TrueFalseQuestion {...props} />;
+      case 'slider':
+        return <SliderQuestion {...props} />;
+      case 'dropdown':
+        return <DropdownQuestion {...props} />;
       default:
         return <TextQuestion {...props} />;
     }

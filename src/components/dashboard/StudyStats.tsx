@@ -40,6 +40,7 @@ const StudyStats = () => {
   const totalQuestions = questionResponses?.length || 0;
   const correctAnswers = questionResponses?.filter(r => r.is_correct)?.length || 0;
   const averageProficiency = proficiencyData?.reduce((acc, curr) => acc + curr.proficiency_level, 0) / (proficiencyData?.length || 1);
+  const maxProficiency = 10; // Maximum proficiency level
 
   return (
     <Card>
@@ -67,7 +68,9 @@ const StudyStats = () => {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">Average Proficiency</span>
-            <span className="text-2xl font-bold">{Math.round(averageProficiency)}</span>
+            <span className="text-2xl font-bold">
+              {Math.round(averageProficiency)}/{maxProficiency}
+            </span>
           </div>
         </div>
       </CardContent>

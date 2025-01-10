@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      generated_lessons: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          order_index: number
+          questions: Json
+          subject: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          order_index: number
+          questions: Json
+          subject: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          questions?: Json
+          subject?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learning_modules: {
         Row: {
           content: string

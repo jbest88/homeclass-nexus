@@ -2,13 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, ArrowRight } from "lucide-react";
+import { GraduationCap, ArrowRight, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useNavigate } from "react-router-dom";
 
-const LearningProgress = () => {
+interface LearningProgressProps {
+  onGenerateLesson: (subject: string) => Promise<void>;
+  isGenerating: boolean;
+}
+
+const LearningProgress = ({ onGenerateLesson, isGenerating }: LearningProgressProps) => {
   const user = useUser();
   const navigate = useNavigate();
 
@@ -81,9 +86,20 @@ const LearningProgress = () => {
             <div key={subject} className="mb-8">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">{subject}</span>
-                <span className="text-sm text-muted-foreground">
-                  {data.completedModules} / {data.totalModules} modules
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {data.completedModules} / {data.totalModules} modules
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onGenerateLesson(subject)}
+                    disabled={isGenerating}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Generate
+                  </Button>
+                </div>
               </div>
               <Progress
                 value={(data.completedModules / data.totalModules) * 100}

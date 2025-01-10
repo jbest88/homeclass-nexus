@@ -62,6 +62,9 @@ const Dashboard = () => {
       if (insertError) throw insertError;
 
       toast.success("New lesson generated successfully!");
+      
+      // Navigate to the new lesson
+      navigate(`/generated-lesson/${insertData.id}`);
     } catch (error) {
       console.error("Error generating lesson:", error);
       toast.error("Failed to generate lesson");

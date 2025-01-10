@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import SignUp from "./pages/SignUp";
 import Module from "./pages/Module";
+import GeneratedLesson from "./pages/GeneratedLesson";
 import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,16 @@ const App = () => {
                 element={
                   isAuthenticated ? (
                     <Module />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route
+                path="/generated-lesson/:lessonId"
+                element={
+                  isAuthenticated ? (
+                    <GeneratedLesson />
                   ) : (
                     <Navigate to="/" replace />
                   )

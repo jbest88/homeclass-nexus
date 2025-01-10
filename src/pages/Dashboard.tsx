@@ -7,6 +7,7 @@ import LearningProgress from "@/components/dashboard/LearningProgress";
 import StudyStats from "@/components/dashboard/StudyStats";
 import UpcomingAssignments from "@/components/dashboard/UpcomingAssignments";
 import { useGenerateLesson } from "@/hooks/useGenerateLesson";
+import { getSubjectsForGrade } from "@/utils/gradeSubjects";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import ProfileSettings from "@/components/profile/ProfileSettings";
-
-const SUBJECTS = ["Mathematics", "Physics", "Chemistry", "Biology", "Computer Science"];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -32,6 +32,26 @@ const Dashboard = () => {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Fetch user's grade level from profile
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("grade_level")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const subjects = getSubjectsForGrade(profile?.grade_level);
 
   const handleLogout = async () => {
     try {
@@ -85,7 +105,7 @@ const Dashboard = () => {
                       <SelectValue placeholder="Select a subject" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SUBJECTS.map((subject) => (
+                      {subjects.map((subject) => (
                         <SelectItem key={subject} value={subject}>
                           {subject}
                         </SelectItem>

@@ -4,15 +4,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, BookOpen, GraduationCap, Wand2 } from "lucide-react";
+import { CalendarDays, BookOpen, GraduationCap, Wand2, LogOut } from "lucide-react";
 import { useState } from "react";
 import { generateLearningPlan } from "@/lib/gemini";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [apiKey, setApiKey] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("");
+  const navigate = useNavigate();
   
   // Mock data - in a real app, this would come from your backend
   const learningPlan = [
@@ -47,9 +50,29 @@ const Dashboard = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast.error('Error logging out');
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-primary mb-8">Learning Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-primary">Learning Dashboard</h1>
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
+      </div>
       
       {/* API Key Input */}
       <Card className="mb-6">

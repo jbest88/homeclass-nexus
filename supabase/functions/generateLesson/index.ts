@@ -14,7 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    // Validate API key
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
@@ -49,8 +48,38 @@ serve(async (req) => {
 
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
-    // Generate questions about the lesson
-    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 multiple choice questions to test understanding. Return ONLY a JSON array with this structure, and nothing else: [{"question": "...", "options": ["...", "...", "...", "..."], "correctAnswer": "..."}]. Do not include any markdown formatting, just the raw JSON array.`;
+    // Generate questions with improved formatting
+    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 questions to test understanding. Include a mix of:
+    1. Multiple choice questions with 4 options
+    2. Multiple answer questions where more than one option is correct
+    3. Text questions requiring a written response
+    
+    Return ONLY a JSON array with this structure for each type:
+    
+    For multiple choice:
+    {
+      "question": "What is...?",
+      "type": "multiple-choice",
+      "options": ["option1", "option2", "option3", "option4"],
+      "answer": "correct option"
+    }
+    
+    For multiple answer:
+    {
+      "question": "Select all that apply...",
+      "type": "multiple-answer",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswers": ["correct1", "correct2"]
+    }
+    
+    For text questions:
+    {
+      "question": "Explain...",
+      "type": "text",
+      "answer": "expected answer"
+    }
+    
+    Return only the raw JSON array, no additional text or formatting.`;
     
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',

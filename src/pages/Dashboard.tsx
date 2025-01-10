@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button, Container, Row, Col, Modal, Form } from 'react-bootstrap';
 import { LogOut, Plus, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,32 +8,17 @@ import StudyStats from "@/components/dashboard/StudyStats";
 import UpcomingAssignments from "@/components/dashboard/UpcomingAssignments";
 import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { getSubjectsForGrade } from "@/utils/gradeSubjects";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import ProfileSettings from "@/components/profile/ProfileSettings";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import ProfileSettings from "@/components/profile/ProfileSettings";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isGenerating, handleGenerateLesson } = useGenerateLesson();
   const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
 
-  // Fetch user's grade level from profile
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -69,7 +54,7 @@ const Dashboard = () => {
       return;
     }
     await handleGenerateLesson(selectedSubject);
-    setIsDialogOpen(false);
+    setShowGenerateDialog(false);
     setSelectedSubject("");
   };
 
@@ -80,82 +65,78 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-primary">Learning Dashboard</h1>
-        <div className="flex items-center gap-4">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Generate Lesson
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Generate New Lesson</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Select
-                    value={selectedSubject}
-                    onValueChange={setSelectedSubject}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {subject}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !selectedSubject}
-                  className="w-full"
-                >
-                  {isGenerating ? "Generating..." : "Generate"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Profile Settings
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Profile Settings</DialogTitle>
-              </DialogHeader>
-              <ProfileSettings />
-            </DialogContent>
-          </Dialog>
-
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
+    <Container className="py-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h2 text-primary">Learning Dashboard</h1>
+        <div className="d-flex gap-3">
+          <Button variant="primary" onClick={() => setShowGenerateDialog(true)}>
+            <Plus className="me-2" size={16} />
+            Generate Lesson
+          </Button>
+          <Button variant="outline-secondary" onClick={() => setShowProfileDialog(true)}>
+            <Settings className="me-2" size={16} />
+            Profile Settings
+          </Button>
+          <Button variant="outline-secondary" onClick={handleLogout}>
+            <LogOut className="me-2" size={16} />
             Logout
           </Button>
         </div>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <LearningProgress isGenerating={isGenerating} />
-        <StudyStats />
-        <UpcomingAssignments assignments={upcomingAssignments} />
-      </div>
-    </div>
+      <Row className="g-4">
+        <Col md={6} lg={8}>
+          <LearningProgress isGenerating={isGenerating} />
+        </Col>
+        <Col md={6} lg={4}>
+          <StudyStats />
+        </Col>
+        <Col xs={12}>
+          <UpcomingAssignments assignments={upcomingAssignments} />
+        </Col>
+      </Row>
+
+      {/* Generate Lesson Modal */}
+      <Modal show={showGenerateDialog} onHide={() => setShowGenerateDialog(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Generate New Lesson</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group>
+            <Form.Select
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+            >
+              <option value="">Select a subject</option>
+              {subjects.map((subject) => (
+                <option key={subject} value={subject}>
+                  {subject}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="primary"
+            onClick={handleGenerate}
+            disabled={isGenerating || !selectedSubject}
+          >
+            {isGenerating ? "Generating..." : "Generate"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Profile Settings Modal */}
+      <Modal show={showProfileDialog} onHide={() => setShowProfileDialog(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Profile Settings</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <ProfileSettings />
+        </Modal.Body>
+      </Modal>
+    </Container>
   );
 };
 

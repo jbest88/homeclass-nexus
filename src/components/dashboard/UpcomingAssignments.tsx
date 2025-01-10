@@ -1,5 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, Table } from 'react-bootstrap';
 import { CalendarDays } from "lucide-react";
 
 interface Assignment {
@@ -15,33 +14,33 @@ interface UpcomingAssignmentsProps {
 
 const UpcomingAssignments = ({ assignments }: UpcomingAssignmentsProps) => {
   return (
-    <Card className="col-span-2 lg:col-span-3">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5" />
-          Upcoming Assignments
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Assignment</TableHead>
-              <TableHead>Subject</TableHead>
-              <TableHead>Due Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+    <Card>
+      <Card.Header>
+        <div className="d-flex align-items-center gap-2">
+          <CalendarDays size={20} />
+          <Card.Title className="mb-0">Upcoming Assignments</Card.Title>
+        </div>
+      </Card.Header>
+      <Card.Body>
+        <Table responsive>
+          <thead>
+            <tr>
+              <th>Assignment</th>
+              <th>Subject</th>
+              <th>Due Date</th>
+            </tr>
+          </thead>
+          <tbody>
             {assignments.map((assignment) => (
-              <TableRow key={assignment.id}>
-                <TableCell className="font-medium">{assignment.title}</TableCell>
-                <TableCell>{assignment.subject}</TableCell>
-                <TableCell>{new Date(assignment.due).toLocaleDateString()}</TableCell>
-              </TableRow>
+              <tr key={assignment.id}>
+                <td>{assignment.title}</td>
+                <td>{assignment.subject}</td>
+                <td>{new Date(assignment.due).toLocaleDateString()}</td>
+              </tr>
             ))}
-          </TableBody>
+          </tbody>
         </Table>
-      </CardContent>
+      </Card.Body>
     </Card>
   );
 };

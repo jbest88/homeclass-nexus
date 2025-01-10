@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from 'react-bootstrap';
 import { BookOpen } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,34 +43,34 @@ const StudyStats = () => {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5" />
-          Study Stats
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Questions Attempted</span>
-            <span className="text-2xl font-bold">{totalQuestions}</span>
+      <Card.Header>
+        <div className="d-flex align-items-center gap-2">
+          <BookOpen size={20} />
+          <Card.Title className="mb-0">Study Stats</Card.Title>
+        </div>
+      </Card.Header>
+      <Card.Body>
+        <div className="d-flex flex-column gap-4">
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="text-muted">Questions Attempted</span>
+            <span className="h3 mb-0">{totalQuestions}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Correct Answers</span>
-            <span className="text-2xl font-bold">{correctAnswers}</span>
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="text-muted">Correct Answers</span>
+            <span className="h3 mb-0">{correctAnswers}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Success Rate</span>
-            <span className="text-2xl font-bold">
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="text-muted">Success Rate</span>
+            <span className="h3 mb-0">
               {totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0}%
             </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Average Proficiency</span>
-            <span className="text-2xl font-bold">{Math.round(averageProficiency)}</span>
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="text-muted">Average Proficiency</span>
+            <span className="h3 mb-0">{Math.round(averageProficiency)}</span>
           </div>
         </div>
-      </CardContent>
+      </Card.Body>
     </Card>
   );
 };

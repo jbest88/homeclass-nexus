@@ -107,12 +107,32 @@ serve(async (req) => {
           throw new Error('Invalid answer format for multiple-answer question');
         }
 
+        // Sort and normalize both arrays for comparison
         const normalizedUserAnswers = userAnswer.map(a => String(a).trim()).sort();
         const normalizedCorrectAnswers = correctAnswers.map(a => String(a).trim()).sort();
 
-        isCorrect = 
-          normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
-          normalizedUserAnswers.every((answer, index) => answer === normalizedCorrectAnswers[index]);
+        console.log('Multiple answer validation:', {
+          normalizedUserAnswers,
+          normalizedCorrectAnswers,
+          userAnswerLength: normalizedUserAnswers.length,
+          correctAnswersLength: normalizedCorrectAnswers.length
+        });
+
+        // Special case: if "All of the above" is a correct answer and user selected all options
+        const hasAllOfTheAbove = correctAnswers.some(answer => 
+          answer.toLowerCase().includes('all of the above'));
+        
+        if (hasAllOfTheAbove) {
+          // Check if user selected all available options
+          const allOptionsSelected = normalizedUserAnswers.length === correctAnswers.length;
+          isCorrect = allOptionsSelected && 
+                     normalizedUserAnswers.every(answer => correctAnswers.includes(answer));
+        } else {
+          // Regular comparison for other cases
+          isCorrect = 
+            normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
+            normalizedUserAnswers.every((answer, index) => answer === normalizedCorrectAnswers[index]);
+        }
 
         explanation = isCorrect 
           ? 'All correct answers selected!' 

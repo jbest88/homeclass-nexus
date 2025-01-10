@@ -118,20 +118,30 @@ serve(async (req) => {
           correctAnswersLength: normalizedCorrectAnswers.length
         });
 
-        // Special case: if "All of the above" is a correct answer and user selected all options
-        const hasAllOfTheAbove = correctAnswers.some(answer => 
+        // Check if "All of the above" is present in the correct answers
+        const allOfTheAboveOption = correctAnswers.find(answer => 
           answer.toLowerCase().includes('all of the above'));
-        
-        if (hasAllOfTheAbove) {
-          // Check if user selected all available options
-          const allOptionsSelected = normalizedUserAnswers.length === correctAnswers.length;
-          isCorrect = allOptionsSelected && 
-                     normalizedUserAnswers.every(answer => correctAnswers.includes(answer));
+
+        if (allOfTheAboveOption) {
+          // For "All of the above" questions, user must select all options
+          const availableOptions = correctAnswers.filter(answer => 
+            !answer.toLowerCase().includes('all of the above'));
+          
+          // Check if user selected all available options or just the "All of the above" option
+          isCorrect = (
+            // Case 1: User selected "All of the above" option
+            (normalizedUserAnswers.length === 1 && 
+             normalizedUserAnswers[0].toLowerCase().includes('all of the above')) ||
+            // Case 2: User selected all individual options
+            (normalizedUserAnswers.length === availableOptions.length &&
+             availableOptions.every(option => 
+               normalizedUserAnswers.includes(option)))
+          );
         } else {
           // Regular comparison for other cases
           isCorrect = 
             normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
-            normalizedUserAnswers.every((answer, index) => answer === normalizedCorrectAnswers[index]);
+            normalizedUserAnswers.every(answer => normalizedCorrectAnswers.includes(answer));
         }
 
         explanation = isCorrect 

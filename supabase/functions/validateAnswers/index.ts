@@ -1,9 +1,11 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -13,12 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    const { question, userAnswer, correctAnswer, type, correctAnswers } = await req.json();
+    const { question, userAnswer, correctAnswer, type, correctAnswers, lessonContent } = await req.json();
     console.log('Validating answer:', { question, userAnswer, type, correctAnswer });
 
     // Handle different question types
@@ -51,14 +52,18 @@ serve(async (req) => {
 
     // For text answers, use Gemini API to check semantic meaning
     const prompt = `
+      Given this lesson content:
+      "${lessonContent}"
+
       Question: "${question}"
       Student's Answer: "${userAnswer}"
-      Correct Answer: "${correctAnswer}"
+      Expected Answer: "${correctAnswer}"
 
-      Evaluate if the student's answer is correct, considering semantic meaning rather than exact wording.
+      Based on the lesson content above, evaluate if the student's answer is semantically correct, even if it doesn't match the expected answer word-for-word. Consider the context from the lesson.
+
       Return a JSON object with:
-      1. "isCorrect": boolean indicating if the answer is correct
-      2. "explanation": string explaining why the answer is correct or incorrect
+      1. "isCorrect": boolean indicating if the answer demonstrates understanding based on the lesson content
+      2. "explanation": string explaining why the answer is correct or what key points from the lesson were missed
       
       Format the response as valid JSON.
     `;
@@ -70,7 +75,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${geminiApiKey}`,
+          'x-goog-api-key': geminiApiKey,
         },
         body: JSON.stringify({
           contents: [{

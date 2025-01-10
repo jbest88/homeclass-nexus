@@ -111,6 +111,7 @@ const GeneratedLesson = () => {
               userAnswer,
               correctAnswer: question.answer,
               type: question.type,
+              lessonContent: lesson.content,
               ...(question.type === 'multiple-answer' && { correctAnswers: question.correctAnswers }),
             },
           });

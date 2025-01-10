@@ -34,7 +34,7 @@ const SubjectProgress = ({
         <span className="font-medium">{subject}</span>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            {completedModules} / {totalModules} modules
+            {completedModules} / {totalModules} lessons
           </span>
           <Button
             variant="outline"
@@ -58,15 +58,13 @@ const SubjectProgress = ({
             className="flex items-center justify-between bg-muted/50 p-3 rounded-lg"
           >
             <div className="flex items-center gap-2">
-              {module.completed && (
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-              )}
+              <div className="w-2 h-2 bg-green-500 rounded-full" />
               <span className="text-sm">{module.title}</span>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/module/${module.id}`)}
+              onClick={() => navigate(`/generated-lesson/${module.id}`)}
             >
               <ArrowRight className="h-4 w-4" />
             </Button>

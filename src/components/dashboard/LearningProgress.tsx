@@ -14,28 +14,16 @@ interface LearningProgressProps {
 const LearningProgress = ({ onGenerateLesson, isGenerating }: LearningProgressProps) => {
   const user = useUser();
 
-  const { data: modules } = useQuery({
-    queryKey: ["learning-modules"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("learning_modules")
-        .select("*")
-        .order("subject")
-        .order("order_index");
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: progress } = useQuery({
-    queryKey: ["module-progress"],
+  const { data: generatedLessons } = useQuery({
+    queryKey: ["generated-lessons"],
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
-        .from("module_progress")
+        .from("generated_lessons")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .order("subject")
+        .order("order_index");
 
       if (error) throw error;
       return data;
@@ -43,28 +31,23 @@ const LearningProgress = ({ onGenerateLesson, isGenerating }: LearningProgressPr
     enabled: !!user,
   });
 
-  const subjectProgress = modules?.reduce((acc, module) => {
-    if (!acc[module.subject]) {
-      acc[module.subject] = {
+  const subjectProgress = generatedLessons?.reduce((acc, lesson) => {
+    if (!acc[lesson.subject]) {
+      acc[lesson.subject] = {
         totalModules: 0,
         completedModules: 0,
         modules: [],
       };
     }
 
-    acc[module.subject].totalModules++;
-    acc[module.subject].modules.push({
-      ...module,
-      completed: progress?.some(
-        (p) => p.module_id === module.id && p.completed_at
-      ),
+    acc[lesson.subject].totalModules++;
+    acc[lesson.subject].modules.push({
+      id: lesson.id,
+      title: lesson.title,
+      completed: true, // Generated lessons are considered completed since they can be reviewed
     });
 
-    if (
-      progress?.some((p) => p.module_id === module.id && p.completed_at)
-    ) {
-      acc[module.subject].completedModules++;
-    }
+    acc[lesson.subject].completedModules++;
 
     return acc;
   }, {} as Record<string, { totalModules: number; completedModules: number; modules: any[] }>);

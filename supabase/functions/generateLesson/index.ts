@@ -45,19 +45,16 @@ serve(async (req) => {
       throw new Error('Failed to fetch user profile');
     }
 
-    const gradeLevel = profileResult.data.grade_level ?? 5; // Default to 5th grade if not set
+    const gradeLevel = profileResult.data.grade_level ?? 5;
     const gradeLevelText = gradeLevel === 0 ? 'Kindergarten' : `${gradeLevel}th grade`;
     
-    // Get proficiency level (1-10) or default to 1
     const proficiencyLevel = proficiencyResult.data?.proficiency_level || 1;
     console.log('Current proficiency level:', proficiencyLevel);
 
-    // Adjust difficulty based on proficiency
     const difficultyLevel = proficiencyLevel <= 3 ? 'basic' : 
                           proficiencyLevel <= 6 ? 'intermediate' : 
                           'advanced';
 
-    // Generate lesson content with grade level and proficiency consideration
     const lessonPrompt = `Create an educational lesson about ${subject} appropriate for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
     The lesson should be comprehensive but concise, focusing on key concepts that are grade-appropriate. 
     Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.
@@ -89,13 +86,16 @@ serve(async (req) => {
 
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
-    // Generate questions with difficulty adjustment
-    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). Include a mix of:
-    1. Multiple choice questions with 4 options (adjusted for ${difficultyLevel} level)
-    2. Multiple answer questions where more than one option is correct (adjusted for ${difficultyLevel} level)
-    3. Text questions requiring a written response (adjusted for ${difficultyLevel} level)
+    // Updated questions prompt to generate exactly 5 questions with no text input
+    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
     
-    Return ONLY a JSON array with this structure for each type:
+    Include a mix of:
+    1. Multiple choice questions with 4 options (3 questions)
+    2. Multiple answer questions where more than one option is correct (2 questions)
+    
+    DO NOT include any text/open-ended questions.
+    
+    Return ONLY a JSON array with this structure:
     
     For multiple choice:
     {
@@ -113,14 +113,7 @@ serve(async (req) => {
       "correctAnswers": ["correct1", "correct2"]
     }
     
-    For text questions:
-    {
-      "question": "Explain...",
-      "type": "text",
-      "answer": "expected answer"
-    }
-    
-    Return only the raw JSON array, no additional text or formatting.`;
+    Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
     
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
@@ -148,17 +141,29 @@ serve(async (req) => {
 
     const questionsText = questionsData.candidates[0].content.parts[0].text;
     
-    // Clean up the response to ensure it's valid JSON
     const cleanedQuestionsText = questionsText.replace(/```json\n|\n```/g, '').trim();
     console.log('Cleaned questions text:', cleanedQuestionsText);
     
     let questions;
     try {
       questions = JSON.parse(cleanedQuestionsText);
+      
+      // Validate we have exactly 5 questions and they're of the correct types
+      if (!Array.isArray(questions) || questions.length !== 5) {
+        throw new Error('Generated questions must be an array of exactly 5 questions');
+      }
+      
+      const multipleChoiceCount = questions.filter(q => q.type === 'multiple-choice').length;
+      const multipleAnswerCount = questions.filter(q => q.type === 'multiple-answer').length;
+      
+      if (multipleChoiceCount !== 3 || multipleAnswerCount !== 2) {
+        throw new Error('Invalid question distribution. Expected 3 multiple-choice and 2 multiple-answer questions.');
+      }
+      
     } catch (error) {
-      console.error('Error parsing questions JSON:', error);
+      console.error('Error parsing or validating questions:', error);
       console.log('Raw questions text:', questionsText);
-      throw new Error('Failed to parse questions JSON');
+      throw new Error('Failed to parse or validate questions JSON');
     }
 
     // Extract title from content (assuming it's the first line)

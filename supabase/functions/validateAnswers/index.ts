@@ -25,7 +25,9 @@ const normalizeText = (text: string): string => {
 
 // Utility function to check if a string indicates "all of the above"
 const isAllOfTheAbove = (text: string): boolean => {
-  return normalizeText(text).includes('all of the above');
+  const normalizedText = normalizeText(text);
+  return normalizedText.includes('all of the above') || 
+         normalizedText.includes('all the above');
 };
 
 // Utility function to evaluate mathematical expressions
@@ -97,8 +99,9 @@ const validateMultipleAnswer = (
 ): ValidationResult => {
   console.log('Validating multiple answer:', { userAnswers, correctAnswers });
   
-  const normalizedUserAnswers = userAnswers.map(normalizeText).sort();
-  const normalizedCorrectAnswers = correctAnswers.map(normalizeText).sort();
+  // Normalize all answers for comparison
+  const normalizedUserAnswers = userAnswers.map(normalizeText);
+  const normalizedCorrectAnswers = correctAnswers.map(normalizeText);
   
   // Check if "All of the above" is among the correct answers
   const hasAllOfTheAbove = correctAnswers.some(isAllOfTheAbove);
@@ -107,17 +110,17 @@ const validateMultipleAnswer = (
   
   if (hasAllOfTheAbove) {
     // Case 1: User selected "All of the above"
-    if (userAnswers.length === 1 && isAllOfTheAbove(userAnswers[0])) {
-      isCorrect = true;
-    }
+    const userSelectedAllOfTheAbove = normalizedUserAnswers.some(isAllOfTheAbove);
+    
     // Case 2: User selected all individual options (excluding "All of the above")
-    else {
-      const individualOptions = correctAnswers.filter(answer => !isAllOfTheAbove(answer));
-      isCorrect = userAnswers.length === individualOptions.length &&
-                 individualOptions.every(option => 
-                   userAnswers.some(userAns => normalizeText(userAns) === normalizeText(option))
-                 );
-    }
+    const individualOptions = correctAnswers.filter(answer => !isAllOfTheAbove(answer));
+    const selectedAllIndividualOptions = 
+      normalizedUserAnswers.length === individualOptions.length &&
+      individualOptions.every(option => 
+        normalizedUserAnswers.includes(normalizeText(option))
+      );
+    
+    isCorrect = userSelectedAllOfTheAbove || selectedAllIndividualOptions;
   } else {
     // Regular multiple answer validation
     isCorrect = normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
@@ -181,19 +184,25 @@ serve(async (req) => {
 
     switch (type) {
       case 'multiple-choice':
-        if (!correctAnswer) throw new Error('Correct answer is required for multiple choice questions');
+        if (!correctAnswer) {
+          throw new Error('Correct answer is required for multiple choice questions');
+        }
         result = validateMultipleChoice(userAnswer as string, correctAnswer, question);
         break;
 
       case 'multiple-answer':
-        if (!Array.isArray(userAnswer) || !Array.isArray(correctAnswers)) {
-          throw new Error('Invalid answer format for multiple-answer question');
+        if (!Array.isArray(correctAnswers)) {
+          throw new Error('Correct answers array is required for multiple-answer questions');
         }
-        result = validateMultipleAnswer(userAnswer, correctAnswers);
+        // Ensure userAnswer is always treated as an array for multiple-answer questions
+        const userAnswerArray = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
+        result = validateMultipleAnswer(userAnswerArray, correctAnswers);
         break;
 
       case 'text':
-        if (!correctAnswer) throw new Error('Correct answer is required for text questions');
+        if (!correctAnswer) {
+          throw new Error('Correct answer is required for text questions');
+        }
         result = validateText(userAnswer as string, correctAnswer, question);
         break;
 

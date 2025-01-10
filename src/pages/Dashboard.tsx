@@ -12,9 +12,9 @@ import UpcomingAssignments from "@/components/dashboard/UpcomingAssignments";
 const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("");
+  const [generatedPlans, setGeneratedPlans] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   
-  // Mock data - in a real app, this would come from your backend
   const learningPlan = [
     { id: 1, subject: "Mathematics", progress: 75, nextTopic: "Calculus" },
     { id: 2, subject: "Physics", progress: 60, nextTopic: "Mechanics" },
@@ -32,12 +32,13 @@ const Dashboard = () => {
       setIsGenerating(true);
       setSelectedSubject(subject);
       const plan = await generateLearningPlan(subject);
+      setGeneratedPlans(prev => ({ ...prev, [subject]: plan }));
       toast.success(`Generated learning plan for ${subject}`);
-      console.log("Generated plan:", plan);
     } catch (error) {
       console.error("Error:", error);
     } finally {
       setIsGenerating(false);
+      setSelectedSubject("");
     }
   };
 
@@ -71,6 +72,7 @@ const Dashboard = () => {
           isGenerating={isGenerating}
           selectedSubject={selectedSubject}
           onGeneratePlan={handleGeneratePlan}
+          generatedPlans={generatedPlans}
         />
         <StudyStats />
         <UpcomingAssignments assignments={upcomingAssignments} />

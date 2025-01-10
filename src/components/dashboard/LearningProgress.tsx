@@ -14,6 +14,7 @@ interface LearningProgressProps {
   }>;
   isGenerating: boolean;
   selectedSubject: string;
+  generatedPlans: Record<string, string>;
   onGeneratePlan: (subject: string) => void;
 }
 
@@ -21,6 +22,7 @@ const LearningProgress = ({
   learningPlan,
   isGenerating,
   selectedSubject,
+  generatedPlans,
   onGeneratePlan,
 }: LearningProgressProps) => {
   const handleGenerateClick = async (subject: string) => {
@@ -41,9 +43,9 @@ const LearningProgress = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] pr-4">
+        <ScrollArea className="h-[500px] pr-4">
           {learningPlan.map((subject) => (
-            <div key={subject.id} className="mb-6">
+            <div key={subject.id} className="mb-8">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">{subject.subject}</span>
                 <Button
@@ -66,6 +68,14 @@ const LearningProgress = ({
               <p className="text-sm text-muted-foreground mt-2">
                 Next topic: {subject.nextTopic}
               </p>
+              {generatedPlans[subject.subject] && (
+                <div className="mt-4 p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">Generated Learning Plan:</h4>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {generatedPlans[subject.subject]}
+                  </p>
+                </div>
+              )}
             </div>
           ))}
         </ScrollArea>

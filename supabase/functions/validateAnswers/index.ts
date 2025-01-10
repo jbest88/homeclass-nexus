@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -52,20 +51,26 @@ serve(async (req) => {
 
     // For text answers, use Gemini API to check semantic meaning
     const prompt = `
-      Given this lesson content:
+      You are an educational answer validator. Your task is to evaluate if a student's answer demonstrates understanding of the concept based on the lesson content provided.
+
+      Lesson Content:
       "${lessonContent}"
 
       Question: "${question}"
       Student's Answer: "${userAnswer}"
       Expected Answer: "${correctAnswer}"
 
-      Based on the lesson content above, evaluate if the student's answer is semantically correct, even if it doesn't match the expected answer word-for-word. Consider the context from the lesson.
+      Important Guidelines:
+      1. The student's answer should be considered correct if it demonstrates understanding of the concept, even if the wording is different.
+      2. Look for key concepts from the lesson content that match between the student's answer and the expected answer.
+      3. Be lenient with minor differences in wording or phrasing.
+      4. Focus on the core meaning and understanding rather than exact matches.
 
-      Return a JSON object with:
-      1. "isCorrect": boolean indicating if the answer demonstrates understanding based on the lesson content
-      2. "explanation": string explaining why the answer is correct or what key points from the lesson were missed
-      
-      Format the response as valid JSON.
+      Return ONLY a JSON object with these exact fields:
+      {
+        "isCorrect": boolean (true if the answer demonstrates understanding),
+        "explanation": string (if correct: praise the answer, if incorrect: explain what was missing or incorrect)
+      }
     `;
 
     console.log('Sending prompt to Gemini:', prompt);
@@ -109,7 +114,6 @@ serve(async (req) => {
       );
     } catch (geminiError) {
       console.error('Error with Gemini API:', geminiError);
-      // Return a more graceful response for Gemini API errors
       return new Response(
         JSON.stringify({
           isCorrect: false,

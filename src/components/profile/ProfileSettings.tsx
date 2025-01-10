@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,10 +13,8 @@ const ProfileSettings = () => {
   const [month, setMonth] = useState<string>("");
   const [day, setDay] = useState<string>("");
   const [year, setYear] = useState<string>("");
-  const [country, setCountry] = useState<string>("");
-  const [stateProvince, setStateProvince] = useState<string>("");
-  const [city, setCity] = useState<string>("");
 
+  // Fetch or create profile on component mount
   useEffect(() => {
     const fetchOrCreateProfile = async () => {
       if (!user) return;
@@ -25,14 +22,16 @@ const ProfileSettings = () => {
       try {
         setIsLoading(true);
         
+        // Try to fetch existing profile
         const { data: profile, error } = await supabase
           .from("profiles")
-          .select("birthday, grade_level, country, state_province, city")
+          .select("birthday, grade_level")
           .eq("id", user.id)
           .maybeSingle();
 
         if (error) throw error;
 
+        // If no profile exists, create one
         if (!profile) {
           const { error: insertError } = await supabase
             .from("profiles")
@@ -45,6 +44,7 @@ const ProfileSettings = () => {
           return;
         }
 
+        // Profile exists, set the data
         if (profile.birthday) {
           const date = new Date(profile.birthday);
           setBirthday(date);
@@ -55,9 +55,6 @@ const ProfileSettings = () => {
         if (profile.grade_level !== null) {
           setGradeLevel(profile.grade_level);
         }
-        setCountry(profile.country || "");
-        setStateProvince(profile.state_province || "");
-        setCity(profile.city || "");
       } catch (error) {
         console.error("Error fetching/creating profile:", error);
         toast.error("Failed to load profile settings");
@@ -78,6 +75,7 @@ const ProfileSettings = () => {
     try {
       const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       
+      // Validate the date is valid
       if (isNaN(date.getTime())) {
         toast.error("Invalid date selected");
         return;
@@ -87,9 +85,6 @@ const ProfileSettings = () => {
         .from("profiles")
         .update({
           birthday: date.toISOString().split('T')[0],
-          country,
-          state_province: stateProvince,
-          city,
         })
         .eq("id", user.id);
 
@@ -107,6 +102,7 @@ const ProfileSettings = () => {
     return <div>Loading profile settings...</div>;
   }
 
+  // Generate arrays for the dropdowns
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: (i + 1).toString(),
     label: new Date(2000, i, 1).toLocaleString('default', { month: 'long' })
@@ -166,27 +162,6 @@ const ProfileSettings = () => {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <label className="block text-sm font-medium mb-1">Location</label>
-        <div className="space-y-2">
-          <Input
-            placeholder="Country"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-          />
-          <Input
-            placeholder="State/Province"
-            value={stateProvince}
-            onChange={(e) => setStateProvince(e.target.value)}
-          />
-          <Input
-            placeholder="City"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-          />
         </div>
       </div>
 

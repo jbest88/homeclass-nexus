@@ -24,11 +24,10 @@ serve(async (req) => {
     const { subject, userId } = await req.json();
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    // Fetch both profile and proficiency data
     const [profileResult, proficiencyResult] = await Promise.all([
       supabase
         .from('profiles')
-        .select('grade_level, country, state_province, city')
+        .select('grade_level')
         .eq('id', userId)
         .single(),
       supabase
@@ -43,34 +42,14 @@ serve(async (req) => {
       throw new Error('Failed to fetch user profile');
     }
 
-    const { grade_level: gradeLevel, country, state_province, city } = profileResult.data;
+    const gradeLevel = profileResult.data.grade_level ?? 5;
     const gradeLevelText = gradeLevel === 0 ? 'Kindergarten' : `${gradeLevel}th grade`;
     const proficiencyLevel = proficiencyResult.data?.proficiency_level || 1;
     const difficultyLevel = proficiencyLevel <= 3 ? 'basic' : 
                           proficiencyLevel <= 6 ? 'intermediate' : 
                           'advanced';
 
-    // Get current date
-    const currentDate = new Date();
-    const formattedDate = currentDate.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric'
-    });
-
-    // Build location context
-    const locationContext = [city, state_province, country]
-      .filter(Boolean)
-      .join(', ');
-    
-    const locationPrompt = locationContext ? 
-      `Consider that the student is located in ${locationContext}. Incorporate relevant local context, seasonal activities, and regional curriculum standards where appropriate.` : 
-      '';
-
-    const datePrompt = `Consider that today's date is ${formattedDate}. Include seasonal and timely examples where relevant.`;
-
     const lessonPrompt = `Create an educational lesson about ${subject} appropriate for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
-    ${locationPrompt}
-    ${datePrompt}
     The lesson should be comprehensive but concise, focusing on key concepts that are grade-appropriate. 
     Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.
     Make the content slightly more challenging than their current level to promote growth.`;

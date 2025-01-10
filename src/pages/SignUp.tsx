@@ -4,50 +4,56 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const getErrorMessage = (error: AuthError) => {
+    if (error instanceof AuthApiError) {
+      switch (error.code) {
+        case 'user_already_registered':
+          return "An account with this email already exists. Please sign in instead.";
+        case 'invalid_email':
+          return "Please enter a valid email address.";
+        case 'weak_password':
+          return "Password is too weak. Please use a stronger password.";
+        default:
+          return error.message;
+      }
+    }
+    return "An unexpected error occurred. Please try again.";
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (password !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Passwords do not match",
-      });
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const { error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: email.trim(),
+        password: password,
       });
 
       if (error) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message,
+          description: getErrorMessage(error),
         });
       } else {
         toast({
           title: "Success",
-          description: "Check your email to confirm your account!",
+          description: "Account created successfully! Please check your email for confirmation.",
         });
         navigate("/");
       }
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("SignUp error:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -60,13 +66,13 @@ const SignUp = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F1F0FB]">
-      <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-lg shadow-lg animate-fade-in">
+      <div className="w-full max-w-md space-y-8 p-8 bg-white rounded-lg shadow-lg">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2C]">
-            Create Account
+            Create an Account
           </h1>
           <p className="text-sm text-gray-500">
-            Sign up to get started with your new account
+            Sign up to get started
           </p>
         </div>
 
@@ -81,7 +87,7 @@ const SignUp = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder="dev@example.com"
                 required
                 className="w-full"
               />
@@ -101,21 +107,6 @@ const SignUp = () => {
                 className="w-full"
               />
             </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#1A1F2C] mb-1">
-                Confirm Password
-              </label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                required
-                className="w-full"
-              />
-            </div>
           </div>
 
           <Button
@@ -123,7 +114,7 @@ const SignUp = () => {
             className="w-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white transition-colors"
             disabled={isLoading}
           >
-            {isLoading ? "Creating account..." : "Create account"}
+            {isLoading ? "Creating account..." : "Sign up"}
           </Button>
 
           <div className="text-center">

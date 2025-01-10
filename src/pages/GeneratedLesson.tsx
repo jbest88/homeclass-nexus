@@ -4,6 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import { Database } from "@/integrations/supabase/types";
+
+type Question = {
+  question: string;
+  answer: string;
+};
+
+type Lesson = Database['public']['Tables']['generated_lessons']['Row'];
 
 const GeneratedLesson = () => {
   const { lessonId } = useParams();
@@ -31,6 +39,10 @@ const GeneratedLesson = () => {
     return <div>Lesson not found</div>;
   }
 
+  // Type guard to check if questions is an array
+  const hasQuestions = Array.isArray(lesson.questions);
+  const questions = hasQuestions ? lesson.questions as Question[] : [];
+
   return (
     <div className="container mx-auto p-6">
       <Button
@@ -54,11 +66,11 @@ const GeneratedLesson = () => {
             <div className="whitespace-pre-wrap">{lesson.content}</div>
           </div>
 
-          {lesson.questions && (
+          {hasQuestions && questions.length > 0 && (
             <div className="mt-8">
               <h3 className="text-lg font-semibold mb-4">Practice Questions</h3>
               <div className="space-y-4">
-                {lesson.questions.map((question: any, index: number) => (
+                {questions.map((question, index) => (
                   <div key={index} className="p-4 bg-muted rounded-lg">
                     <p className="font-medium mb-2">Q: {question.question}</p>
                     <p className="text-muted-foreground">A: {question.answer}</p>

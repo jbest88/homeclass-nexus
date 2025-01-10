@@ -15,6 +15,11 @@ serve(async (req) => {
   }
 
   try {
+    if (!geminiApiKey) {
+      console.error('GEMINI_API_KEY is not set');
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
+
     const { subject } = await req.json();
     console.log('Generating learning plan for subject:', subject);
 
@@ -35,11 +40,18 @@ serve(async (req) => {
       })
     });
 
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Gemini API error:', errorData);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    }
+
     const data = await response.json();
-    console.log('Gemini API response:', data);
+    console.log('Gemini API response received');
 
     if (!data.candidates || data.candidates.length === 0) {
-      throw new Error('No response from Gemini API');
+      console.error('Invalid response format from Gemini API:', data);
+      throw new Error('Invalid response format from Gemini API');
     }
 
     return new Response(JSON.stringify(data), {
@@ -47,9 +59,11 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in generateLearningPlan function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message || 'Internal server error' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

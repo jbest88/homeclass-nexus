@@ -13,23 +13,28 @@ interface GeminiResponse {
 
 export const generateLearningPlan = async (subject: string): Promise<string> => {
   try {
+    console.log('Calling generateLearningPlan function for subject:', subject);
+    
     const { data, error } = await supabase.functions.invoke<GeminiResponse>('generateLearningPlan', {
       body: { subject }
     });
 
     if (error) {
       console.error('Supabase function error:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to generate learning plan');
     }
 
     if (!data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Invalid response format:', data);
       throw new Error('Invalid response format from Gemini API');
     }
 
+    console.log('Successfully generated learning plan');
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error("Error generating learning plan:", error);
-    toast.error("Failed to generate learning plan. Please try again.");
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate learning plan';
+    toast.error(errorMessage);
     throw error;
   }
 };

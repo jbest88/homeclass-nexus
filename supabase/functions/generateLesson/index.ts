@@ -14,6 +14,11 @@ serve(async (req) => {
   }
 
   try {
+    // Validate API key
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY is not configured');
+    }
+
     const { subject } = await req.json();
 
     // Generate lesson content
@@ -29,7 +34,19 @@ serve(async (req) => {
       }),
     });
 
+    if (!lessonResponse.ok) {
+      const errorData = await lessonResponse.text();
+      console.error('Lesson generation failed:', errorData);
+      throw new Error(`Lesson generation failed: ${errorData}`);
+    }
+
     const lessonData = await lessonResponse.json();
+    
+    if (!lessonData.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Unexpected lesson response format:', lessonData);
+      throw new Error('Invalid lesson response format from Gemini API');
+    }
+
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
     // Generate questions about the lesson
@@ -46,7 +63,19 @@ serve(async (req) => {
       }),
     });
 
+    if (!questionsResponse.ok) {
+      const errorData = await questionsResponse.text();
+      console.error('Questions generation failed:', errorData);
+      throw new Error(`Questions generation failed: ${errorData}`);
+    }
+
     const questionsData = await questionsResponse.json();
+    
+    if (!questionsData.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Unexpected questions response format:', questionsData);
+      throw new Error('Invalid questions response format from Gemini API');
+    }
+
     const questionsText = questionsData.candidates[0].content.parts[0].text;
     
     // Clean up the response to ensure it's valid JSON
@@ -79,7 +108,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generateLesson function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

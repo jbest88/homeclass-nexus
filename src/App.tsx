@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
-const App = () => {
+function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -28,9 +28,9 @@ const App = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionContextProvider supabaseClient={supabase}>
-        <BrowserRouter>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <SessionContextProvider supabaseClient={supabase}>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -87,10 +87,10 @@ const App = () => {
               />
             </Routes>
           </TooltipProvider>
-        </BrowserRouter>
-      </SessionContextProvider>
-    </QueryClientProvider>
+        </SessionContextProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
   );
-};
+}
 
 export default App;

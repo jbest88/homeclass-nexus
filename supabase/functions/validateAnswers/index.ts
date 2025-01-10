@@ -20,23 +20,65 @@ serve(async (req) => {
 
   try {
     const { question, userAnswer, correctAnswer, correctAnswers, type } = await req.json() as ValidationRequest;
-    console.log('Validating answer:', { question, userAnswer, correctAnswer, correctAnswers, type });
+    
+    console.log('Validating answer for question:', {
+      question,
+      userAnswer,
+      correctAnswer,
+      correctAnswers,
+      type
+    });
 
     let isCorrect = false;
     let explanation = '';
 
+    const evaluateMathExpression = (expr: string): number => {
+      // Basic math expression evaluator
+      try {
+        // Remove spaces and evaluate basic operations
+        const sanitizedExpr = expr.replace(/\s+/g, '')
+          .replace(/(\d+)²/g, '($1 * $1)')  // Handle square
+          .replace(/(\d+)¹/g, '$1');        // Handle first power
+        
+        // Use Function constructor to safely evaluate the expression
+        return new Function(`return ${sanitizedExpr}`)();
+      } catch (error) {
+        console.error('Error evaluating math expression:', error);
+        return NaN;
+      }
+    };
+
     switch (type) {
       case 'multiple-choice': {
-        // For multiple choice, do a strict comparison with the correct answer
         const normalizedUserAnswer = String(userAnswer).trim();
         const normalizedCorrectAnswer = String(correctAnswer).trim();
-        isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+
+        // Check if this is a math question by looking for mathematical symbols
+        const isMathQuestion = /[²¹\+\-\*\/\^]/.test(question);
         
-        // Log the comparison details
-        console.log('Multiple choice comparison:', {
-          normalizedUserAnswer,
-          normalizedCorrectAnswer,
-          isCorrect
+        if (isMathQuestion) {
+          console.log('Detected math question:', question);
+          
+          // For math questions, evaluate both answers numerically
+          const userValue = evaluateMathExpression(normalizedUserAnswer);
+          const correctValue = evaluateMathExpression(normalizedCorrectAnswer);
+          
+          console.log('Math evaluation:', {
+            userValue,
+            correctValue,
+            userAnswer: normalizedUserAnswer,
+            correctAnswer: normalizedCorrectAnswer
+          });
+          
+          isCorrect = !isNaN(userValue) && !isNaN(correctValue) && userValue === correctValue;
+        } else {
+          // For non-math questions, do a direct string comparison
+          isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+        }
+
+        console.log('Multiple choice comparison result:', {
+          isCorrect,
+          isMathQuestion
         });
 
         explanation = isCorrect 
@@ -50,11 +92,9 @@ serve(async (req) => {
           throw new Error('Invalid answer format for multiple-answer question');
         }
 
-        // For multiple answer, check if all selected answers match the correct ones exactly
         const normalizedUserAnswers = userAnswer.map(a => String(a).trim()).sort();
         const normalizedCorrectAnswers = correctAnswers.map(a => String(a).trim()).sort();
 
-        // Log the arrays being compared
         console.log('Multiple answer comparison:', {
           normalizedUserAnswers,
           normalizedCorrectAnswers
@@ -71,17 +111,25 @@ serve(async (req) => {
       }
 
       case 'text': {
-        // For text answers, do a case-insensitive comparison after trimming
         const normalizedUserAnswer = String(userAnswer).toLowerCase().trim();
         const normalizedCorrectAnswer = String(correctAnswer).toLowerCase().trim();
         
-        isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+        // Check if this is a math question
+        const isMathQuestion = /[²¹\+\-\*\/\^]/.test(question);
+        
+        if (isMathQuestion) {
+          const userValue = evaluateMathExpression(normalizedUserAnswer);
+          const correctValue = evaluateMathExpression(normalizedCorrectAnswer);
+          isCorrect = !isNaN(userValue) && !isNaN(correctValue) && userValue === correctValue;
+        } else {
+          isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+        }
 
-        // Log the text comparison
         console.log('Text answer comparison:', {
           normalizedUserAnswer,
           normalizedCorrectAnswer,
-          isCorrect
+          isCorrect,
+          isMathQuestion
         });
 
         explanation = isCorrect 
@@ -93,8 +141,6 @@ serve(async (req) => {
       default:
         throw new Error(`Unsupported question type: ${type}`);
     }
-
-    console.log('Validation result:', { isCorrect, explanation });
 
     return new Response(
       JSON.stringify({ isCorrect, explanation }),

@@ -2,15 +2,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Trash2 } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { LessonHeader } from "@/components/lesson/LessonHeader";
+import { LessonContent } from "@/components/lesson/LessonContent";
+import { QuestionComponent } from "@/components/lesson/QuestionComponent";
+import { Database } from "@/integrations/supabase/types";
 
 type BaseQuestion = {
   question: string;
@@ -86,36 +83,11 @@ const GeneratedLesson = () => {
     }
   };
 
-  const handleTextAnswerChange = (index: number, value: string) => {
+  const handleAnswerChange = (index: number, value: string | string[]) => {
     setAnswers(prev => ({
       ...prev,
       [index]: { value }
     }));
-  };
-
-  const handleMultipleChoiceChange = (index: number, value: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [index]: { value }
-    }));
-  };
-
-  const handleMultipleAnswerChange = (index: number, value: string, checked: boolean) => {
-    setAnswers(prev => {
-      const currentAnswers = Array.isArray(prev[index]?.value) ? prev[index].value : [];
-      let newAnswers: string[];
-      
-      if (checked) {
-        newAnswers = [...currentAnswers, value];
-      } else {
-        newAnswers = currentAnswers.filter(answer => answer !== value);
-      }
-
-      return {
-        ...prev,
-        [index]: { value: newAnswers }
-      };
-    });
   };
 
   const handleSubmit = async () => {
@@ -180,128 +152,38 @@ const GeneratedLesson = () => {
   const hasQuestions = Array.isArray(lesson.questions);
   const questions = hasQuestions ? lesson.questions as Question[] : [];
 
-  const renderQuestionInput = (question: Question, index: number) => {
-    switch (question.type) {
-      case 'multiple-choice':
-        return (
-          <RadioGroup
-            value={answers[index]?.value as string || ""}
-            onValueChange={(value) => handleMultipleChoiceChange(index, value)}
-            className="space-y-2"
-          >
-            {question.options.map((option, optionIndex) => (
-              <div key={optionIndex} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`option-${index}-${optionIndex}`} />
-                <Label htmlFor={`option-${index}-${optionIndex}`}>{option}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-        );
-      
-      case 'multiple-answer':
-        return (
-          <div className="space-y-2">
-            {question.options.map((option, optionIndex) => {
-              const currentAnswers = (answers[index]?.value as string[]) || [];
-              return (
-                <div key={optionIndex} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`option-${index}-${optionIndex}`}
-                    checked={currentAnswers.includes(option)}
-                    onCheckedChange={(checked) => 
-                      handleMultipleAnswerChange(index, option, checked as boolean)
-                    }
-                  />
-                  <Label htmlFor={`option-${index}-${optionIndex}`}>{option}</Label>
-                </div>
-              );
-            })}
-          </div>
-        );
-      
-      default:
-        return (
-          <Input
-            placeholder="Type your answer here..."
-            value={answers[index]?.value as string || ""}
-            onChange={(e) => handleTextAnswerChange(index, e.target.value)}
-            className="mb-2"
-          />
-        );
-    }
-  };
-
   return (
     <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="flex items-center gap-2"
-        >
-          <Trash2 className="h-4 w-4" />
-          {isDeleting ? "Deleting..." : "Delete Lesson"}
-        </Button>
-      </div>
+      <LessonHeader onDelete={handleDelete} isDeleting={isDeleting} />
+      <LessonContent 
+        title={lesson.title}
+        subject={lesson.subject}
+        content={lesson.content}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{lesson.title}</CardTitle>
-          <div className="text-sm text-muted-foreground">
-            Subject: {lesson.subject}
+      {hasQuestions && questions.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-4">Practice Questions</h3>
+          <div className="space-y-6">
+            {questions.map((question, index) => (
+              <QuestionComponent
+                key={index}
+                question={question}
+                index={index}
+                answer={answers[index]}
+                onAnswerChange={handleAnswerChange}
+              />
+            ))}
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting}
+              className="mt-4"
+            >
+              {isSubmitting ? "Checking answers..." : "Submit Answers"}
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="prose max-w-none">
-            <div className="whitespace-pre-wrap">{lesson.content}</div>
-          </div>
-
-          {hasQuestions && questions.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">Practice Questions</h3>
-              <div className="space-y-6">
-                {questions.map((question, index) => (
-                  <div key={index} className="space-y-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="font-medium mb-4">Q: {question.question}</p>
-                      {renderQuestionInput(question, index)}
-                      {answers[index]?.isCorrect !== undefined && (
-                        <div className={`mt-2 p-2 rounded ${
-                          answers[index].isCorrect 
-                            ? "bg-green-100 text-green-800" 
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          <p className="font-medium">
-                            {answers[index].isCorrect ? "Correct!" : "Incorrect"}
-                          </p>
-                          {answers[index].explanation && (
-                            <p className="text-sm mt-1">{answers[index].explanation}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <Button 
-                  onClick={handleSubmit} 
-                  disabled={isSubmitting}
-                  className="mt-4"
-                >
-                  {isSubmitting ? "Checking answers..." : "Submit Answers"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 };

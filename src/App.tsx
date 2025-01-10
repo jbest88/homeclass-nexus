@@ -28,9 +28,9 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <SessionContextProvider supabaseClient={supabase}>
+    <QueryClientProvider client={queryClient}>
+      <SessionContextProvider supabaseClient={supabase}>
+        <BrowserRouter>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -87,9 +87,9 @@ function App() {
               />
             </Routes>
           </TooltipProvider>
-        </SessionContextProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+        </BrowserRouter>
+      </SessionContextProvider>
+    </QueryClientProvider>
   );
 }
 

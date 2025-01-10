@@ -1,14 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { QuestionComponent } from "./QuestionComponent";
 import { useQuestionResponses } from "@/hooks/useQuestionResponses";
-
-type Question = {
-  question: string;
-  answer: string;
-  type: 'text' | 'multiple-choice' | 'multiple-answer';
-  options?: string[];
-  correctAnswers?: string[];
-};
+import { Question } from "@/types/questions";
 
 interface QuestionsSectionProps {
   questions: Question[];

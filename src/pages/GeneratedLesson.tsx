@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
 import { LessonContent } from "@/components/lesson/LessonContent";
 import { QuestionsSection } from "@/components/lesson/QuestionsSection";
+import { Question } from "@/types/questions";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -22,7 +23,10 @@ const GeneratedLesson = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return {
+        ...data,
+        questions: data.questions as Question[]
+      };
     },
   });
 

@@ -3,29 +3,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-
-type BaseQuestion = {
-  question: string;
-  answer: string;
-  type: 'text' | 'multiple-choice' | 'multiple-answer';
-};
-
-type TextQuestion = BaseQuestion & {
-  type: 'text';
-};
-
-type MultipleChoiceQuestion = BaseQuestion & {
-  type: 'multiple-choice';
-  options: string[];
-};
-
-type MultipleAnswerQuestion = BaseQuestion & {
-  type: 'multiple-answer';
-  options: string[];
-  correctAnswers: string[];
-};
-
-type Question = TextQuestion | MultipleChoiceQuestion | MultipleAnswerQuestion;
+import { Question } from "@/types/questions";
 
 type AnswerState = {
   value: string | string[];

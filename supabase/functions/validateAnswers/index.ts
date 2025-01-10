@@ -18,7 +18,17 @@ interface ValidationResult {
   explanation: string;
 }
 
-// Utility function to evaluate mathematical expressions with exponents
+// Utility function to normalize text for comparison
+const normalizeText = (text: string): string => {
+  return String(text).toLowerCase().trim();
+};
+
+// Utility function to check if a string indicates "all of the above"
+const isAllOfTheAbove = (text: string): boolean => {
+  return normalizeText(text).includes('all of the above');
+};
+
+// Utility function to evaluate mathematical expressions
 const evaluateExponentExpression = (expr: string): number => {
   try {
     const normalized = expr.replace(/\s+/g, '')
@@ -43,12 +53,12 @@ const evaluateExponentExpression = (expr: string): number => {
 
     return new Function(`return ${evaluated}`)();
   } catch (error) {
-    console.error('Error evaluating exponent expression:', error);
+    console.error('Error evaluating expression:', error);
     return NaN;
   }
 };
 
-// Utility function to check if a question is a math question
+// Utility function to check if a question involves math
 const isMathQuestion = (question: string): boolean => {
   return /[²³⁴⁵⁶⁷⁸⁹¹×\+\-\/\^]/.test(question);
 };
@@ -59,22 +69,13 @@ const validateMultipleChoice = (
   correctAnswer: string,
   question: string
 ): ValidationResult => {
-  const normalizedUserAnswer = String(userAnswer).trim();
-  const normalizedCorrectAnswer = String(correctAnswer).trim();
-  let isCorrect = false;
+  const normalizedUserAnswer = normalizeText(userAnswer);
+  const normalizedCorrectAnswer = normalizeText(correctAnswer);
 
+  let isCorrect = false;
   if (isMathQuestion(question)) {
-    console.log('Detected math question:', question);
     const userValue = evaluateExponentExpression(normalizedUserAnswer);
     const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
-    
-    console.log('Math evaluation:', {
-      userValue,
-      correctValue,
-      userAnswer: normalizedUserAnswer,
-      correctAnswer: normalizedCorrectAnswer
-    });
-    
     isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
                 Math.abs(userValue - correctValue) < 0.0001;
   } else {
@@ -91,38 +92,38 @@ const validateMultipleChoice = (
 
 // Validate multiple answer questions
 const validateMultipleAnswer = (
-  userAnswer: string[],
+  userAnswers: string[],
   correctAnswers: string[]
 ): ValidationResult => {
-  const normalizedUserAnswers = userAnswer.map(a => String(a).trim()).sort();
-  const normalizedCorrectAnswers = correctAnswers.map(a => String(a).trim()).sort();
-
-  console.log('Multiple answer validation:', {
-    normalizedUserAnswers,
-    normalizedCorrectAnswers,
-    userAnswerLength: normalizedUserAnswers.length,
-    correctAnswersLength: normalizedCorrectAnswers.length
-  });
-
-  const allOfTheAboveOption = correctAnswers.find(answer => 
-    answer.toLowerCase().includes('all of the above'));
-
+  console.log('Validating multiple answer:', { userAnswers, correctAnswers });
+  
+  const normalizedUserAnswers = userAnswers.map(normalizeText).sort();
+  const normalizedCorrectAnswers = correctAnswers.map(normalizeText).sort();
+  
+  // Check if "All of the above" is among the correct answers
+  const hasAllOfTheAbove = correctAnswers.some(isAllOfTheAbove);
+  
   let isCorrect = false;
-
-  if (allOfTheAboveOption) {
-    const availableOptions = correctAnswers.filter(answer => 
-      !answer.toLowerCase().includes('all of the above'));
-    
-    isCorrect = (
-      (normalizedUserAnswers.length === 1 && 
-       normalizedUserAnswers[0].toLowerCase().includes('all of the above')) ||
-      (normalizedUserAnswers.length === availableOptions.length &&
-       availableOptions.every(option => normalizedUserAnswers.includes(option)))
-    );
+  
+  if (hasAllOfTheAbove) {
+    // Case 1: User selected "All of the above"
+    if (userAnswers.length === 1 && isAllOfTheAbove(userAnswers[0])) {
+      isCorrect = true;
+    }
+    // Case 2: User selected all individual options (excluding "All of the above")
+    else {
+      const individualOptions = correctAnswers.filter(answer => !isAllOfTheAbove(answer));
+      isCorrect = userAnswers.length === individualOptions.length &&
+                 individualOptions.every(option => 
+                   userAnswers.some(userAns => normalizeText(userAns) === normalizeText(option))
+                 );
+    }
   } else {
-    isCorrect = 
-      normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
-      normalizedUserAnswers.every(answer => normalizedCorrectAnswers.includes(answer));
+    // Regular multiple answer validation
+    isCorrect = normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
+                normalizedUserAnswers.every(answer => 
+                  normalizedCorrectAnswers.includes(answer)
+                );
   }
 
   return {
@@ -139,10 +140,10 @@ const validateText = (
   correctAnswer: string,
   question: string
 ): ValidationResult => {
-  const normalizedUserAnswer = String(userAnswer).toLowerCase().trim();
-  const normalizedCorrectAnswer = String(correctAnswer).toLowerCase().trim();
-  let isCorrect = false;
+  const normalizedUserAnswer = normalizeText(userAnswer);
+  const normalizedCorrectAnswer = normalizeText(correctAnswer);
   
+  let isCorrect = false;
   if (isMathQuestion(question)) {
     const userValue = evaluateExponentExpression(normalizedUserAnswer);
     const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
@@ -168,7 +169,7 @@ serve(async (req) => {
   try {
     const { question, userAnswer, correctAnswer, correctAnswers, type } = await req.json() as ValidationRequest;
     
-    console.log('Validating answer for question:', {
+    console.log('Validating answer:', {
       question,
       userAnswer,
       correctAnswer,
@@ -199,6 +200,8 @@ serve(async (req) => {
       default:
         throw new Error(`Unsupported question type: ${type}`);
     }
+
+    console.log('Validation result:', result);
 
     return new Response(
       JSON.stringify(result),

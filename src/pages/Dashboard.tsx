@@ -1,14 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { CalendarDays, BookOpen, GraduationCap, Wand2, LogOut } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import { generateLearningPlan } from "@/lib/gemini";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import LearningProgress from "@/components/dashboard/LearningProgress";
+import StudyStats from "@/components/dashboard/StudyStats";
+import UpcomingAssignments from "@/components/dashboard/UpcomingAssignments";
 
 const Dashboard = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -67,101 +66,14 @@ const Dashboard = () => {
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Learning Progress Card */}
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5" />
-              Learning Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px] pr-4">
-              {learningPlan.map((subject) => (
-                <div key={subject.id} className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">{subject.subject}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleGeneratePlan(subject.subject)}
-                      disabled={isGenerating && selectedSubject === subject.subject}
-                    >
-                      {isGenerating && selectedSubject === subject.subject ? (
-                        "Generating..."
-                      ) : (
-                        <>
-                          <Wand2 className="h-4 w-4 mr-2" />
-                          Generate Plan
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <Progress value={subject.progress} className="h-2" />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Next topic: {subject.nextTopic}
-                  </p>
-                </div>
-              ))}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Study Stats Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Study Stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Completed Topics</span>
-                <span className="text-2xl font-bold">12</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Hours Studied</span>
-                <span className="text-2xl font-bold">24</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Assignments Done</span>
-                <span className="text-2xl font-bold">8</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Assignments */}
-        <Card className="col-span-2 lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5" />
-              Upcoming Assignments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Assignment</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Due Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {upcomingAssignments.map((assignment) => (
-                  <TableRow key={assignment.id}>
-                    <TableCell className="font-medium">{assignment.title}</TableCell>
-                    <TableCell>{assignment.subject}</TableCell>
-                    <TableCell>{new Date(assignment.due).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <LearningProgress
+          learningPlan={learningPlan}
+          isGenerating={isGenerating}
+          selectedSubject={selectedSubject}
+          onGeneratePlan={handleGeneratePlan}
+        />
+        <StudyStats />
+        <UpcomingAssignments assignments={upcomingAssignments} />
       </div>
     </div>
   );

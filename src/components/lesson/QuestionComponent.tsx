@@ -1,14 +1,7 @@
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Question } from "@/types/questions";
-
-type AnswerState = {
-  value: string | string[];
-  isCorrect?: boolean;
-  explanation?: string;
-};
+import { TextQuestion } from "./question-types/TextQuestion";
+import { MultipleChoiceQuestion } from "./question-types/MultipleChoiceQuestion";
+import { MultipleAnswerQuestion } from "./question-types/MultipleAnswerQuestion";
+import { Question, AnswerState } from "@/types/questions";
 
 interface QuestionComponentProps {
   question: Question;
@@ -25,81 +18,26 @@ export const QuestionComponent = ({
   onAnswerChange,
   isLocked = false,
 }: QuestionComponentProps) => {
-  const handleTextAnswerChange = (value: string) => {
+  const handleAnswerChange = (value: string | string[]) => {
     if (isLocked) return;
     onAnswerChange(index, value);
-  };
-
-  const handleMultipleChoiceChange = (value: string) => {
-    if (isLocked) return;
-    onAnswerChange(index, value);
-  };
-
-  const handleMultipleAnswerChange = (value: string, checked: boolean) => {
-    if (isLocked) return;
-    const currentAnswers = Array.isArray(answer?.value) ? answer.value : [];
-    let newAnswers: string[];
-    
-    if (checked) {
-      newAnswers = [...currentAnswers, value];
-    } else {
-      newAnswers = currentAnswers.filter(answer => answer !== value);
-    }
-
-    onAnswerChange(index, newAnswers);
   };
 
   const renderQuestionInput = () => {
+    const props = {
+      value: answer?.value || "",
+      onChange: handleAnswerChange,
+      disabled: isLocked,
+      options: 'options' in question ? question.options : undefined,
+    };
+
     switch (question.type) {
       case 'multiple-choice':
-        return (
-          <RadioGroup
-            value={answer?.value as string || ""}
-            onValueChange={handleMultipleChoiceChange}
-            className="space-y-2"
-            disabled={isLocked}
-          >
-            {question.options.map((option, optionIndex) => (
-              <div key={optionIndex} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`option-${index}-${optionIndex}`} />
-                <Label htmlFor={`option-${index}-${optionIndex}`}>{option}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-        );
-      
+        return <MultipleChoiceQuestion {...props} />;
       case 'multiple-answer':
-        return (
-          <div className="space-y-2">
-            {question.options.map((option, optionIndex) => {
-              const currentAnswers = (answer?.value as string[]) || [];
-              return (
-                <div key={optionIndex} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`option-${index}-${optionIndex}`}
-                    checked={currentAnswers.includes(option)}
-                    onCheckedChange={(checked) => 
-                      handleMultipleAnswerChange(option, checked as boolean)
-                    }
-                    disabled={isLocked}
-                  />
-                  <Label htmlFor={`option-${index}-${optionIndex}`}>{option}</Label>
-                </div>
-              );
-            })}
-          </div>
-        );
-      
+        return <MultipleAnswerQuestion {...props} />;
       default:
-        return (
-          <Input
-            placeholder="Type your answer here..."
-            value={answer?.value as string || ""}
-            onChange={(e) => handleTextAnswerChange(e.target.value)}
-            className="mb-2"
-            disabled={isLocked}
-          />
-        );
+        return <TextQuestion {...props} />;
     }
   };
 

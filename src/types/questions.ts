@@ -20,3 +20,17 @@ export type MultipleAnswerQuestion = BaseQuestion & {
 };
 
 export type Question = TextQuestion | MultipleChoiceQuestion | MultipleAnswerQuestion;
+
+export interface QuestionInputProps {
+  options?: string[];
+  value: string | string[];
+  onChange: (value: string | string[]) => void;
+  disabled?: boolean;
+}
+
+export type AnswerState = {
+  value: string | string[];
+  isCorrect?: boolean;
+  explanation?: string;
+  startTime?: number;
+};

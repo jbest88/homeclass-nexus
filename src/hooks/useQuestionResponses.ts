@@ -4,13 +4,8 @@ import { useUser } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
 import { useProficiency } from "./useProficiency";
 import { useQueryClient } from "@tanstack/react-query";
-
-type AnswerState = {
-  value: string | string[];
-  isCorrect?: boolean;
-  explanation?: string;
-  startTime?: number;
-};
+import { useAnswerValidation } from "./useAnswerValidation";
+import { AnswerState, Question } from "@/types/questions";
 
 export const useQuestionResponses = (lessonId: string, subject: string) => {
   const [answers, setAnswers] = useState<Record<number, AnswerState>>({});
@@ -19,6 +14,7 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
   const user = useUser();
   const { updateProficiencyMutation } = useProficiency();
   const queryClient = useQueryClient();
+  const { validateAnswer } = useAnswerValidation();
 
   const handleAnswerChange = (index: number, value: string | string[]) => {
     if (isSubmitted) return;
@@ -31,9 +27,8 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
     }));
   };
 
-  const handleSubmit = async (questions: any[]) => {
+  const handleSubmit = async (questions: Question[]) => {
     if (!user?.id || isSubmitted) return;
-    
     setIsSubmitting(true);
     
     try {
@@ -41,34 +36,23 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
         questions.map(async (question, index) => {
           const userAnswer = answers[index]?.value || "";
           const startTime = answers[index]?.startTime || Date.now();
-          const responseTime = Math.round((Date.now() - startTime) / 1000);
 
-          const response = await supabase.functions.invoke("validateAnswers", {
-            body: {
-              question: question.question,
-              userAnswer,
-              correctAnswer: question.answer,
-              type: question.type,
-              ...(question.type === 'multiple-answer' && { correctAnswers: question.correctAnswers }),
-            },
-          });
-
-          if (response.error) throw response.error;
+          const result = await validateAnswer(question, userAnswer, startTime);
 
           await supabase.from("question_responses").insert({
             user_id: user.id,
             lesson_id: lessonId,
             question_index: index,
-            is_correct: response.data.isCorrect,
-            response_time: responseTime,
+            is_correct: result.isCorrect,
+            response_time: result.responseTime,
           });
 
           await updateProficiencyMutation.mutateAsync({
             subject,
-            isCorrect: response.data.isCorrect,
+            isCorrect: result.isCorrect,
           });
 
-          return { index, ...response.data };
+          return { index, ...result };
         })
       );
 

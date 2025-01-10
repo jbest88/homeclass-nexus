@@ -3,7 +3,6 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CalendarDays, BookOpen, GraduationCap, Wand2, LogOut } from "lucide-react";
 import { useState } from "react";
 import { generateLearningPlan } from "@/lib/gemini";
@@ -12,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
-  const [apiKey, setApiKey] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("");
   const navigate = useNavigate();
@@ -31,17 +29,11 @@ const Dashboard = () => {
   ];
 
   const handleGeneratePlan = async (subject: string) => {
-    if (!apiKey) {
-      toast.error("Please enter your Gemini API key");
-      return;
-    }
-
     try {
       setIsGenerating(true);
       setSelectedSubject(subject);
-      const plan = await generateLearningPlan(subject, apiKey);
+      const plan = await generateLearningPlan(subject);
       toast.success(`Generated learning plan for ${subject}`);
-      // In a real app, you would save this plan to your backend
       console.log("Generated plan:", plan);
     } catch (error) {
       console.error("Error:", error);
@@ -73,30 +65,6 @@ const Dashboard = () => {
           Logout
         </Button>
       </div>
-      
-      {/* API Key Input */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5" />
-            AI Integration
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Input
-              type="password"
-              placeholder="Enter your Gemini API key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="max-w-md"
-            />
-            <p className="text-sm text-muted-foreground">
-              Your API key is stored temporarily and will be cleared when you refresh the page.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Learning Progress Card */}

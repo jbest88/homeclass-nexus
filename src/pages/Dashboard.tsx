@@ -25,6 +25,7 @@ import {
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ProfileSettings from "@/components/profile/ProfileSettings";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -32,8 +33,8 @@ const Dashboard = () => {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const isMobile = useIsMobile();
 
-  // Fetch user's grade level from profile
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -80,15 +81,16 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-primary">Learning Dashboard</h1>
-        <div className="flex items-center gap-4">
+    <div className="container mx-auto p-4 space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary">Learning Dashboard</h1>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
+              <Button className="flex items-center gap-2 w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
-                Generate Lesson
+                {!isMobile && "Generate Lesson"}
+                {isMobile && "Generate"}
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -126,9 +128,10 @@ const Dashboard = () => {
 
           <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
                 <Settings className="h-4 w-4" />
-                Profile Settings
+                {!isMobile && "Profile Settings"}
+                {isMobile && "Profile"}
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -142,18 +145,22 @@ const Dashboard = () => {
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <LogOut className="h-4 w-4" />
-            Logout
+            {!isMobile && "Logout"}
           </Button>
         </div>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <LearningProgress isGenerating={isGenerating} />
-        <StudyStats />
-        <UpcomingAssignments assignments={upcomingAssignments} />
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <LearningProgress isGenerating={isGenerating} />
+        </div>
+        <div className="space-y-4">
+          <StudyStats />
+          <UpcomingAssignments assignments={upcomingAssignments} />
+        </div>
       </div>
     </div>
   );

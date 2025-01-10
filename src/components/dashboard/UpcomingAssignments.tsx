@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CalendarDays } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Assignment {
   id: number;
@@ -14,33 +15,40 @@ interface UpcomingAssignmentsProps {
 }
 
 const UpcomingAssignments = ({ assignments }: UpcomingAssignmentsProps) => {
+  const isMobile = useIsMobile();
+
   return (
-    <Card className="col-span-2 lg:col-span-3">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5" />
-          Upcoming Assignments
+          {isMobile ? "Assignments" : "Upcoming Assignments"}
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Assignment</TableHead>
-              <TableHead>Subject</TableHead>
-              <TableHead>Due Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assignments.map((assignment) => (
-              <TableRow key={assignment.id}>
-                <TableCell className="font-medium">{assignment.title}</TableCell>
-                <TableCell>{assignment.subject}</TableCell>
-                <TableCell>{new Date(assignment.due).toLocaleDateString()}</TableCell>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Assignment</TableHead>
+                {!isMobile && <TableHead>Subject</TableHead>}
+                <TableHead>Due</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {assignments.map((assignment) => (
+                <TableRow key={assignment.id}>
+                  <TableCell className="font-medium">
+                    {assignment.title}
+                    {isMobile && <div className="text-xs text-muted-foreground">{assignment.subject}</div>}
+                  </TableCell>
+                  {!isMobile && <TableCell>{assignment.subject}</TableCell>}
+                  <TableCell>{new Date(assignment.due).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

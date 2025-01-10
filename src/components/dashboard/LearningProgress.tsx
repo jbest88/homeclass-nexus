@@ -57,7 +57,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   }, {} as Record<string, { totalModules: number; completedModules: number; modules: any[] }>);
 
   return (
-    <Card className="col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <GraduationCap className="h-5 w-5" />
@@ -65,7 +65,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[500px] pr-4">
+        <ScrollArea className="h-[400px] pr-4">
           {Object.entries(subjectProgress || {}).map(([subject, data]) => (
             <SubjectProgress
               key={subject}

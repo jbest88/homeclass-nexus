@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, Plus } from "lucide-react";
+import { LogOut, Plus, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import ProfileSettings from "@/components/profile/ProfileSettings";
 
 const SUBJECTS = ["Mathematics", "Physics", "Chemistry", "Biology", "Computer Science"];
 
@@ -30,6 +31,7 @@ const Dashboard = () => {
   const { isGenerating, handleGenerateLesson } = useGenerateLesson();
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -101,6 +103,22 @@ const Dashboard = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Profile Settings
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Profile Settings</DialogTitle>
+              </DialogHeader>
+              <ProfileSettings />
+            </DialogContent>
+          </Dialog>
+
           <Button
             onClick={handleLogout}
             variant="outline"

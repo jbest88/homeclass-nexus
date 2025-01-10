@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
@@ -14,7 +10,9 @@ const ProfileSettings = () => {
   const [birthday, setBirthday] = useState<Date>();
   const [gradeLevel, setGradeLevel] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [month, setMonth] = useState<string>("");
+  const [day, setDay] = useState<string>("");
+  const [year, setYear] = useState<string>("");
 
   // Fetch or create profile on component mount
   useEffect(() => {
@@ -41,7 +39,6 @@ const ProfileSettings = () => {
 
           if (insertError) throw insertError;
           
-          // Profile created, but no birthday/grade_level yet
           setGradeLevel(null);
           setBirthday(undefined);
           return;
@@ -49,7 +46,11 @@ const ProfileSettings = () => {
 
         // Profile exists, set the data
         if (profile.birthday) {
-          setBirthday(new Date(profile.birthday));
+          const date = new Date(profile.birthday);
+          setBirthday(date);
+          setMonth((date.getMonth() + 1).toString());
+          setDay(date.getDate().toString());
+          setYear(date.getFullYear().toString());
         }
         if (profile.grade_level !== null) {
           setGradeLevel(profile.grade_level);
@@ -66,21 +67,30 @@ const ProfileSettings = () => {
   }, [user]);
 
   const handleSave = async () => {
-    if (!user || !birthday) {
-      toast.error("Please select a birthday");
+    if (!user || !month || !day || !year) {
+      toast.error("Please select a complete birthday");
       return;
     }
 
     try {
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      
+      // Validate the date is valid
+      if (isNaN(date.getTime())) {
+        toast.error("Invalid date selected");
+        return;
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({
-          birthday: birthday.toISOString().split('T')[0],
+          birthday: date.toISOString().split('T')[0],
         })
         .eq("id", user.id);
 
       if (error) throw error;
 
+      setBirthday(date);
       toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -92,37 +102,67 @@ const ProfileSettings = () => {
     return <div>Loading profile settings...</div>;
   }
 
+  // Generate arrays for the dropdowns
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: new Date(2000, i, 1).toLocaleString('default', { month: 'long' })
+  }));
+  
+  const days = Array.from({ length: 31 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: (i + 1).toString()
+  }));
+  
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1989 }, (_, i) => ({
+    value: (currentYear - i).toString(),
+    label: (currentYear - i).toString()
+  }));
+
   return (
     <div className="space-y-4">
-      <div>
+      <div className="space-y-4">
         <label className="block text-sm font-medium mb-1">Birthday</label>
-        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[240px] justify-start text-left font-normal",
-                !birthday && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {birthday ? format(birthday, "PPP") : <span>Pick a date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={birthday}
-              onSelect={(date) => {
-                setBirthday(date);
-                setIsCalendarOpen(false);
-              }}
-              initialFocus
-              fromYear={1990}
-              toYear={new Date().getFullYear()}
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="grid grid-cols-3 gap-2">
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger>
+              <SelectValue placeholder="Month" />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={day} onValueChange={setDay}>
+            <SelectTrigger>
+              <SelectValue placeholder="Day" />
+            </SelectTrigger>
+            <SelectContent>
+              {days.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger>
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {gradeLevel !== null && (

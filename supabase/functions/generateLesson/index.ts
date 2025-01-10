@@ -11,27 +11,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const formatContent = (content: string) => {
-  // Remove any potential markdown title since we handle it separately
-  const lines = content.split('\n');
-  let title = lines[0].replace(/^#*\s*/, '').trim();
-  let mainContent = lines.slice(1).join('\n').trim();
-
-  // Format headers properly
-  mainContent = mainContent.replace(/\*\*(.*?)\*\*/g, (_, text) => `### ${text}`);
-  
-  // Format lists properly
-  mainContent = mainContent.replace(/^\*\s/gm, '- ');
-  
-  // Add proper spacing around headers and sections
-  mainContent = mainContent.replace(/###/g, '\n###');
-  
-  // Clean up any double spaces or multiple newlines
-  mainContent = mainContent.replace(/\n{3,}/g, '\n\n');
-  
-  return { title, content: mainContent };
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -99,60 +78,61 @@ serve(async (req) => {
       throw new Error('Invalid lesson response format from Gemini API');
     }
 
-    const rawContent = lessonData.candidates[0].content.parts[0].text;
-    const { title, content } = formatContent(rawContent);
+    const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
-    const questionsPrompt = `Based on this lesson: "${content}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
-    Include these EXACT 5 question types in this order:
-    1. Multiple choice
-    2. Multiple answer (with multiple correct answers)
-    3. True/False
-    4. Text input
-    5. Dropdown
+    Include a mix of these question types:
+    1. Multiple choice (1 question)
+    2. Multiple answer (1 question)
+    3. True/False (1 question)
+    4. Slider (1 question) - for numerical answers
+    5. Dropdown (1 question)
 
     Return ONLY a JSON array with these structures:
 
     Multiple choice:
     {
-      "type": "multiple-choice",
       "question": "What is...?",
+      "type": "multiple-choice",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "correct option"
     }
 
     Multiple answer:
     {
-      "type": "multiple-answer",
       "question": "Select all that apply...",
+      "type": "multiple-answer",
       "options": ["option1", "option2", "option3", "option4"],
-      "answer": ["correct1", "correct2"],
       "correctAnswers": ["correct1", "correct2"]
     }
 
     True/False:
     {
-      "type": "true-false",
       "question": "Is this statement true...?",
+      "type": "true-false",
       "answer": "true"
     }
 
-    Text input:
+    Slider:
     {
-      "type": "text",
-      "question": "Explain in your own words...",
-      "answer": "example correct answer"
+      "question": "What is the value...?",
+      "type": "slider",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "answer": "50"
     }
 
     Dropdown:
     {
-      "type": "dropdown",
       "question": "Choose the correct...?",
+      "type": "dropdown",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "correct option"
     }
 
-    Return only the raw JSON array with EXACTLY these 5 questions in this order, no additional text or formatting.`;
+    Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
     
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
@@ -189,40 +169,23 @@ serve(async (req) => {
         throw new Error('Generated questions must be an array of exactly 5 questions');
       }
 
-      // Validate question types and order
-      const expectedTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'text', 'dropdown'];
+      // Validate question types
       const types = questions.map(q => q.type);
+      const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'slider', 'dropdown'];
+      const hasAllTypes = requiredTypes.every(type => types.includes(type));
       
-      if (!expectedTypes.every((type, index) => types[index] === type)) {
-        throw new Error('Questions must be in the correct order with the specified types');
+      if (!hasAllTypes) {
+        throw new Error('Missing required question types. Each type should appear exactly once.');
       }
-
-      // Ensure all questions have the required properties
-      questions.forEach((q, index) => {
-        if (!q.question || !q.answer) {
-          throw new Error(`Question ${index + 1} is missing required properties`);
-        }
-        
-        // Validate specific question type properties
-        if ((q.type === 'multiple-choice' || q.type === 'dropdown') && (!Array.isArray(q.options) || q.options.length < 2)) {
-          throw new Error(`Question ${index + 1} is missing valid options array`);
-        }
-        
-        if (q.type === 'multiple-answer') {
-          if (!Array.isArray(q.options) || q.options.length < 2) {
-            throw new Error(`Question ${index + 1} is missing valid options array`);
-          }
-          if (!Array.isArray(q.answer) || !Array.isArray(q.correctAnswers)) {
-            throw new Error(`Question ${index + 1} is missing valid answers arrays`);
-          }
-        }
-      });
       
     } catch (error) {
       console.error('Error parsing or validating questions:', error);
       console.log('Raw questions text:', questionsText);
       throw new Error('Failed to parse or validate questions JSON');
     }
+
+    const title = lessonContent.split('\n')[0].replace('#', '').trim();
+    const content = lessonContent.split('\n').slice(1).join('\n').trim();
 
     return new Response(
       JSON.stringify({

@@ -14,6 +14,7 @@ const ProfileSettings = () => {
   const [birthday, setBirthday] = useState<Date>();
   const [gradeLevel, setGradeLevel] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // Fetch or create profile on component mount
   useEffect(() => {
@@ -95,7 +96,7 @@ const ProfileSettings = () => {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium mb-1">Birthday</label>
-        <Popover>
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -112,8 +113,13 @@ const ProfileSettings = () => {
             <Calendar
               mode="single"
               selected={birthday}
-              onSelect={setBirthday}
+              onSelect={(date) => {
+                setBirthday(date);
+                setIsCalendarOpen(false);
+              }}
               initialFocus
+              fromYear={1990}
+              toYear={new Date().getFullYear()}
             />
           </PopoverContent>
         </Popover>

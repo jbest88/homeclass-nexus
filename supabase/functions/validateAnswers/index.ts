@@ -32,18 +32,37 @@ serve(async (req) => {
     let isCorrect = false;
     let explanation = '';
 
-    const evaluateMathExpression = (expr: string): number => {
-      // Basic math expression evaluator
+    const evaluateExponentExpression = (expr: string): number => {
       try {
-        // Remove spaces and evaluate basic operations
-        const sanitizedExpr = expr.replace(/\s+/g, '')
-          .replace(/(\d+)²/g, '($1 * $1)')  // Handle square
-          .replace(/(\d+)¹/g, '$1');        // Handle first power
+        // Remove spaces and normalize the expression
+        const normalized = expr.replace(/\s+/g, '')
+          // Convert superscript numbers to regular exponent notation
+          .replace(/([0-9])²/g, '$1^2')
+          .replace(/([0-9])³/g, '$1^3')
+          .replace(/([0-9])⁴/g, '$1^4')
+          .replace(/([0-9])⁵/g, '$1^5')
+          .replace(/([0-9])⁶/g, '$1^6')
+          .replace(/([0-9])⁷/g, '$1^7')
+          .replace(/([0-9])⁸/g, '$1^8')
+          .replace(/([0-9])⁹/g, '$1^9')
+          .replace(/([0-9])¹/g, '$1^1');
+
+        // Split the expression into parts
+        const parts = normalized.split(/([×\+\-\/])/);
         
-        // Use Function constructor to safely evaluate the expression
-        return new Function(`return ${sanitizedExpr}`)();
+        // Process each part and evaluate exponents
+        const evaluated = parts.map(part => {
+          if (part.includes('^')) {
+            const [base, exponent] = part.split('^').map(Number);
+            return Math.pow(base, exponent);
+          }
+          return part;
+        }).join('');
+
+        // Use Function constructor to safely evaluate the final expression
+        return new Function(`return ${evaluated}`)();
       } catch (error) {
-        console.error('Error evaluating math expression:', error);
+        console.error('Error evaluating exponent expression:', error);
         return NaN;
       }
     };
@@ -54,14 +73,14 @@ serve(async (req) => {
         const normalizedCorrectAnswer = String(correctAnswer).trim();
 
         // Check if this is a math question by looking for mathematical symbols
-        const isMathQuestion = /[²¹\+\-\*\/\^]/.test(question);
+        const isMathQuestion = /[²³⁴⁵⁶⁷⁸⁹¹×\+\-\/\^]/.test(question);
         
         if (isMathQuestion) {
           console.log('Detected math question:', question);
           
           // For math questions, evaluate both answers numerically
-          const userValue = evaluateMathExpression(normalizedUserAnswer);
-          const correctValue = evaluateMathExpression(normalizedCorrectAnswer);
+          const userValue = evaluateExponentExpression(normalizedUserAnswer);
+          const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
           
           console.log('Math evaluation:', {
             userValue,
@@ -70,16 +89,12 @@ serve(async (req) => {
             correctAnswer: normalizedCorrectAnswer
           });
           
-          isCorrect = !isNaN(userValue) && !isNaN(correctValue) && userValue === correctValue;
+          isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
+                     Math.abs(userValue - correctValue) < 0.0001; // Using small epsilon for floating point comparison
         } else {
           // For non-math questions, do a direct string comparison
           isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
         }
-
-        console.log('Multiple choice comparison result:', {
-          isCorrect,
-          isMathQuestion
-        });
 
         explanation = isCorrect 
           ? 'Correct!' 
@@ -95,11 +110,6 @@ serve(async (req) => {
         const normalizedUserAnswers = userAnswer.map(a => String(a).trim()).sort();
         const normalizedCorrectAnswers = correctAnswers.map(a => String(a).trim()).sort();
 
-        console.log('Multiple answer comparison:', {
-          normalizedUserAnswers,
-          normalizedCorrectAnswers
-        });
-
         isCorrect = 
           normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
           normalizedUserAnswers.every((answer, index) => answer === normalizedCorrectAnswers[index]);
@@ -114,23 +124,16 @@ serve(async (req) => {
         const normalizedUserAnswer = String(userAnswer).toLowerCase().trim();
         const normalizedCorrectAnswer = String(correctAnswer).toLowerCase().trim();
         
-        // Check if this is a math question
-        const isMathQuestion = /[²¹\+\-\*\/\^]/.test(question);
+        const isMathQuestion = /[²³⁴⁵⁶⁷⁸⁹¹×\+\-\/\^]/.test(question);
         
         if (isMathQuestion) {
-          const userValue = evaluateMathExpression(normalizedUserAnswer);
-          const correctValue = evaluateMathExpression(normalizedCorrectAnswer);
-          isCorrect = !isNaN(userValue) && !isNaN(correctValue) && userValue === correctValue;
+          const userValue = evaluateExponentExpression(normalizedUserAnswer);
+          const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
+          isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
+                     Math.abs(userValue - correctValue) < 0.0001;
         } else {
           isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
         }
-
-        console.log('Text answer comparison:', {
-          normalizedUserAnswer,
-          normalizedCorrectAnswer,
-          isCorrect,
-          isMathQuestion
-        });
 
         explanation = isCorrect 
           ? 'Correct!' 

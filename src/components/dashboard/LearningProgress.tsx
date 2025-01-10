@@ -2,37 +2,70 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Wand2 } from "lucide-react";
-import { toast } from "sonner";
+import { GraduationCap, ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useUser } from "@supabase/auth-helpers-react";
+import { useNavigate } from "react-router-dom";
 
-interface LearningProgressProps {
-  learningPlan: Array<{
-    id: number;
-    subject: string;
-    progress: number;
-    nextTopic: string;
-  }>;
-  isGenerating: boolean;
-  selectedSubject: string;
-  generatedPlans: Record<string, string>;
-  onGeneratePlan: (subject: string) => void;
-}
+const LearningProgress = () => {
+  const user = useUser();
+  const navigate = useNavigate();
 
-const LearningProgress = ({
-  learningPlan,
-  isGenerating,
-  selectedSubject,
-  generatedPlans,
-  onGeneratePlan,
-}: LearningProgressProps) => {
-  const handleGenerateClick = async (subject: string) => {
-    try {
-      await onGeneratePlan(subject);
-    } catch (error) {
-      console.error('Error in handleGenerateClick:', error);
-      toast.error(`Failed to generate plan for ${subject}`);
+  const { data: modules } = useQuery({
+    queryKey: ["learning-modules"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("learning_modules")
+        .select("*")
+        .order("subject")
+        .order("order_index");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: progress } = useQuery({
+    queryKey: ["module-progress"],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("module_progress")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const subjectProgress = modules?.reduce((acc, module) => {
+    if (!acc[module.subject]) {
+      acc[module.subject] = {
+        totalModules: 0,
+        completedModules: 0,
+        modules: [],
+      };
     }
-  };
+
+    acc[module.subject].totalModules++;
+    acc[module.subject].modules.push({
+      ...module,
+      completed: progress?.some(
+        (p) => p.module_id === module.id && p.completed_at
+      ),
+    });
+
+    if (
+      progress?.some((p) => p.module_id === module.id && p.completed_at)
+    ) {
+      acc[module.subject].completedModules++;
+    }
+
+    return acc;
+  }, {} as Record<string, { totalModules: number; completedModules: number; modules: any[] }>);
 
   return (
     <Card className="col-span-2">
@@ -44,38 +77,40 @@ const LearningProgress = ({
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[500px] pr-4">
-          {learningPlan.map((subject) => (
-            <div key={subject.id} className="mb-8">
+          {Object.entries(subjectProgress || {}).map(([subject, data]) => (
+            <div key={subject} className="mb-8">
               <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">{subject.subject}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleGenerateClick(subject.subject)}
-                  disabled={isGenerating && selectedSubject === subject.subject}
-                >
-                  {isGenerating && selectedSubject === subject.subject ? (
-                    "Generating..."
-                  ) : (
-                    <>
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Generate Plan
-                    </>
-                  )}
-                </Button>
+                <span className="font-medium">{subject}</span>
+                <span className="text-sm text-muted-foreground">
+                  {data.completedModules} / {data.totalModules} modules
+                </span>
               </div>
-              <Progress value={subject.progress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">
-                Next topic: {subject.nextTopic}
-              </p>
-              {generatedPlans[subject.subject] && (
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">Generated Learning Plan:</h4>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {generatedPlans[subject.subject]}
-                  </p>
-                </div>
-              )}
+              <Progress
+                value={(data.completedModules / data.totalModules) * 100}
+                className="h-2"
+              />
+              <div className="mt-4 space-y-3">
+                {data.modules.map((module) => (
+                  <div
+                    key={module.id}
+                    className="flex items-center justify-between bg-muted/50 p-3 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      {module.completed && (
+                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                      )}
+                      <span className="text-sm">{module.title}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/module/${module.id}`)}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </ScrollArea>

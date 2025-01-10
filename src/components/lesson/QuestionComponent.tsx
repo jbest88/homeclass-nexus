@@ -1,72 +1,51 @@
-import { TextQuestion } from "./question-types/TextQuestion";
 import { MultipleChoiceQuestion } from "./question-types/MultipleChoiceQuestion";
 import { MultipleAnswerQuestion } from "./question-types/MultipleAnswerQuestion";
 import { TrueFalseQuestion } from "./question-types/TrueFalseQuestion";
 import { DropdownQuestion } from "./question-types/DropdownQuestion";
+import { TextQuestion } from "./question-types/TextQuestion";
 import { Question, AnswerState } from "@/types/questions";
 
 interface QuestionComponentProps {
   question: Question;
-  index: number;
-  answer: AnswerState | undefined;
-  onAnswerChange: (index: number, value: string | string[]) => void;
+  answerState: AnswerState;
+  onAnswerChange: (answer: string | string[]) => void;
   isLocked?: boolean;
 }
 
 export const QuestionComponent = ({
   question,
-  index,
-  answer,
+  answerState,
   onAnswerChange,
   isLocked = false,
 }: QuestionComponentProps) => {
   const handleAnswerChange = (value: string | string[]) => {
-    if (isLocked) return;
-    onAnswerChange(index, value);
-  };
-
-  const renderQuestionInput = () => {
-    const props = {
-      value: answer?.value || "",
-      onChange: handleAnswerChange,
-      disabled: isLocked,
-      options: 'options' in question ? question.options : undefined,
-    };
-
-    switch (question.type) {
-      case 'multiple-choice':
-        return <MultipleChoiceQuestion {...props} />;
-      case 'multiple-answer':
-        return <MultipleAnswerQuestion {...props} />;
-      case 'true-false':
-        return <TrueFalseQuestion {...props} />;
-      case 'dropdown':
-        return <DropdownQuestion {...props} />;
-      default:
-        return <TextQuestion {...props} />;
+    if (!isLocked) {
+      onAnswerChange(value);
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="p-4 bg-muted rounded-lg">
-        <p className="font-medium mb-4">Q: {question.question}</p>
-        {renderQuestionInput()}
-        {answer?.isCorrect !== undefined && (
-          <div className={`mt-2 p-2 rounded ${
-            answer.isCorrect 
-              ? "bg-green-100 text-green-800" 
-              : "bg-red-100 text-red-800"
-          }`}>
-            <p className="font-medium">
-              {answer.isCorrect ? "Correct!" : "Incorrect"}
-            </p>
-            {answer.explanation && (
-              <p className="text-sm mt-1">{answer.explanation}</p>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const props = {
+    question: question.question,
+    value: answerState.answer,
+    onChange: handleAnswerChange,
+    disabled: isLocked,
+    options: 'options' in question ? question.options : undefined,
+  };
+
+  switch (question.type) {
+    case 'multiple-choice':
+      return <MultipleChoiceQuestion {...props} />;
+    case 'multiple-answer':
+      return <MultipleAnswerQuestion {...props} />;
+    case 'true-false':
+      return <TrueFalseQuestion {...props} />;
+    case 'dropdown':
+      return <DropdownQuestion {...props} />;
+    case 'text':
+      return <TextQuestion {...props} />;
+    default:
+      return null;
+  }
 };
+
+export default QuestionComponent;

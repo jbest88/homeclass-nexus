@@ -16,7 +16,6 @@ export type MultipleChoiceQuestion = BaseQuestion & {
 export type MultipleAnswerQuestion = BaseQuestion & {
   type: 'multiple-answer';
   options: string[];
-  correctAnswers: string[];
 };
 
 export type TrueFalseQuestion = BaseQuestion & {
@@ -36,15 +35,15 @@ export type Question =
   | DropdownQuestion;
 
 export interface QuestionInputProps {
-  options?: string[];
+  question: string;
   value: string | string[];
   onChange: (value: string | string[]) => void;
   disabled?: boolean;
+  options?: string[];
 }
 
 export type AnswerState = {
-  value: string | string[];
+  answer: string | string[];
   isCorrect?: boolean;
-  explanation?: string;
-  startTime?: number;
+  isSubmitted: boolean;
 };

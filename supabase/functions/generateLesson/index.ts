@@ -22,11 +22,8 @@ serve(async (req) => {
     }
 
     const { subject, userId } = await req.json();
-
-    // Initialize Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    // Fetch user's grade level and subject proficiency
     const [profileResult, proficiencyResult] = await Promise.all([
       supabase
         .from('profiles')
@@ -47,10 +44,7 @@ serve(async (req) => {
 
     const gradeLevel = profileResult.data.grade_level ?? 5;
     const gradeLevelText = gradeLevel === 0 ? 'Kindergarten' : `${gradeLevel}th grade`;
-    
     const proficiencyLevel = proficiencyResult.data?.proficiency_level || 1;
-    console.log('Current proficiency level:', proficiencyLevel);
-
     const difficultyLevel = proficiencyLevel <= 3 ? 'basic' : 
                           proficiencyLevel <= 6 ? 'intermediate' : 
                           'advanced';
@@ -86,38 +80,58 @@ serve(async (req) => {
 
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
-    // Updated questions prompt to generate exactly 5 questions with no text input
     const questionsPrompt = `Based on this lesson: "${lessonContent}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
-    
-    Include this EXACT distribution:
-    1. Multiple choice questions with 4 options (2 questions)
-      - One should test basic recall
-      - One should test understanding of concepts
-    2. Multiple answer questions where more than one option is correct (3 questions)
-      - One should test relationships between concepts
-      - One should test application of knowledge
-      - One should test analysis of information
-    
-    DO NOT include any text/open-ended questions.
-    
-    Return ONLY a JSON array with this structure:
-    
-    For multiple choice:
+
+    Include a mix of these question types:
+    1. Multiple choice (1 question)
+    2. Multiple answer (1 question)
+    3. True/False (1 question)
+    4. Slider (1 question) - for numerical answers
+    5. Dropdown (1 question)
+
+    Return ONLY a JSON array with these structures:
+
+    Multiple choice:
     {
       "question": "What is...?",
       "type": "multiple-choice",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "correct option"
     }
-    
-    For multiple answer:
+
+    Multiple answer:
     {
       "question": "Select all that apply...",
       "type": "multiple-answer",
       "options": ["option1", "option2", "option3", "option4"],
       "correctAnswers": ["correct1", "correct2"]
     }
-    
+
+    True/False:
+    {
+      "question": "Is this statement true...?",
+      "type": "true-false",
+      "answer": "true"
+    }
+
+    Slider:
+    {
+      "question": "What is the value...?",
+      "type": "slider",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "answer": "50"
+    }
+
+    Dropdown:
+    {
+      "question": "Choose the correct...?",
+      "type": "dropdown",
+      "options": ["option1", "option2", "option3", "option4"],
+      "answer": "correct option"
+    }
+
     Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
     
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
@@ -145,24 +159,23 @@ serve(async (req) => {
     }
 
     const questionsText = questionsData.candidates[0].content.parts[0].text;
-    
     const cleanedQuestionsText = questionsText.replace(/```json\n|\n```/g, '').trim();
-    console.log('Cleaned questions text:', cleanedQuestionsText);
     
     let questions;
     try {
       questions = JSON.parse(cleanedQuestionsText);
       
-      // Validate we have exactly 5 questions and they're of the correct types
       if (!Array.isArray(questions) || questions.length !== 5) {
         throw new Error('Generated questions must be an array of exactly 5 questions');
       }
+
+      // Validate question types
+      const types = questions.map(q => q.type);
+      const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'slider', 'dropdown'];
+      const hasAllTypes = requiredTypes.every(type => types.includes(type));
       
-      const multipleChoiceCount = questions.filter(q => q.type === 'multiple-choice').length;
-      const multipleAnswerCount = questions.filter(q => q.type === 'multiple-answer').length;
-      
-      if (multipleChoiceCount !== 2 || multipleAnswerCount !== 3) {
-        throw new Error('Invalid question distribution. Expected 2 multiple-choice and 3 multiple-answer questions.');
+      if (!hasAllTypes) {
+        throw new Error('Missing required question types. Each type should appear exactly once.');
       }
       
     } catch (error) {
@@ -171,7 +184,6 @@ serve(async (req) => {
       throw new Error('Failed to parse or validate questions JSON');
     }
 
-    // Extract title from content (assuming it's the first line)
     const title = lessonContent.split('\n')[0].replace('#', '').trim();
     const content = lessonContent.split('\n').slice(1).join('\n').trim();
 

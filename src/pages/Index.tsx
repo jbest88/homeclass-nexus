@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const Index = () => {
   const [email, setEmail] = useState("");
@@ -12,21 +13,35 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const getErrorMessage = (error: AuthError) => {
+    if (error instanceof AuthApiError) {
+      switch (error.status) {
+        case 400:
+          return "Invalid email or password. Please check your credentials and try again.";
+        case 422:
+          return "Please provide both email and password.";
+        default:
+          return error.message;
+      }
+    }
+    return "An unexpected error occurred. Please try again.";
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: email.trim(),
+        password: password,
       });
 
       if (error) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.message,
+          description: getErrorMessage(error),
         });
       } else {
         toast({

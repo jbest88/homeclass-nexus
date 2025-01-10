@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +15,7 @@ interface QuestionComponentProps {
   index: number;
   answer: AnswerState | undefined;
   onAnswerChange: (index: number, value: string | string[]) => void;
+  isLocked?: boolean;
 }
 
 export const QuestionComponent = ({
@@ -23,16 +23,20 @@ export const QuestionComponent = ({
   index,
   answer,
   onAnswerChange,
+  isLocked = false,
 }: QuestionComponentProps) => {
   const handleTextAnswerChange = (value: string) => {
+    if (isLocked) return;
     onAnswerChange(index, value);
   };
 
   const handleMultipleChoiceChange = (value: string) => {
+    if (isLocked) return;
     onAnswerChange(index, value);
   };
 
   const handleMultipleAnswerChange = (value: string, checked: boolean) => {
+    if (isLocked) return;
     const currentAnswers = Array.isArray(answer?.value) ? answer.value : [];
     let newAnswers: string[];
     
@@ -53,6 +57,7 @@ export const QuestionComponent = ({
             value={answer?.value as string || ""}
             onValueChange={handleMultipleChoiceChange}
             className="space-y-2"
+            disabled={isLocked}
           >
             {question.options.map((option, optionIndex) => (
               <div key={optionIndex} className="flex items-center space-x-2">
@@ -76,6 +81,7 @@ export const QuestionComponent = ({
                     onCheckedChange={(checked) => 
                       handleMultipleAnswerChange(option, checked as boolean)
                     }
+                    disabled={isLocked}
                   />
                   <Label htmlFor={`option-${index}-${optionIndex}`}>{option}</Label>
                 </div>
@@ -91,6 +97,7 @@ export const QuestionComponent = ({
             value={answer?.value as string || ""}
             onChange={(e) => handleTextAnswerChange(e.target.value)}
             className="mb-2"
+            disabled={isLocked}
           />
         );
     }

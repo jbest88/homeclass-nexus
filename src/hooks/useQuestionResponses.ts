@@ -15,11 +15,13 @@ type AnswerState = {
 export const useQuestionResponses = (lessonId: string, subject: string) => {
   const [answers, setAnswers] = useState<Record<number, AnswerState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const user = useUser();
   const { updateProficiencyMutation } = useProficiency();
   const queryClient = useQueryClient();
 
   const handleAnswerChange = (index: number, value: string | string[]) => {
+    if (isSubmitted) return;
     setAnswers(prev => ({
       ...prev,
       [index]: { 
@@ -30,7 +32,7 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
   };
 
   const handleSubmit = async (questions: any[]) => {
-    if (!user?.id) return;
+    if (!user?.id || isSubmitted) return;
     
     setIsSubmitting(true);
     
@@ -80,6 +82,7 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
       });
 
       setAnswers(newAnswers);
+      setIsSubmitted(true);
       
       const allCorrect = results.every(r => r.isCorrect);
       if (allCorrect) {
@@ -100,6 +103,7 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
   return {
     answers,
     isSubmitting,
+    isSubmitted,
     handleAnswerChange,
     handleSubmit,
   };

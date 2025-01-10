@@ -26,24 +26,42 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    // Fetch user's grade level
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('grade_level')
-      .eq('id', userId)
-      .single();
+    // Fetch user's grade level and subject proficiency
+    const [profileResult, proficiencyResult] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('grade_level')
+        .eq('id', userId)
+        .single(),
+      supabase
+        .from('subject_proficiency')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('subject', subject)
+        .single()
+    ]);
 
-    if (profileError) {
+    if (profileResult.error) {
       throw new Error('Failed to fetch user profile');
     }
 
-    const gradeLevel = profile.grade_level ?? 5; // Default to 5th grade if not set
+    const gradeLevel = profileResult.data.grade_level ?? 5; // Default to 5th grade if not set
     const gradeLevelText = gradeLevel === 0 ? 'Kindergarten' : `${gradeLevel}th grade`;
+    
+    // Get proficiency level (1-10) or default to 1
+    const proficiencyLevel = proficiencyResult.data?.proficiency_level || 1;
+    console.log('Current proficiency level:', proficiencyLevel);
 
-    // Generate lesson content with grade level consideration
-    const lessonPrompt = `Create an educational lesson about ${subject} appropriate for a ${gradeLevelText} student. 
+    // Adjust difficulty based on proficiency
+    const difficultyLevel = proficiencyLevel <= 3 ? 'basic' : 
+                          proficiencyLevel <= 6 ? 'intermediate' : 
+                          'advanced';
+
+    // Generate lesson content with grade level and proficiency consideration
+    const lessonPrompt = `Create an educational lesson about ${subject} appropriate for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
     The lesson should be comprehensive but concise, focusing on key concepts that are grade-appropriate. 
-    Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.`;
+    Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.
+    Make the content slightly more challenging than their current level to promote growth.`;
 
     const lessonResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
@@ -71,11 +89,11 @@ serve(async (req) => {
 
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
-    // Generate questions with grade-level consideration
-    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 questions to test understanding for a ${gradeLevelText} student. Include a mix of:
-    1. Multiple choice questions with 4 options (grade-appropriate complexity)
-    2. Multiple answer questions where more than one option is correct (grade-appropriate)
-    3. Text questions requiring a written response (grade-appropriate length and complexity)
+    // Generate questions with difficulty adjustment
+    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). Include a mix of:
+    1. Multiple choice questions with 4 options (adjusted for ${difficultyLevel} level)
+    2. Multiple answer questions where more than one option is correct (adjusted for ${difficultyLevel} level)
+    3. Text questions requiring a written response (adjusted for ${difficultyLevel} level)
     
     Return ONLY a JSON array with this structure for each type:
     

@@ -128,6 +128,74 @@ export type Database = {
         }
         Relationships: []
       }
+      question_responses: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          lesson_id: string
+          question_index: number
+          response_time: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct: boolean
+          lesson_id: string
+          question_index: number
+          response_time: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          lesson_id?: string
+          question_index?: number
+          response_time?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_responses_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "generated_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subject_proficiency: {
+        Row: {
+          correct_answers: number
+          id: string
+          proficiency_level: number
+          subject: string
+          total_questions_attempted: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correct_answers?: number
+          id?: string
+          proficiency_level?: number
+          subject: string
+          total_questions_attempted?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correct_answers?: number
+          id?: string
+          proficiency_level?: number
+          subject?: string
+          total_questions_attempted?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

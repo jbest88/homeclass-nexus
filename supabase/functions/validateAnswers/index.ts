@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -6,74 +5,81 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ValidationRequest {
+  question: string;
+  userAnswer: string | string[];
+  correctAnswer?: string;
+  correctAnswers?: string[];
+  type: 'text' | 'multiple-choice' | 'multiple-answer';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { question, userAnswer, correctAnswer, type, correctAnswers } = await req.json();
-    console.log('Validating answer:', { question, userAnswer, type, correctAnswer });
+    const { question, userAnswer, correctAnswer, correctAnswers, type } = await req.json() as ValidationRequest;
+    console.log('Validating answer:', { question, userAnswer, correctAnswer, correctAnswers, type });
 
-    // Handle different question types
-    if (type === 'multiple-choice') {
-      const isCorrect = userAnswer === correctAnswer;
-      let explanation = isCorrect 
-        ? 'Correct!' 
-        : `Incorrect. The correct answer is: ${correctAnswer}`;
+    let isCorrect = false;
+    let explanation = '';
 
-      // Add additional explanation for mathematical questions if needed
-      if (question.includes('Simplify') || question.includes('Calculate')) {
-        explanation += isCorrect 
-          ? ' Your understanding of the mathematical operation is correct.'
-          : ' Remember to carefully follow the order of operations and calculate step by step.';
-      }
-
-      return new Response(
-        JSON.stringify({ isCorrect, explanation }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (type === 'multiple-answer') {
-      const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
-      const isCorrect = correctAnswers.length === userAnswers.length &&
-        correctAnswers.every(answer => userAnswers.includes(answer));
-      
-      return new Response(
-        JSON.stringify({
-          isCorrect,
-          explanation: isCorrect 
-            ? 'All correct answers selected!' 
-            : `Incorrect. The correct answers were: ${correctAnswers.join(', ')}`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // For text answers, use simple string comparison
-    const isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
-    return new Response(
-      JSON.stringify({
-        isCorrect,
-        explanation: isCorrect 
+    switch (type) {
+      case 'multiple-choice':
+        // For multiple choice, compare the selected answer with the correct answer
+        isCorrect = userAnswer === correctAnswer;
+        explanation = isCorrect 
           ? 'Correct!' 
-          : `Incorrect. The expected answer was: ${correctAnswer}`
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          : `Incorrect. The correct answer is: ${correctAnswer}`;
+        break;
+
+      case 'multiple-answer':
+        if (!Array.isArray(userAnswer) || !Array.isArray(correctAnswers)) {
+          throw new Error('Invalid answer format for multiple-answer question');
+        }
+        // For multiple answer, check if all correct answers are selected and no incorrect ones
+        isCorrect = correctAnswers.length === userAnswer.length &&
+          correctAnswers.every(answer => userAnswer.includes(answer));
+        explanation = isCorrect 
+          ? 'All correct answers selected!' 
+          : `Incorrect. The correct answers were: ${correctAnswers.join(', ')}`;
+        break;
+
+      case 'text':
+        // For text answers, do a case-insensitive comparison
+        isCorrect = userAnswer.toString().toLowerCase().trim() === 
+                   correctAnswer?.toLowerCase().trim();
+        explanation = isCorrect 
+          ? 'Correct!' 
+          : `Incorrect. The expected answer was: ${correctAnswer}`;
+        break;
+
+      default:
+        throw new Error(`Unsupported question type: ${type}`);
+    }
+
+    console.log('Validation result:', { isCorrect, explanation });
+
+    return new Response(
+      JSON.stringify({ isCorrect, explanation }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
     );
 
   } catch (error) {
-    console.error('Error in validateAnswers function:', error);
+    console.error('Error in validateAnswers:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
+        error: error.message,
         isCorrect: false,
-        explanation: 'Sorry, we encountered an error while validating your answer. Please try again.' 
+        explanation: 'Error validating answer'
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 500,
       }
     );
   }

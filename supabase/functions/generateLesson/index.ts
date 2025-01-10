@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +15,6 @@ serve(async (req) => {
 
   try {
     const { subject } = await req.json();
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
     // Generate lesson content
     const lessonPrompt = `Create an educational lesson about ${subject}. The lesson should be comprehensive but concise, focusing on key concepts. Include a title for the lesson.`;
@@ -33,7 +33,8 @@ serve(async (req) => {
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
 
     // Generate questions about the lesson
-    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 multiple choice questions to test understanding. Format as a JSON array with this structure: [{"question": "...", "options": ["...", "...", "...", "..."], "correctAnswer": "..."}]`;
+    const questionsPrompt = `Based on this lesson: "${lessonContent}", generate 3 multiple choice questions to test understanding. Return ONLY a JSON array with this structure, and nothing else: [{"question": "...", "options": ["...", "...", "...", "..."], "correctAnswer": "..."}]. Do not include any markdown formatting, just the raw JSON array.`;
+    
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
@@ -46,7 +47,20 @@ serve(async (req) => {
     });
 
     const questionsData = await questionsResponse.json();
-    const questionsContent = questionsData.candidates[0].content.parts[0].text;
+    const questionsText = questionsData.candidates[0].content.parts[0].text;
+    
+    // Clean up the response to ensure it's valid JSON
+    const cleanedQuestionsText = questionsText.replace(/```json\n|\n```/g, '').trim();
+    console.log('Cleaned questions text:', cleanedQuestionsText);
+    
+    let questions;
+    try {
+      questions = JSON.parse(cleanedQuestionsText);
+    } catch (error) {
+      console.error('Error parsing questions JSON:', error);
+      console.log('Raw questions text:', questionsText);
+      throw new Error('Failed to parse questions JSON');
+    }
 
     // Extract title from content (assuming it's the first line)
     const title = lessonContent.split('\n')[0].replace('#', '').trim();
@@ -56,14 +70,14 @@ serve(async (req) => {
       JSON.stringify({
         title,
         content,
-        questions: JSON.parse(questionsContent),
+        questions,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in generateLesson function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

@@ -15,11 +15,13 @@ const Index = () => {
 
   const getErrorMessage = (error: AuthError) => {
     if (error instanceof AuthApiError) {
-      switch (error.status) {
-        case 400:
+      switch (error.code) {
+        case 'invalid_credentials':
           return "Invalid email or password. Please check your credentials and try again.";
-        case 422:
-          return "Please provide both email and password.";
+        case 'user_not_found':
+          return "No account found with these credentials. Please sign up first.";
+        case 'invalid_grant':
+          return "Invalid login credentials. Please try again.";
         default:
           return error.message;
       }

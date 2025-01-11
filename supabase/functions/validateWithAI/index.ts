@@ -16,6 +16,7 @@ serve(async (req) => {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!geminiApiKey) {
+      console.error('GEMINI_API_KEY is not configured');
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
@@ -33,11 +34,11 @@ serve(async (req) => {
       
       Validate if:
       1. The question is clear and unambiguous
-      2. The correct answer is truly correct
+      2. The correct answer is truly correct and properly formatted
       3. The question type is appropriate
       4. The question doesn't rely on external context
       
-      Respond with a JSON object in this exact format:
+      Return ONLY a JSON object in this exact format, with no additional text:
       {
         "isValid": true/false,
         "explanation": "explanation string",
@@ -63,7 +64,7 @@ serve(async (req) => {
       2. Possible alternative correct answers
       3. Partial understanding
       
-      Respond with a JSON object in this exact format:
+      Return ONLY a JSON object in this exact format, with no additional text:
       {
         "isCorrect": true/false,
         "explanation": "detailed feedback string"
@@ -110,44 +111,48 @@ serve(async (req) => {
     console.log('Raw Gemini response:', data);
 
     if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Invalid Gemini response format');
+      console.error('Invalid Gemini response format:', data);
+      throw new Error('Invalid Gemini response structure');
     }
 
-    const responseText = data.candidates[0].content.parts[0].text;
+    const responseText = data.candidates[0].content.parts[0].text.trim();
     console.log('Response text:', responseText);
 
     // Try to find a JSON object in the response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('No JSON found in response:', responseText);
-      throw new Error('No JSON found in response');
+    let jsonMatch;
+    try {
+      // First try to parse the entire response as JSON
+      jsonMatch = JSON.parse(responseText);
+    } catch (e) {
+      // If that fails, try to extract JSON from the text
+      const matches = responseText.match(/\{[\s\S]*\}/);
+      if (!matches) {
+        console.error('No JSON found in response:', responseText);
+        throw new Error('No JSON found in response');
+      }
+      jsonMatch = JSON.parse(matches[0]);
     }
 
-    let result;
-    try {
-      result = JSON.parse(jsonMatch[0]);
-      
-      // Validate the response format
-      for (const [key, expectedType] of Object.entries(responseFormat)) {
-        if (typeof result[key] !== expectedType) {
-          console.error(`Invalid type for ${key}:`, typeof result[key], 'expected:', expectedType);
-          throw new Error(`Invalid response format: ${key} should be ${expectedType}`);
-        }
+    // Validate the response format
+    for (const [key, expectedType] of Object.entries(responseFormat)) {
+      if (typeof jsonMatch[key] !== expectedType) {
+        console.error(`Invalid type for ${key}:`, typeof jsonMatch[key], 'expected:', expectedType);
+        throw new Error(`Invalid response format: ${key} should be ${expectedType}`);
       }
-    } catch (error) {
-      console.error('Error parsing Gemini response:', error);
-      throw new Error('Invalid AI response format');
     }
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify(jsonMatch),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error in validateWithAI:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -24,14 +24,11 @@ export const validateTrueFalse = (
   const normalizedUserAnswer = normalizeText(userAnswer);
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
   
-  // Handle numerical comparison questions
   if (isNumberComparisonQuestion(question)) {
-    // Extract numbers from the question
     const numbers = question.match(/[\d,]+/g)?.map(num => Number(num.replace(/,/g, '')));
     
     if (numbers && numbers.length >= 2) {
-      const firstNumber = numbers[0];
-      const secondNumber = numbers[1];
+      const [firstNumber, secondNumber] = numbers;
       
       let calculatedAnswer;
       if (question.includes('greater than')) {
@@ -82,9 +79,22 @@ export const validateMultipleChoice = (
 
   if (isMathQuestion(question)) {
     if (isNumberComparisonQuestion(question)) {
-      const userNum = wordToNumber(normalizedUserAnswer);
-      const correctNum = wordToNumber(normalizedCorrectAnswer);
-      isCorrect = userNum !== null && correctNum !== null && userNum === correctNum;
+      // Extract the comparison number from the question
+      const comparisonMatch = question.match(/(?:greater than|less than|equal to)\s+(\d+)/i);
+      if (comparisonMatch) {
+        const comparisonNumber = parseInt(comparisonMatch[1]);
+        const userNum = parseInt(normalizedUserAnswer);
+        
+        if (!isNaN(userNum) && !isNaN(comparisonNumber)) {
+          if (question.toLowerCase().includes('greater than')) {
+            isCorrect = userNum > comparisonNumber;
+          } else if (question.toLowerCase().includes('less than')) {
+            isCorrect = userNum < comparisonNumber;
+          } else {
+            isCorrect = userNum === comparisonNumber;
+          }
+        }
+      }
     } else {
       const userValue = evaluateExponentExpression(normalizedUserAnswer);
       const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);

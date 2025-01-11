@@ -137,6 +137,41 @@ export type Database = {
         }
         Relationships: []
       }
+      question_help: {
+        Row: {
+          created_at: string
+          explanation: string
+          id: string
+          lesson_id: string
+          question_index: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          explanation: string
+          id?: string
+          lesson_id: string
+          question_index: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          explanation?: string
+          id?: string
+          lesson_id?: string
+          question_index?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_help_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "generated_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       question_responses: {
         Row: {
           created_at: string

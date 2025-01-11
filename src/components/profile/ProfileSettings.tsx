@@ -84,9 +84,7 @@ const ProfileSettings = () => {
       const { error } = await supabase
         .from("profiles")
         .update({
-          id: user.id,
           birthday: date.toISOString().split('T')[0],
-          updated_at: new Date().toISOString()
         })
         .eq("id", user.id);
 

@@ -60,7 +60,6 @@ const Module = () => {
             user_id: user.id,
             module_id: moduleId,
             completed_at: new Date().toISOString(),
-            created_at: new Date().toISOString()
           });
 
         if (error) throw error;

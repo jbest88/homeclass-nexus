@@ -4,9 +4,17 @@ export const createLessonPrompt = (
   difficultyLevel: string,
   proficiencyLevel: number
 ): string => {
-  return `Create an educational lesson about ${subject} appropriate for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
-    The lesson should be comprehensive but concise, focusing on key concepts that are grade-appropriate. 
-    Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.`;
+  return `Create an engaging, student-friendly lesson about ${subject} for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+
+    Write as if you're directly speaking to the student. Use clear, conversational language and include:
+    - A friendly introduction that gets them excited about the topic
+    - Real-world examples and relatable scenarios
+    - Clear explanations of key concepts
+    - "Did you know?" facts to maintain interest
+    - Brief recap points throughout the lesson
+    
+    The content should be easy to read and understand, avoiding overly technical language unless necessary.
+    Include a clear, student-friendly title for the lesson.`;
 };
 
 export const createQuestionsPrompt = (
@@ -15,7 +23,13 @@ export const createQuestionsPrompt = (
   difficultyLevel: string,
   proficiencyLevel: number
 ): string => {
-  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions that will help a ${gradeLevelText} student check their understanding. The questions should be at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+
+    Make the questions:
+    - Clear and straightforward
+    - Directly related to the main concepts covered
+    - Encouraging and supportive in tone
+    - Focused on understanding rather than memorization
 
     Include a mix of these question types:
     1. Multiple choice (2 questions)

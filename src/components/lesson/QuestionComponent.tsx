@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
 
 interface QuestionComponentProps {
   question: Question;
@@ -17,6 +23,8 @@ interface QuestionComponentProps {
   onAnswerChange: (answer: string | string[]) => void;
   isLocked?: boolean;
   subject: string;
+  lessonId: string;
+  questionIndex: number;
 }
 
 export const QuestionComponent = ({
@@ -25,46 +33,54 @@ export const QuestionComponent = ({
   onAnswerChange,
   isLocked = false,
   subject,
+  lessonId,
+  questionIndex,
 }: QuestionComponentProps) => {
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isGettingHelp, setIsGettingHelp] = useState(false);
+
+  const { data: helpData, isLoading: isLoadingHelp } = useQuery({
+    queryKey: ["question-help", lessonId, questionIndex],
+    queryFn: async () => {
+      // First, try to get cached help from the database
+      const { data: cachedHelp } = await supabase
+        .from("question_help")
+        .select("explanation")
+        .eq("lesson_id", lessonId)
+        .eq("question_index", questionIndex)
+        .single();
+
+      if (cachedHelp) {
+        return cachedHelp.explanation;
+      }
+
+      // If no cached help exists, get new help from the AI
+      setIsGettingHelp(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('get-question-help', {
+          body: { question: question.question, subject }
+        });
+
+        if (error) throw error;
+
+        // Cache the help response
+        await supabase.from("question_help").insert({
+          lesson_id: lessonId,
+          question_index: questionIndex,
+          explanation: data.explanation,
+        });
+
+        return data.explanation;
+      } finally {
+        setIsGettingHelp(false);
+      }
+    },
+    enabled: isHelpOpen, // Only fetch when dialog is opened
+  });
 
   const handleAnswerChange = (value: string | string[]) => {
     if (!isLocked) {
       onAnswerChange(value);
-    }
-  };
-
-  const getHelp = async () => {
-    setIsGettingHelp(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('get-question-help', {
-        body: { question: question.question, subject }
-      });
-
-      if (error) throw error;
-
-      toast.info("AI Tutor Help", {
-        description: (
-          <div className="prose prose-slate dark:prose-invert max-w-none
-            prose-headings:font-bold prose-headings:text-foreground
-            prose-h1:text-3xl prose-h1:mb-8
-            prose-h2:text-2xl prose-h2:mb-6
-            prose-h3:text-xl prose-h3:mb-4
-            prose-p:mb-4 prose-p:leading-7
-            prose-li:my-2
-            prose-ul:my-6 prose-ul:list-disc prose-ul:pl-6
-            prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6
-            [&_blockquote]:border-l-4 [&_blockquote]:border-muted [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6">
-            {data.explanation}
-          </div>
-        ),
-        duration: 10000,
-      });
-    } catch (error) {
-      console.error('Error getting help:', error);
-      toast.error("Failed to get help. Please try again.");
-    } finally {
-      setIsGettingHelp(false);
     }
   };
 
@@ -94,34 +110,62 @@ export const QuestionComponent = ({
   };
 
   return (
-    <Card>
-      <CardHeader className="relative">
-        <div className="text-lg font-medium">{question.question}</div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2"
-          onClick={getHelp}
-          disabled={isGettingHelp}
-        >
-          <HelpCircle className={isGettingHelp ? "animate-spin" : ""} />
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {renderQuestionInput()}
-        {answerState.isSubmitted && (
-          <div className="mt-4">
-            {answerState.isCorrect ? (
-              <p className="text-green-600">Correct!</p>
+    <>
+      <Card>
+        <CardHeader className="relative">
+          <div className="text-lg font-medium">{question.question}</div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2"
+            onClick={() => setIsHelpOpen(true)}
+            disabled={isGettingHelp}
+          >
+            <HelpCircle className={isGettingHelp ? "animate-spin" : ""} />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {renderQuestionInput()}
+          {answerState.isSubmitted && (
+            <div className="mt-4">
+              {answerState.isCorrect ? (
+                <p className="text-green-600">Correct!</p>
+              ) : (
+                <p className="text-red-600">
+                  Incorrect. {answerState.explanation}
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>AI Tutor Help</DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-slate dark:prose-invert max-w-none
+            prose-headings:font-bold prose-headings:text-foreground
+            prose-h1:text-3xl prose-h1:mb-8
+            prose-h2:text-2xl prose-h2:mb-6
+            prose-h3:text-xl prose-h3:mb-4
+            prose-p:mb-4 prose-p:leading-7
+            prose-li:my-2
+            prose-ul:my-6 prose-ul:list-disc prose-ul:pl-6
+            prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6
+            [&_blockquote]:border-l-4 [&_blockquote]:border-muted [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6">
+            {isLoadingHelp ? (
+              <div className="flex items-center justify-center py-8">
+                <HelpCircle className="animate-spin h-8 w-8" />
+              </div>
             ) : (
-              <p className="text-red-600">
-                Incorrect. {answerState.explanation}
-              </p>
+              helpData
             )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

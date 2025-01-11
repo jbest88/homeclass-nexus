@@ -37,11 +37,11 @@ serve(async (req) => {
       3. The question type is appropriate
       4. The question doesn't rely on external context
       
-      Return ONLY a JSON response with this exact format:
+      Respond with a JSON object in this exact format:
       {
-        "isValid": boolean,
-        "explanation": string (why it's valid or not),
-        "suggestedCorrection": string (if not valid)
+        "isValid": true/false,
+        "explanation": "explanation string",
+        "suggestedCorrection": "correction string if not valid"
       }`;
 
       responseFormat = {
@@ -63,10 +63,10 @@ serve(async (req) => {
       2. Possible alternative correct answers
       3. Partial understanding
       
-      Return ONLY a JSON response with this exact format:
+      Respond with a JSON object in this exact format:
       {
-        "isCorrect": boolean,
-        "explanation": string (detailed feedback for the student)
+        "isCorrect": true/false,
+        "explanation": "detailed feedback string"
       }`;
 
       responseFormat = {
@@ -91,6 +91,11 @@ serve(async (req) => {
               text: prompt 
             }] 
           }],
+          generationConfig: {
+            temperature: 0.1,
+            topP: 0.1,
+            topK: 16,
+          }
         }),
       }
     );
@@ -108,20 +113,25 @@ serve(async (req) => {
       throw new Error('Invalid Gemini response format');
     }
 
+    const responseText = data.candidates[0].content.parts[0].text;
+    console.log('Response text:', responseText);
+
+    // Try to find a JSON object in the response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', responseText);
+      throw new Error('No JSON found in response');
+    }
+
     let result;
     try {
-      const responseText = data.candidates[0].content.parts[0].text;
-      // Extract JSON from the response text (in case there's additional text)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
       result = JSON.parse(jsonMatch[0]);
       
       // Validate the response format
-      for (const [key, type] of Object.entries(responseFormat)) {
-        if (typeof result[key] !== type) {
-          throw new Error(`Invalid response format: ${key} should be ${type}`);
+      for (const [key, expectedType] of Object.entries(responseFormat)) {
+        if (typeof result[key] !== expectedType) {
+          console.error(`Invalid type for ${key}:`, typeof result[key], 'expected:', expectedType);
+          throw new Error(`Invalid response format: ${key} should be ${expectedType}`);
         }
       }
     } catch (error) {

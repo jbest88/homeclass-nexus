@@ -5,11 +5,13 @@ export const corsHeaders = {
 
 // Utility function to normalize text for comparison
 export const normalizeText = (text: string): string => {
+  if (!text) return '';
   return String(text).toLowerCase().trim();
 };
 
 // Utility function to check if a string indicates "all of the above"
 export const isAllOfTheAbove = (text: string): boolean => {
+  if (!text) return false;
   const normalizedText = normalizeText(text);
   return normalizedText.includes('all of the above') || 
          normalizedText.includes('all the above');
@@ -17,6 +19,8 @@ export const isAllOfTheAbove = (text: string): boolean => {
 
 // Utility function to evaluate mathematical expressions
 export const evaluateExponentExpression = (expr: string): number => {
+  if (!expr) return NaN;
+  
   try {
     const normalized = expr.replace(/\s+/g, '')
       .replace(/([0-9])²/g, '$1^2')
@@ -47,5 +51,6 @@ export const evaluateExponentExpression = (expr: string): number => {
 
 // Utility function to check if a question involves math
 export const isMathQuestion = (question: string): boolean => {
+  if (!question) return false;
   return /[²³⁴⁵⁶⁷⁸⁹¹×\+\-\/\^]/.test(question);
 };

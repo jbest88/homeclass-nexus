@@ -7,6 +7,13 @@ export const validateTrueFalse = (
   correctAnswer: string,
   question: string
 ): ValidationResult => {
+  if (!userAnswer || !correctAnswer) {
+    return {
+      isCorrect: false,
+      explanation: 'Missing answer or correct answer'
+    };
+  }
+
   const normalizedUserAnswer = normalizeText(userAnswer);
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
   
@@ -54,6 +61,13 @@ export const validateMultipleChoice = (
   correctAnswer: string,
   question: string
 ): ValidationResult => {
+  if (!userAnswer || !correctAnswer) {
+    return {
+      isCorrect: false,
+      explanation: 'Missing answer or correct answer'
+    };
+  }
+
   const normalizedUserAnswer = normalizeText(userAnswer);
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
 
@@ -80,27 +94,39 @@ export const validateMultipleAnswer = (
   userAnswers: string[],
   correctAnswers: string[]
 ): ValidationResult => {
-  console.log('Validating multiple answer:', { userAnswers, correctAnswers });
+  if (!Array.isArray(userAnswers) || !Array.isArray(correctAnswers)) {
+    return {
+      isCorrect: false,
+      explanation: 'Invalid answer format'
+    };
+  }
+
+  if (!userAnswers.length || !correctAnswers.length) {
+    return {
+      isCorrect: false,
+      explanation: 'No answers provided'
+    };
+  }
   
   // Normalize all answers for comparison
   const normalizedUserAnswers = userAnswers.map(normalizeText);
   const normalizedCorrectAnswers = correctAnswers.map(normalizeText);
   
   // Check if "All of the above" is among the correct answers
-  const hasAllOfTheAbove = correctAnswers.some(isAllOfTheAbove);
+  const hasAllOfTheAbove = correctAnswers.some(answer => answer && isAllOfTheAbove(answer));
   
   let isCorrect = false;
   
   if (hasAllOfTheAbove) {
     // Case 1: User selected "All of the above"
-    const userSelectedAllOfTheAbove = normalizedUserAnswers.some(isAllOfTheAbove);
+    const userSelectedAllOfTheAbove = normalizedUserAnswers.some(answer => answer && isAllOfTheAbove(answer));
     
     // Case 2: User selected all individual options (excluding "All of the above")
-    const individualOptions = correctAnswers.filter(answer => !isAllOfTheAbove(answer));
+    const individualOptions = correctAnswers.filter(answer => answer && !isAllOfTheAbove(answer));
     const selectedAllIndividualOptions = 
       normalizedUserAnswers.length === individualOptions.length &&
       individualOptions.every(option => 
-        normalizedUserAnswers.includes(normalizeText(option))
+        option && normalizedUserAnswers.includes(normalizeText(option))
       );
     
     isCorrect = userSelectedAllOfTheAbove || selectedAllIndividualOptions;
@@ -108,7 +134,7 @@ export const validateMultipleAnswer = (
     // Regular multiple answer validation
     isCorrect = normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
                 normalizedUserAnswers.every(answer => 
-                  normalizedCorrectAnswers.includes(answer)
+                  answer && normalizedCorrectAnswers.includes(answer)
                 );
   }
 
@@ -126,6 +152,13 @@ export const validateText = (
   correctAnswer: string,
   question: string
 ): ValidationResult => {
+  if (!userAnswer || !correctAnswer) {
+    return {
+      isCorrect: false,
+      explanation: 'Missing answer or correct answer'
+    };
+  }
+
   const normalizedUserAnswer = normalizeText(userAnswer);
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
   

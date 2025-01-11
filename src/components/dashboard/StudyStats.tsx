@@ -29,16 +29,19 @@ const StudyStats = () => {
       const { data, error } = await supabase
         .from("question_responses")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .order('created_at', { ascending: false });  // Order by most recent first
 
       if (error) throw error;
+      console.log("Question responses:", data); // Add this log to debug
       return data;
     },
     enabled: !!user,
   });
 
+  // Calculate stats from the responses
   const totalQuestions = questionResponses?.length || 0;
-  const correctAnswers = questionResponses?.filter(r => r.is_correct)?.length || 0;
+  const correctAnswers = questionResponses?.filter(r => r.is_correct === true)?.length || 0;
   const averageProficiency = proficiencyData?.reduce((acc, curr) => acc + curr.proficiency_level, 0) / (proficiencyData?.length || 1);
   const maxProficiency = 10; // Maximum proficiency level
 

@@ -42,7 +42,7 @@ serve(async (req) => {
       {
         "isValid": true/false,
         "explanation": "explanation string",
-        "suggestedCorrection": "correction string if not valid"
+        "suggestedCorrection": "correction string if not valid, empty string if valid"
       }`;
 
       responseFormat = {
@@ -133,11 +133,21 @@ serve(async (req) => {
       jsonMatch = JSON.parse(matches[0]);
     }
 
-    // Validate the response format
+    // Ensure all required fields are present and have correct types
     for (const [key, expectedType] of Object.entries(responseFormat)) {
+      if (!(key in jsonMatch)) {
+        jsonMatch[key] = expectedType === "boolean" ? false : 
+                        expectedType === "string" ? "" : null;
+      }
       if (typeof jsonMatch[key] !== expectedType) {
-        console.error(`Invalid type for ${key}:`, typeof jsonMatch[key], 'expected:', expectedType);
-        throw new Error(`Invalid response format: ${key} should be ${expectedType}`);
+        if (expectedType === "string" && jsonMatch[key] === null) {
+          jsonMatch[key] = "";
+        } else if (expectedType === "boolean" && typeof jsonMatch[key] !== "boolean") {
+          jsonMatch[key] = false;
+        } else {
+          console.error(`Invalid type for ${key}:`, typeof jsonMatch[key], 'expected:', expectedType);
+          throw new Error(`Invalid response format: ${key} should be ${expectedType}`);
+        }
       }
     }
 

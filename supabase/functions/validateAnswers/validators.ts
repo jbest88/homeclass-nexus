@@ -123,16 +123,29 @@ export const validateMultipleAnswer = (
 
   // Handle number comparison questions (e.g., "less than five")
   if (question && isNumberComparisonQuestion(question)) {
-    const comparisonNumber = question.toLowerCase().includes('less than') ? 5 :
-                            question.toLowerCase().includes('greater than') ? 5 : null;
+    const comparisonText = question.toLowerCase();
+    const comparisonNumber = comparisonText.includes('less than') ? 
+      wordToNumber(comparisonText.split('less than')[1].trim()) :
+      comparisonText.includes('greater than') ? 
+        wordToNumber(comparisonText.split('greater than')[1].trim()) : 
+        null;
     
     if (comparisonNumber !== null) {
       const userNumbers = userAnswers.map(ans => wordToNumber(ans)).filter((n): n is number => n !== null);
-      const correctNumbers = correctAnswers.map(ans => wordToNumber(ans)).filter((n): n is number => n !== null);
       
-      const isCorrect = userNumbers.length === correctNumbers.length &&
+      // Generate all valid answers for the comparison
+      const allPossibleAnswers = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
+        .map(word => ({ word, number: wordToNumber(word) }))
+        .filter(({ number }) => number !== null && (
+          comparisonText.includes('less than') ? number < comparisonNumber :
+          comparisonText.includes('greater than') ? number > comparisonNumber :
+          false
+        ))
+        .map(({ word }) => word);
+      
+      const isCorrect = userNumbers.length === allPossibleAnswers.length &&
                        userNumbers.every(num => 
-                         question.toLowerCase().includes('less than') ? 
+                         comparisonText.includes('less than') ? 
                            num < comparisonNumber : num > comparisonNumber
                        );
 
@@ -140,7 +153,7 @@ export const validateMultipleAnswer = (
         isCorrect,
         explanation: isCorrect 
           ? 'All correct answers selected!' 
-          : `Incorrect. The correct answers were: ${correctAnswers.join(', ')}`
+          : `Incorrect. The correct answers were: ${allPossibleAnswers.join(', ')}`
       };
     }
   }

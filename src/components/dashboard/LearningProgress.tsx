@@ -68,6 +68,11 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     enabled: !!user,
   });
 
+  // Get all lesson IDs that are part of any learning path
+  const pathLessonIds = learningPaths?.flatMap(path => 
+    path.lessons?.map(lesson => lesson.lesson_id) || []
+  ) || [];
+
   const { data: generatedLessons } = useQuery({
     queryKey: ["generated-lessons"],
     queryFn: async () => {
@@ -80,7 +85,9 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
         .order("order_index");
 
       if (error) throw error;
-      return data;
+      
+      // Filter out lessons that are part of a learning path
+      return data.filter(lesson => !pathLessonIds.includes(lesson.id));
     },
     enabled: !!user,
   });

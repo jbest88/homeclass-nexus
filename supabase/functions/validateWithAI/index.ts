@@ -6,6 +6,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function callGeminiWithRetry(prompt: string, maxRetries = 3) {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const backoffTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+      if (attempt > 0) {
+        console.log(`Retry attempt ${attempt + 1}, waiting ${backoffTime}ms`);
+        await sleep(backoffTime);
+      }
+
+      const response = await fetch(
+        'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': geminiApiKey,
+          },
+          body: JSON.stringify({
+            contents: [{ 
+              parts: [{ 
+                text: prompt 
+              }] 
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              topP: 0.1,
+              topK: 16,
+            }
+          }),
+        }
+      );
+
+      if (response.status === 429) {
+        console.log(`Rate limit hit on attempt ${attempt + 1}`);
+        if (attempt === maxRetries - 1) {
+          throw new Error('Rate limit exceeded after all retry attempts');
+        }
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', errorText);
+        throw new Error(`Gemini API error: ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (attempt === maxRetries - 1) {
+        throw error;
+      }
+      console.error(`Attempt ${attempt + 1} failed:`, error);
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,12 +73,6 @@ serve(async (req) => {
 
   try {
     const { question, userAnswer, correctAnswer, type, mode, correctAnswers } = await req.json();
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
-    if (!geminiApiKey) {
-      console.error('GEMINI_API_KEY is not configured');
-      throw new Error('GEMINI_API_KEY is not configured');
-    }
 
     let prompt;
     let responseFormat;
@@ -78,36 +132,7 @@ serve(async (req) => {
 
     console.log('Sending prompt to Gemini:', prompt);
 
-    const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': geminiApiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ 
-            parts: [{ 
-              text: prompt 
-            }] 
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            topP: 0.1,
-            topK: 16,
-          }
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error(`Gemini API error: ${errorText}`);
-    }
-
-    const data = await response.json();
+    const data = await callGeminiWithRetry(prompt);
     console.log('Raw Gemini response:', data);
 
     if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {

@@ -50,9 +50,35 @@ export const QuestionComponent = ({
     }
   };
 
+  const isContextDependentQuestion = (questionText: string): boolean => {
+    const contextPatterns = [
+      /around you/i,
+      /do you see/i,
+      /can you see/i,
+      /in your room/i,
+      /in front of you/i,
+      /near you/i,
+      /beside you/i,
+      /in your environment/i,
+      /in your surroundings/i,
+    ];
+    return contextPatterns.some(pattern => pattern.test(questionText));
+  };
+
   const getExplanation = () => {
     if (!answerState.isSubmitted || answerState.isCorrect) {
       return answerState.explanation;
+    }
+
+    // Handle context-dependent questions first
+    if (isContextDependentQuestion(question.question)) {
+      return `This question cannot be automatically validated as it depends on your physical surroundings. The correct answers would vary based on what you actually see around you. For learning purposes, focus on understanding what these shapes look like:\n\n` +
+        `- A circle is a perfectly round shape\n` +
+        `- A triangle has three sides and three angles\n` +
+        `- A rectangle has four sides and four right angles\n` +
+        `- A square is a special rectangle with all sides equal\n` +
+        `- A star typically has five or more points radiating from a center\n\n` +
+        `Practice identifying these shapes in your environment!`;
     }
 
     if (question.type === 'true-false') {

@@ -4,12 +4,11 @@ import { GraduationCap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@supabase/auth-helpers-react";
-import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import SubjectProgress from "@/components/dashboard/SubjectProgress";
+import { LearningPath } from "@/types/learning-path";
 
 const Archive = () => {
   const user = useUser();
-  const navigate = useNavigate();
 
   const { data: archivedLessons } = useQuery({
     queryKey: ["archived-lessons"],
@@ -37,51 +36,55 @@ const Archive = () => {
     enabled: !!user,
   });
 
-  const groupedLessons = archivedLessons?.reduce((acc, lesson) => {
+  // Group archived lessons by subject and format them as learning paths
+  const pathsBySubject = archivedLessons?.reduce((acc, lesson) => {
     const subject = lesson.generated_lessons.subject;
     if (!acc[subject]) {
-      acc[subject] = [];
+      acc[subject] = {
+        totalModules: 0,
+        completedModules: 0,
+        paths: [{
+          id: subject,
+          subject,
+          created_at: new Date().toISOString(),
+          lessons: []
+        }] as LearningPath[]
+      };
     }
-    acc[subject].push(lesson);
+
+    acc[subject].totalModules += 1;
+    acc[subject].paths[0].lessons?.push({
+      id: lesson.id,
+      lesson_id: lesson.lesson_id,
+      title: lesson.generated_lessons.title,
+      created_at: lesson.archived_at,
+    });
+
     return acc;
-  }, {} as Record<string, typeof archivedLessons>);
+  }, {} as Record<string, { totalModules: number; completedModules: number; paths: LearningPath[] }>);
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Archived Lessons</h1>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
-            Archive
+            Other Journeys
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[600px] pr-4">
-            {groupedLessons && Object.entries(groupedLessons).map(([subject, lessons]) => (
-              <div key={subject} className="mb-6 last:mb-0">
-                <h3 className="text-lg font-semibold mb-3">{subject}</h3>
-                <div className="space-y-2">
-                  {lessons.map((lesson) => (
-                    <div
-                      key={lesson.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <div className="flex-1">
-                        <div 
-                          className="cursor-pointer hover:text-primary"
-                          onClick={() => navigate(`/generated-lesson/${lesson.lesson_id}`)}
-                        >
-                          {lesson.generated_lessons.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Archived on {format(new Date(lesson.archived_at), 'MMM d, yyyy h:mm a')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {pathsBySubject && Object.entries(pathsBySubject).map(([subject, data]) => (
+              <SubjectProgress
+                key={subject}
+                subject={subject}
+                totalModules={data.totalModules}
+                completedModules={data.completedModules}
+                modules={[]}
+                learningPaths={data.paths}
+                isGenerating={false}
+                onLessonDeleted={() => {}}
+              />
             ))}
           </ScrollArea>
         </CardContent>

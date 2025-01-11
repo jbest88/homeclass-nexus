@@ -121,7 +121,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <GraduationCap className="h-5 w-5" />
-          Learning Journey
+          Today's Learning Journey
         </CardTitle>
         <Button
           variant="outline"
@@ -130,7 +130,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
           onClick={() => navigate('/archive')}
         >
           <Archive className="h-4 w-4" />
-          Archive
+          Other Journeys
         </Button>
       </CardHeader>
       <CardContent>

@@ -44,29 +44,60 @@ serve(async (req) => {
     // Parse and validate questions
     let questions;
     try {
-      const cleanedQuestionsText = questionsText.replace(/```json\n|\n```/g, '').trim();
-      questions = JSON.parse(cleanedQuestionsText);
+      console.log('Raw questions text:', questionsText);
       
-      if (!Array.isArray(questions) || questions.length !== 5) {
-        throw new Error('Generated questions must be an array of exactly 5 questions');
+      // Clean up the JSON string
+      const cleanedQuestionsText = questionsText
+        .replace(/```json\n|\n```/g, '')
+        .replace(/^[\s\n]*\[/, '[') // Remove leading whitespace before [
+        .replace(/\][\s\n]*$/, ']') // Remove trailing whitespace after ]
+        .trim();
+      
+      console.log('Cleaned questions text:', cleanedQuestionsText);
+      
+      try {
+        questions = JSON.parse(cleanedQuestionsText);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        throw new Error(`Failed to parse questions JSON: ${parseError.message}`);
+      }
+
+      if (!Array.isArray(questions)) {
+        throw new Error('Generated questions must be an array');
+      }
+
+      if (questions.length !== 5) {
+        throw new Error(`Expected 5 questions, but got ${questions.length}`);
       }
 
       // Validate each question
       questions.forEach((q, index) => {
-        // Check required fields
-        if (!q.question || !q.type) {
-          throw new Error(`Question ${index + 1} is missing required fields`);
+        if (!q || typeof q !== 'object') {
+          throw new Error(`Question ${index + 1} is not a valid object`);
         }
 
-        // Validate based on question type
+        if (!q.question || typeof q.question !== 'string') {
+          throw new Error(`Question ${index + 1} is missing a valid question text`);
+        }
+
+        if (!q.type || typeof q.type !== 'string') {
+          throw new Error(`Question ${index + 1} is missing a valid type`);
+        }
+
+        const validTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown', 'text'];
+        if (!validTypes.includes(q.type)) {
+          throw new Error(`Question ${index + 1} has an invalid type: ${q.type}`);
+        }
+
+        // Type-specific validation
         switch (q.type) {
           case 'multiple-choice':
           case 'dropdown':
             if (!Array.isArray(q.options) || q.options.length < 2) {
               throw new Error(`Question ${index + 1} needs at least 2 options`);
             }
-            if (!q.options.includes(q.answer)) {
-              throw new Error(`Question ${index + 1}'s correct answer is not in the options`);
+            if (!q.answer || !q.options.includes(q.answer)) {
+              throw new Error(`Question ${index + 1}'s answer must be one of the options`);
             }
             break;
 
@@ -88,22 +119,27 @@ serve(async (req) => {
             }
             break;
 
-          default:
-            throw new Error(`Question ${index + 1} has an invalid type: ${q.type}`);
+          case 'text':
+            if (!q.answer || typeof q.answer !== 'string') {
+              throw new Error(`Question ${index + 1} must have a valid text answer`);
+            }
+            break;
         }
       });
 
+      // Ensure we have at least one of each required type
       const types = questions.map(q => q.type);
       const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown'];
-      const hasAllTypes = requiredTypes.every(type => types.includes(type));
+      const missingTypes = requiredTypes.filter(type => !types.includes(type));
       
-      if (!hasAllTypes) {
-        throw new Error('Missing required question types');
+      if (missingTypes.length > 0) {
+        throw new Error(`Missing required question types: ${missingTypes.join(', ')}`);
       }
+
     } catch (error) {
-      console.error('Error parsing or validating questions:', error);
-      console.log('Raw questions text:', questionsText);
-      throw new Error('Failed to parse or validate questions JSON');
+      console.error('Error validating questions:', error);
+      console.log('Questions array:', questions);
+      throw new Error(`Question validation failed: ${error.message}`);
     }
 
     // Extract title and content

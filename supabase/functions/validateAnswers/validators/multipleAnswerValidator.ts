@@ -22,6 +22,37 @@ export const validateMultipleAnswer = ({
     };
   }
 
+  // Special handling for questions about shapes, objects, or items in a location
+  if (question?.toLowerCase().includes('shapes') || 
+      question?.toLowerCase().includes('objects') ||
+      question?.toLowerCase().includes('items') ||
+      question?.toLowerCase().includes('things you might see')) {
+    const normalizedUserAnswers = userAnswers.map(normalizeText);
+    const normalizedCorrectAnswers = correctAnswers.map(normalizeText);
+    
+    const isCorrect = normalizedUserAnswers.length > 0 && 
+                     normalizedUserAnswers.every(answer => 
+                       normalizedCorrectAnswers.includes(answer)
+                     );
+    
+    if (isCorrect) {
+      return {
+        isCorrect: true,
+        explanation: 'Correct! These are valid items that could be found in this context.'
+      };
+    } else {
+      const invalidAnswers = normalizedUserAnswers.filter(
+        answer => !normalizedCorrectAnswers.includes(answer)
+      );
+      return {
+        isCorrect: false,
+        explanation: invalidAnswers.length > 0
+          ? `Some of your selections (${invalidAnswers.join(', ')}) are not typically found in this context.`
+          : `Try selecting more items that would be found in this context.`
+      };
+    }
+  }
+
   // Special handling for questions about countable items
   if (question?.toLowerCase().includes('can count') || 
       question?.toLowerCase().includes('are countable') ||
@@ -97,22 +128,21 @@ export const validateMultipleAnswer = ({
         : `You need to either select 'All of the above' or select each correct option individually: ${individualOptions.join(', ')}.`;
     }
   } else {
-    isCorrect = normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
+    // For regular multiple answer questions, all selected answers must be in the correct answers list
+    // and the number of selected answers doesn't need to match exactly
+    isCorrect = normalizedUserAnswers.length > 0 && 
                 normalizedUserAnswers.every(answer => 
-                  answer && normalizedCorrectAnswers.includes(answer)
+                  normalizedCorrectAnswers.includes(answer)
                 );
     
     if (!isCorrect) {
-      const missing = correctAnswers.filter(answer => 
-        !normalizedUserAnswers.includes(normalizeText(answer))
-      );
-      const extra = userAnswers.filter(answer => 
-        !normalizedCorrectAnswers.includes(normalizeText(answer))
+      const invalidAnswers = normalizedUserAnswers.filter(
+        answer => !normalizedCorrectAnswers.includes(answer)
       );
       
-      explanation = `You ${missing.length ? `missed these correct options: ${missing.join(', ')}` : ''}${
-        missing.length && extra.length ? ' and ' : ''
-      }${extra.length ? `incorrectly selected these options: ${extra.join(', ')}` : ''}.`;
+      explanation = invalidAnswers.length > 0
+        ? `These selections are incorrect: ${invalidAnswers.join(', ')}`
+        : `Try selecting some of these correct options: ${correctAnswers.join(', ')}`;
     }
   }
 

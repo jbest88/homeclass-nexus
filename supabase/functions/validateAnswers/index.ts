@@ -9,15 +9,14 @@ serve(async (req) => {
   }
 
   try {
-    const { question, userAnswer, correctAnswer, correctAnswers, type } = await req.json() as ValidationRequest;
+    const requestData = await req.json();
+    const { question, userAnswer, correctAnswer, type } = requestData as ValidationRequest;
     
-    console.log('Validating answer:', {
-      question,
-      userAnswer,
-      correctAnswer,
-      correctAnswers,
-      type
-    });
+    console.log('Validating answer:', requestData);
+
+    if (!question || !type) {
+      throw new Error('Missing required fields: question and type are required');
+    }
 
     let result;
 
@@ -30,11 +29,11 @@ serve(async (req) => {
         break;
 
       case 'multiple-answer':
+        const correctAnswers = requestData.correctAnswers;
         if (!Array.isArray(correctAnswers)) {
           throw new Error('Correct answers array is required for multiple-answer questions');
         }
-        // Ensure userAnswer is always treated as an array for multiple-answer questions
-        const userAnswerArray = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
+        const userAnswerArray = Array.isArray(userAnswer) ? userAnswer : [];
         result = validateMultipleAnswer(userAnswerArray, correctAnswers);
         break;
 
@@ -49,7 +48,7 @@ serve(async (req) => {
         if (!correctAnswer) {
           throw new Error('Correct answer is required for true-false questions');
         }
-        result = validateTrueFalse(userAnswer as string, correctAnswer);
+        result = validateTrueFalse(userAnswer as string, correctAnswer, question);
         break;
 
       case 'dropdown':
@@ -75,15 +74,17 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in validateAnswers:', error);
+    
+    // Return a more detailed error response
     return new Response(
       JSON.stringify({ 
         error: error.message,
         isCorrect: false,
-        explanation: 'Error validating answer'
+        explanation: `Error validating answer: ${error.message}`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 400, // Use 400 for client errors instead of 500
       }
     );
   }

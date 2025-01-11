@@ -8,61 +8,74 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
-async function callGeminiAPI(prompt: string) {
+async function callGeminiAPI(prompt: string, retries = 3) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) {
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  try {
-    console.log('Calling Gemini API with prompt:', prompt);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt} - Calling Gemini API with prompt:`, prompt);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
 
-    const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': geminiApiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ 
-            parts: [{ 
-              text: prompt 
-            }] 
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            topP: 0.1,
-            topK: 16,
-          }
-        }),
-        signal: controller.signal,
+      const response = await fetch(
+        'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': geminiApiKey,
+          },
+          body: JSON.stringify({
+            contents: [{ 
+              parts: [{ 
+                text: prompt 
+              }] 
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              topP: 0.1,
+              topK: 16,
+            }
+          }),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Gemini API error (attempt ${attempt}):`, errorText);
+        throw new Error(`Gemini API error: ${errorText}`);
       }
-    );
 
-    clearTimeout(timeoutId);
+      const result = await response.json();
+      console.log('Gemini API response:', result);
+      return result;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error(`Gemini API error: ${errorText}`);
+    } catch (error) {
+      console.error(`Error in attempt ${attempt}:`, error);
+      lastError = error;
+      
+      if (error.name === 'AbortError') {
+        console.log('Request timed out, retrying...');
+      }
+      
+      // If this is not the last attempt, wait before retrying
+      if (attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-
-    const result = await response.json();
-    console.log('Gemini API response:', result);
-    return result;
-
-  } catch (error) {
-    console.error('Error calling Gemini API:', error);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out');
-    }
-    throw error;
   }
+
+  // If we've exhausted all retries, throw the last error
+  throw lastError;
 }
 
 serve(async (req) => {

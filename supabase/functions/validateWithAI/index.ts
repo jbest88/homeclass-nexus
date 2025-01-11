@@ -6,92 +6,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Simple request queue to prevent overwhelming the API
-const requestQueue: Array<() => Promise<any>> = [];
-let isProcessing = false;
-
-async function processQueue() {
-  if (isProcessing) return;
-  isProcessing = true;
-
-  while (requestQueue.length > 0) {
-    const request = requestQueue.shift();
-    if (request) {
-      try {
-        await request();
-      } catch (error) {
-        console.error('Error processing queued request:', error);
-      }
-      // Add a small delay between processing queue items
-      await sleep(500);
-    }
-  }
-
-  isProcessing = false;
-}
-
-async function callGeminiWithRetry(prompt: string, maxRetries = 5) {
+async function callGeminiAPI(prompt: string) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      // Exponential backoff with additional random delay to prevent thundering herd
-      const backoffTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-      if (attempt > 0) {
-        console.log(`Retry attempt ${attempt + 1}, waiting ${backoffTime}ms`);
-        await sleep(backoffTime);
-      }
-
-      const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': geminiApiKey,
-          },
-          body: JSON.stringify({
-            contents: [{ 
-              parts: [{ 
-                text: prompt 
-              }] 
-            }],
-            generationConfig: {
-              temperature: 0.1,
-              topP: 0.1,
-              topK: 16,
-            }
-          }),
-        }
-      );
-
-      if (response.status === 429) {
-        console.log(`Rate limit hit on attempt ${attempt + 1}`);
-        if (attempt === maxRetries - 1) {
-          throw new Error('Rate limit exceeded after all retry attempts. Please try again in a few minutes.');
-        }
-        // Add increasingly longer delays for rate limit errors
-        await sleep(Math.pow(2, attempt + 1) * 2000);
-        continue;
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API error:', errorText);
-        throw new Error(`Gemini API error: ${errorText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error(`Attempt ${attempt + 1} failed:`, error);
-      if (attempt === maxRetries - 1) {
-        throw error;
-      }
-    }
+  if (!geminiApiKey) {
+    throw new Error('GEMINI_API_KEY is not configured');
   }
+
+  const response = await fetch(
+    'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey,
+      },
+      body: JSON.stringify({
+        contents: [{ 
+          parts: [{ 
+            text: prompt 
+          }] 
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          topP: 0.1,
+          topK: 16,
+        }
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Gemini API error:', errorText);
+    throw new Error(`Gemini API error: ${errorText}`);
+  }
+
+  return response.json();
 }
 
 serve(async (req) => {
@@ -106,25 +56,41 @@ serve(async (req) => {
     let responseFormat;
 
     if (mode === 'validate_question') {
-      prompt = `You are a teacher validating a question for a student. 
-      Please analyze this question and its provided correct answer:
-      
-      Question: "${question}"
-      Type: ${type}
+      prompt = `You are an experienced educator carefully validating an educational question. Take your time to thoroughly analyze every aspect of this question:
+
+      Question to validate: "${question}"
+      Question type: ${type}
       Provided correct answer: ${JSON.stringify(correctAnswer)}
       ${type === 'multiple-answer' ? `Correct answers: ${JSON.stringify(correctAnswers)}` : ''}
       
-      Validate if:
-      1. The question is clear and unambiguous
-      2. The correct answer is truly correct and properly formatted
-      3. The question type is appropriate
-      4. The question doesn't rely on external context
+      Please perform a detailed analysis considering:
+      1. Clarity and Precision:
+         - Is the question clearly worded without any ambiguity?
+         - Are all terms used appropriate for the question type?
+         - Would a student understand exactly what is being asked?
+      
+      2. Answer Validation:
+         - Is the provided correct answer truly accurate?
+         - Is it properly formatted for the question type?
+         - Are there any potential issues with the answer format?
+      
+      3. Educational Value:
+         - Does the question serve a clear educational purpose?
+         - Is it appropriate for testing understanding?
+         - Does it avoid relying on external context?
+      
+      4. Technical Correctness:
+         - Is the question type appropriate for the content?
+         - Are all technical aspects (formatting, structure) correct?
+         - For multiple choice/answer questions, are options distinct and clear?
+      
+      Take time to consider each aspect carefully before making your decision.
       
       Return ONLY a JSON object in this exact format, with no additional text:
       {
         "isValid": true/false,
-        "explanation": "explanation string",
-        "suggestedCorrection": "correction string if not valid, empty string if valid"
+        "explanation": "detailed explanation of validation result",
+        "suggestedCorrection": "correction suggestion if not valid, empty string if valid"
       }`;
 
       responseFormat = {
@@ -133,23 +99,33 @@ serve(async (req) => {
         suggestedCorrection: "string"
       };
     } else {
-      prompt = `You are a teacher evaluating a student's answer.
+      prompt = `You are an experienced educator evaluating a student's answer. Take your time to thoroughly analyze their response:
       
       Question: "${question}"
-      Type: ${type}
+      Question type: ${type}
       Student's answer: ${JSON.stringify(userAnswer)}
       Expected answer: ${JSON.stringify(correctAnswer)}
       ${type === 'multiple-answer' ? `Correct answers: ${JSON.stringify(correctAnswers)}` : ''}
       
-      Evaluate if the student's answer is correct, considering:
-      1. The core concept being tested
-      2. Possible alternative correct answers
-      3. Partial understanding
+      Please perform a detailed analysis considering:
+      1. Core Understanding:
+         - Does the answer demonstrate understanding of the key concept?
+         - Are there signs of partial understanding?
+      
+      2. Accuracy:
+         - Is the answer technically correct?
+         - Are there minor variations that could still be valid?
+      
+      3. Completeness:
+         - Does the answer fully address the question?
+         - For multiple parts, are all components addressed?
+      
+      Take time to consider each aspect carefully before making your decision.
       
       Return ONLY a JSON object in this exact format, with no additional text:
       {
         "isCorrect": true/false,
-        "explanation": "detailed feedback string"
+        "explanation": "detailed feedback explaining the evaluation"
       }`;
 
       responseFormat = {
@@ -160,20 +136,7 @@ serve(async (req) => {
 
     console.log('Sending prompt to Gemini:', prompt);
 
-    // Add request to queue
-    let result: any;
-    await new Promise((resolve, reject) => {
-      requestQueue.push(async () => {
-        try {
-          result = await callGeminiWithRetry(prompt);
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      });
-      processQueue();
-    });
-
+    const result = await callGeminiAPI(prompt);
     console.log('Raw Gemini response:', result);
 
     if (!result.candidates?.[0]?.content?.parts?.[0]?.text) {

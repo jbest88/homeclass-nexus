@@ -63,6 +63,32 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			typography: {
+				DEFAULT: {
+					css: {
+						maxWidth: 'none',
+						color: 'hsl(var(--foreground))',
+						hr: {
+							borderColor: 'hsl(var(--border))',
+							marginTop: '2rem',
+							marginBottom: '2rem',
+						},
+						'h1, h2, h3, h4': {
+							color: 'hsl(var(--foreground))',
+						},
+						blockquote: {
+							borderLeftColor: 'hsl(var(--border))',
+							color: 'hsl(var(--muted-foreground))',
+						},
+						'ul > li::marker': {
+							color: 'hsl(var(--muted-foreground))',
+						},
+						'ol > li::marker': {
+							color: 'hsl(var(--muted-foreground))',
+						},
+					},
+				},
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
@@ -70,20 +96,12 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
 				}
 			},
 			animation: {
@@ -92,5 +110,8 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		require("@tailwindcss/typography")
+	],
 } satisfies Config;

@@ -55,13 +55,17 @@ const Archive = () => {
     acc[subject].totalModules += 1;
     acc[subject].paths[0].lessons?.push({
       id: lesson.id,
+      path_id: subject, // Add required path_id
       lesson_id: lesson.lesson_id,
+      order_index: 0, // Add required order_index
       title: lesson.generated_lessons.title,
       created_at: lesson.archived_at,
     });
 
     return acc;
   }, {} as Record<string, { totalModules: number; completedModules: number; paths: LearningPath[] }>);
+
+  const hasArchivedLessons = archivedLessons && archivedLessons.length > 0;
 
   return (
     <div className="container mx-auto p-4">
@@ -73,20 +77,28 @@ const Archive = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[600px] pr-4">
-            {pathsBySubject && Object.entries(pathsBySubject).map(([subject, data]) => (
-              <SubjectProgress
-                key={subject}
-                subject={subject}
-                totalModules={data.totalModules}
-                completedModules={data.completedModules}
-                modules={[]}
-                learningPaths={data.paths}
-                isGenerating={false}
-                onLessonDeleted={() => {}}
-              />
-            ))}
-          </ScrollArea>
+          {!hasArchivedLessons ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="mb-2">Your previous learning journeys will appear here.</p>
+              <p>Completed lessons that are more than 24 hours old are automatically moved to this space, 
+                 allowing you to track your learning progress over time.</p>
+            </div>
+          ) : (
+            <ScrollArea className="h-[600px] pr-4">
+              {pathsBySubject && Object.entries(pathsBySubject).map(([subject, data]) => (
+                <SubjectProgress
+                  key={subject}
+                  subject={subject}
+                  totalModules={data.totalModules}
+                  completedModules={data.completedModules}
+                  modules={[]}
+                  learningPaths={data.paths}
+                  isGenerating={false}
+                  onLessonDeleted={() => {}}
+                />
+              ))}
+            </ScrollArea>
+          )}
         </CardContent>
       </Card>
     </div>

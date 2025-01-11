@@ -1,6 +1,24 @@
 import { ValidationResult } from './types.ts';
 import { normalizeText, isAllOfTheAbove, evaluateExponentExpression, isMathQuestion } from './utils.ts';
 
+// Validate true-false questions
+export const validateTrueFalse = (
+  userAnswer: string,
+  correctAnswer: string
+): ValidationResult => {
+  const normalizedUserAnswer = normalizeText(userAnswer);
+  const normalizedCorrectAnswer = normalizeText(correctAnswer);
+  
+  const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+  
+  return {
+    isCorrect,
+    explanation: isCorrect 
+      ? 'Correct!' 
+      : `Incorrect. The correct answer is: ${correctAnswer}`
+  };
+};
+
 // Validate multiple choice questions
 export const validateMultipleChoice = (
   userAnswer: string,

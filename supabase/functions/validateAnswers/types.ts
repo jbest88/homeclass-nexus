@@ -3,7 +3,7 @@ export interface ValidationRequest {
   userAnswer: string | string[];
   correctAnswer?: string;
   correctAnswers?: string[];
-  type: 'text' | 'multiple-choice' | 'multiple-answer';
+  type: 'text' | 'multiple-choice' | 'multiple-answer' | 'true-false';
 }
 
 export interface ValidationResult {

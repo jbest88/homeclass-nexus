@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from './utils.ts';
 import { ValidationRequest } from './types.ts';
-import { validateMultipleChoice, validateMultipleAnswer, validateText } from './validators.ts';
+import { validateMultipleChoice, validateMultipleAnswer, validateText, validateTrueFalse } from './validators.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -43,6 +43,13 @@ serve(async (req) => {
           throw new Error('Correct answer is required for text questions');
         }
         result = validateText(userAnswer as string, correctAnswer, question);
+        break;
+
+      case 'true-false':
+        if (!correctAnswer) {
+          throw new Error('Correct answer is required for true-false questions');
+        }
+        result = validateTrueFalse(userAnswer as string, correctAnswer);
         break;
 
       default:

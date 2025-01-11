@@ -6,6 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@supabase/auth-helpers-react";
 import SubjectProgress from "./SubjectProgress";
 import { LearningPath } from "@/types/learning-path";
+import { Button } from "@/components/ui/button";
+import { Archive } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { differenceInDays } from "date-fns";
 
 interface LearningProgressProps {
   isGenerating: boolean;
@@ -14,6 +18,7 @@ interface LearningProgressProps {
 const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const user = useUser();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: learningPaths } = useQuery({
     queryKey: ["learning-paths"],
@@ -77,7 +82,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     queryKey: ["generated-lessons"],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
+      const { data: lessons, error } = await supabase
         .from("generated_lessons")
         .select("*")
         .eq("user_id", user.id)
@@ -87,7 +92,33 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
       if (error) throw error;
       
       // Filter out lessons that are part of a learning path
-      return data.filter(lesson => !pathLessonIds.includes(lesson.id));
+      const filteredLessons = lessons.filter(lesson => !pathLessonIds.includes(lesson.id));
+
+      // Check for lessons older than a day and archive them
+      const now = new Date();
+      const oldLessons = filteredLessons.filter(lesson => 
+        differenceInDays(now, new Date(lesson.created_at)) >= 1
+      );
+
+      // Archive old lessons
+      if (oldLessons.length > 0) {
+        const archivePromises = oldLessons.map(lesson => 
+          supabase
+            .from("archived_lessons")
+            .upsert({ 
+              user_id: user.id, 
+              lesson_id: lesson.id 
+            })
+        );
+        
+        await Promise.all(archivePromises);
+        queryClient.invalidateQueries({ queryKey: ["archived-lessons"] });
+      }
+
+      // Return only lessons newer than a day
+      return filteredLessons.filter(lesson => 
+        differenceInDays(now, new Date(lesson.created_at)) < 1
+      );
     },
     enabled: !!user,
   });
@@ -95,6 +126,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const handleLessonDeleted = () => {
     queryClient.invalidateQueries({ queryKey: ["generated-lessons"] });
     queryClient.invalidateQueries({ queryKey: ["learning-paths"] });
+    queryClient.invalidateQueries({ queryKey: ["archived-lessons"] });
   };
 
   // Group lessons by subject for regular progress view
@@ -131,11 +163,20 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <GraduationCap className="h-5 w-5" />
           Learning Journey
         </CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+          onClick={() => navigate('/archive')}
+        >
+          <Archive className="h-4 w-4" />
+          Archive
+        </Button>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">

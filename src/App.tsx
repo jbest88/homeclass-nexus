@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import SignUp from "./pages/SignUp";
 import Module from "./pages/Module";
 import GeneratedLesson from "./pages/GeneratedLesson";
+import Archive from "./pages/Archive";
 import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -93,6 +94,16 @@ function App() {
                 element={
                   isAuthenticated ? (
                     <GeneratedLesson />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route
+                path="/archive"
+                element={
+                  isAuthenticated ? (
+                    <Archive />
                   ) : (
                     <Navigate to="/" replace />
                   )

@@ -19,6 +19,26 @@ export const validateTrueFalse = (
   };
 };
 
+// Validate slider questions
+export const validateSlider = (
+  userAnswer: string,
+  correctAnswer: string
+): ValidationResult => {
+  const userValue = parseFloat(userAnswer);
+  const correctValue = parseFloat(correctAnswer);
+  
+  // Allow for a small margin of error (e.g., ±2)
+  const margin = 2;
+  const isCorrect = Math.abs(userValue - correctValue) <= margin;
+  
+  return {
+    isCorrect,
+    explanation: isCorrect 
+      ? 'Correct!' 
+      : `Incorrect. The expected value was around: ${correctAnswer}`
+  };
+};
+
 // Validate multiple choice questions
 export const validateMultipleChoice = (
   userAnswer: string,

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from './utils.ts';
 import { ValidationRequest } from './types.ts';
-import { validateMultipleChoice, validateMultipleAnswer, validateText, validateTrueFalse } from './validators.ts';
+import { validateMultipleChoice, validateMultipleAnswer, validateText, validateTrueFalse, validateSlider } from './validators.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -50,6 +50,13 @@ serve(async (req) => {
           throw new Error('Correct answer is required for true-false questions');
         }
         result = validateTrueFalse(userAnswer as string, correctAnswer);
+        break;
+
+      case 'slider':
+        if (!correctAnswer) {
+          throw new Error('Correct answer is required for slider questions');
+        }
+        result = validateSlider(userAnswer as string, correctAnswer);
         break;
 
       default:

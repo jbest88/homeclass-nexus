@@ -12,36 +12,50 @@ async function callGeminiAPI(prompt: string) {
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  const response = await fetch(
-    'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': geminiApiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ 
-          parts: [{ 
-            text: prompt 
-          }] 
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          topP: 0.1,
-          topK: 16,
-        }
-      }),
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    const response = await fetch(
+      'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': geminiApiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ 
+            parts: [{ 
+              text: prompt 
+            }] 
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            topP: 0.1,
+            topK: 16,
+          }
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${errorText}`);
     }
-  );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini API error:', errorText);
-    throw new Error(`Gemini API error: ${errorText}`);
+    return response.json();
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 serve(async (req) => {
@@ -50,6 +64,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Received request to validateWithAI');
     const { question, userAnswer, correctAnswer, type, mode, correctAnswers } = await req.json();
 
     let prompt;

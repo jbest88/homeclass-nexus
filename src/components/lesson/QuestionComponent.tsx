@@ -5,12 +5,18 @@ import { DropdownQuestion } from "./question-types/DropdownQuestion";
 import { TextQuestion } from "./question-types/TextQuestion";
 import { Question, AnswerState } from "@/types/questions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface QuestionComponentProps {
   question: Question;
   answerState: AnswerState;
   onAnswerChange: (answer: string | string[]) => void;
   isLocked?: boolean;
+  subject: string;
 }
 
 export const QuestionComponent = ({
@@ -18,10 +24,34 @@ export const QuestionComponent = ({
   answerState,
   onAnswerChange,
   isLocked = false,
+  subject,
 }: QuestionComponentProps) => {
+  const [isGettingHelp, setIsGettingHelp] = useState(false);
+
   const handleAnswerChange = (value: string | string[]) => {
     if (!isLocked) {
       onAnswerChange(value);
+    }
+  };
+
+  const getHelp = async () => {
+    setIsGettingHelp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-question-help', {
+        body: { question: question.question, subject }
+      });
+
+      if (error) throw error;
+
+      toast.info("AI Tutor Help", {
+        description: data.explanation,
+        duration: 10000,
+      });
+    } catch (error) {
+      console.error('Error getting help:', error);
+      toast.error("Failed to get help. Please try again.");
+    } finally {
+      setIsGettingHelp(false);
     }
   };
 
@@ -52,8 +82,17 @@ export const QuestionComponent = ({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="relative">
         <div className="text-lg font-medium">{question.question}</div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2"
+          onClick={getHelp}
+          disabled={isGettingHelp}
+        >
+          <HelpCircle className={isGettingHelp ? "animate-spin" : ""} />
+        </Button>
       </CardHeader>
       <CardContent>
         {renderQuestionInput()}

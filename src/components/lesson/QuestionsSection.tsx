@@ -50,6 +50,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             answerState={answers[index] || { answer: "", isSubmitted: false }}
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
             isLocked={isSubmitted}
+            subject={subject}
           />
         ))}
         {!isSubmitted ? (

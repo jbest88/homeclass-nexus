@@ -7,10 +7,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAnswerValidation } from "./useAnswerValidation";
 import { AnswerState, Question } from "@/types/questions";
 
+interface Performance {
+  correctPercentage: number;
+  totalQuestions: number;
+  correctAnswers: number;
+}
+
 export const useQuestionResponses = (lessonId: string, subject: string) => {
   const [answers, setAnswers] = useState<Record<number, AnswerState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [performance, setPerformance] = useState<Performance | null>(null);
   const user = useUser();
   const { updateProficiencyMutation } = useProficiency();
   const queryClient = useQueryClient();
@@ -58,6 +65,9 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
       );
 
       const newAnswers = { ...answers };
+      const correctAnswers = results.filter(r => r.isCorrect).length;
+      const correctPercentage = (correctAnswers / questions.length) * 100;
+
       results.forEach(({ index, isCorrect, explanation }) => {
         newAnswers[index] = {
           ...newAnswers[index],
@@ -69,12 +79,16 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
 
       setAnswers(newAnswers);
       setIsSubmitted(true);
+      setPerformance({
+        correctPercentage,
+        totalQuestions: questions.length,
+        correctAnswers,
+      });
       
-      const allCorrect = results.every(r => r.isCorrect);
-      if (allCorrect) {
-        toast.success("Congratulations! All answers are correct!");
+      if (correctPercentage >= 70) {
+        toast.success("Great job! You're ready to move forward!");
       } else {
-        toast.info("Some answers need review. Check the feedback below.");
+        toast.info("Let's try a different approach to help you understand better.");
       }
 
       queryClient.invalidateQueries({ queryKey: ["question-responses"] });
@@ -90,6 +104,7 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
     answers,
     isSubmitting,
     isSubmitted,
+    performance,
     handleAnswerChange,
     handleSubmit,
   };

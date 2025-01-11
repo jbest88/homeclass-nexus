@@ -26,7 +26,7 @@ export const useGenerateLesson = () => {
     enabled: !!user,
   });
 
-  const handleGenerateLesson = async (subject: string) => {
+  const handleGenerateLesson = async (subject: string, isRetry: boolean = false) => {
     if (!user) {
       toast.error("Please sign in to generate lessons");
       return;
@@ -40,7 +40,11 @@ export const useGenerateLesson = () => {
       ) ?? -1;
       
       const { data: lessonData, error: generateError } = await supabase.functions.invoke("generateLesson", {
-        body: { subject, userId: user.id },
+        body: { 
+          subject, 
+          userId: user.id,
+          isRetry, // Pass this to the edge function to adjust content generation
+        },
       });
 
       if (generateError) throw generateError;
@@ -60,7 +64,9 @@ export const useGenerateLesson = () => {
 
       if (insertError) throw insertError;
 
-      toast.success("New lesson generated successfully!");
+      toast.success(isRetry 
+        ? "New approach generated! Let's try this topic again." 
+        : "New lesson generated successfully!");
       navigate(`/generated-lesson/${insertData.id}`);
     } catch (error) {
       console.error("Error generating lesson:", error);

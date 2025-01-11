@@ -1,20 +1,18 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { format } from "date-fns";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { LearningPath } from "@/types/learning-path";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { LearningPathItem } from "./LearningPathItem";
+import { LessonItem } from "./LessonItem";
 
 interface SubjectProgressProps {
   subject: string;
@@ -40,7 +38,6 @@ const SubjectProgress = ({
   isGenerating,
   onLessonDeleted,
 }: SubjectProgressProps) => {
-  const navigate = useNavigate();
   const [openPaths, setOpenPaths] = useState<Record<string, boolean>>({});
   const user = useUser();
 
@@ -77,11 +74,14 @@ const SubjectProgress = ({
     }
   };
 
-  // Calculate progress only for completed modules
-  const completedCount = modules.filter(module => module.completed).length;
-  const progressPercentage = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
+  const togglePath = (pathId: string) => {
+    setOpenPaths(prev => ({
+      ...prev,
+      [pathId]: !prev[pathId]
+    }));
+  };
 
-  // Function to clean title and add grade level
+  // Clean title and add grade level
   const cleanTitle = (title: string) => {
     const baseTitle = title.replace(/[*#]/g, '').trim();
     const gradeLevel = profile?.grade_level;
@@ -89,7 +89,7 @@ const SubjectProgress = ({
     return `${baseTitle} (Grade ${gradeLevel === 0 ? 'K' : gradeLevel})`;
   };
 
-  // Function to get curriculum period based on date
+  // Get curriculum period based on date
   const getCurriculumPeriod = (date: string) => {
     const lessonDate = new Date(date);
     const month = lessonDate.getMonth();
@@ -100,12 +100,7 @@ const SubjectProgress = ({
     return "Summer Term";
   };
 
-  const togglePath = (pathId: string) => {
-    setOpenPaths(prev => ({
-      ...prev,
-      [pathId]: !prev[pathId]
-    }));
-  };
+  const progressPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
 
   return (
     <div className="mb-6 last:mb-0">
@@ -137,32 +132,14 @@ const SubjectProgress = ({
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 space-y-2">
             {path.lessons?.map((lesson) => (
-              <div
+              <LearningPathItem
                 key={lesson.id}
-                className="flex items-center justify-between rounded-lg border p-2 ml-4"
-              >
-                <div className="flex-1">
-                  <div 
-                    className="cursor-pointer hover:text-primary"
-                    onClick={() => navigate(`/generated-lesson/${lesson.lesson_id}`)}
-                  >
-                    {cleanTitle(lesson.title)}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    <span className="font-medium">
-                      {getCurriculumPeriod(lesson.created_at)}
-                    </span> • {format(new Date(lesson.created_at), 'MMM d, yyyy h:mm a')}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(lesson.lesson_id)}
-                  disabled={isGenerating}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+                lessonId={lesson.lesson_id}
+                title={cleanTitle(lesson.title)}
+                createdAt={lesson.created_at}
+                onDelete={handleDelete}
+                isGenerating={isGenerating}
+              />
             ))}
           </CollapsibleContent>
         </Collapsible>
@@ -171,30 +148,15 @@ const SubjectProgress = ({
       {/* Individual Lessons */}
       <div className="space-y-2">
         {modules.map((module) => (
-          <div
+          <LessonItem
             key={module.id}
-            className="flex items-center justify-between rounded-lg border p-2"
-          >
-            <div className="flex-1">
-              <div 
-                className="cursor-pointer hover:text-primary"
-                onClick={() => navigate(`/generated-lesson/${module.id}`)}
-              >
-                {cleanTitle(module.title)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                <span className="font-medium">{getCurriculumPeriod(module.created_at)}</span> • {format(new Date(module.created_at), 'MMM d, yyyy h:mm a')}
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDelete(module.id)}
-              disabled={isGenerating}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+            id={module.id}
+            title={cleanTitle(module.title)}
+            createdAt={module.created_at}
+            curriculumPeriod={getCurriculumPeriod(module.created_at)}
+            onDelete={handleDelete}
+            isGenerating={isGenerating}
+          />
         ))}
       </div>
     </div>

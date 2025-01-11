@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ProfileSettings from "@/components/profile/ProfileSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,7 +35,7 @@ const Dashboard = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -43,7 +43,7 @@ const Dashboard = () => {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("grade_level")
+        .select("grade_level, birthday")
         .eq("id", user.id)
         .single();
 
@@ -51,6 +51,11 @@ const Dashboard = () => {
       return data;
     },
   });
+
+  // Reset selected subject when grade level changes
+  useEffect(() => {
+    setSelectedSubject("");
+  }, [profile?.grade_level]);
 
   const subjects = getSubjectsForGrade(profile?.grade_level);
 
@@ -79,6 +84,10 @@ const Dashboard = () => {
     { id: 2, title: "Physics Lab Report", due: "2024-03-22", subject: "Physics" },
     { id: 3, title: "Chemistry Homework", due: "2024-03-25", subject: "Chemistry" },
   ];
+
+  if (isProfileLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -114,6 +123,11 @@ const Dashboard = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {profile?.grade_level !== null && (
+                    <p className="text-sm text-muted-foreground">
+                      Subjects shown are appropriate for {profile?.grade_level === 0 ? "Kindergarten" : `Grade ${profile?.grade_level}`}
+                    </p>
+                  )}
                 </div>
                 <Button
                   onClick={handleGenerate}

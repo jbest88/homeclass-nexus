@@ -12,4 +12,12 @@ export interface LearningPathLesson {
   lesson_id: string;
   order_index: number;
   created_at: string;
+  title?: string;
+  subject?: string;
+  generated_lessons?: {
+    id: string;
+    title: string;
+    subject: string;
+    created_at: string;
+  };
 }

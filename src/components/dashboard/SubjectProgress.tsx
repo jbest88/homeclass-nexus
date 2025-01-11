@@ -49,6 +49,23 @@ const SubjectProgress = ({
 
   const progressPercentage = (completedModules / totalModules) * 100;
 
+  // Function to clean title by removing markdown formatting
+  const cleanTitle = (title: string) => {
+    return title.replace(/[*#]/g, '').trim();
+  };
+
+  // Function to get curriculum period based on date
+  const getCurriculumPeriod = (date: string) => {
+    const lessonDate = new Date(date);
+    const month = lessonDate.getMonth();
+    
+    // Academic periods based on typical school year
+    if (month >= 8 && month <= 10) return "Fall Semester";
+    if (month >= 11 || month <= 1) return "Winter Term";
+    if (month >= 2 && month <= 4) return "Spring Semester";
+    return "Summer Term";
+  };
+
   return (
     <div className="mb-6 last:mb-0">
       <div className="mb-2 flex items-center justify-between">
@@ -69,10 +86,10 @@ const SubjectProgress = ({
                 className="cursor-pointer hover:text-primary"
                 onClick={() => navigate(`/generated-lesson/${module.id}`)}
               >
-                {module.title}
+                {cleanTitle(module.title)}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {format(new Date(module.created_at), 'MMM d, yyyy h:mm a')}
+                <span className="font-medium">{getCurriculumPeriod(module.created_at)}</span> • {format(new Date(module.created_at), 'MMM d, yyyy h:mm a')}
               </div>
             </div>
             <Button

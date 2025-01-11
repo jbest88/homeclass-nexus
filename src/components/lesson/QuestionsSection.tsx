@@ -67,41 +67,92 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
         pathId = existingPaths[0].id;
       }
 
-      // Add current lesson to learning path
-      const { error: lessonError } = await supabase
+      // Check if the lesson is already in the path
+      const { data: existingLesson, error: checkError } = await supabase
         .from('learning_path_lessons')
-        .insert({
-          path_id: pathId,
-          lesson_id: lessonId,
-          order_index: 0, // First lesson in path
-        });
+        .select('*')
+        .eq('path_id', pathId)
+        .eq('lesson_id', lessonId)
+        .single();
 
-      if (lessonError) throw lessonError;
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 means no rows returned, which is what we want
+        throw checkError;
+      }
+
+      if (!existingLesson) {
+        // Get the highest order_index for this path
+        const { data: lastLesson, error: orderError } = await supabase
+          .from('learning_path_lessons')
+          .select('order_index')
+          .eq('path_id', pathId)
+          .order('order_index', { ascending: false })
+          .limit(1);
+
+        if (orderError) throw orderError;
+
+        const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
+
+        // Add current lesson to learning path if it's not already there
+        const { error: lessonError } = await supabase
+          .from('learning_path_lessons')
+          .insert({
+            path_id: pathId,
+            lesson_id: lessonId,
+            order_index: nextOrderIndex,
+          });
+
+        if (lessonError) throw lessonError;
+      }
 
       if (performance && performance.correctPercentage < 70) {
         // If performance is below 70%, regenerate a lesson on the same subject
         const newLesson = await handleGenerateLesson(subject, true);
         if (newLesson) {
+          // Get the latest order_index again
+          const { data: lastLesson, error: orderError } = await supabase
+            .from('learning_path_lessons')
+            .select('order_index')
+            .eq('path_id', pathId)
+            .order('order_index', { ascending: false })
+            .limit(1);
+
+          if (orderError) throw orderError;
+
+          const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
+
           // Add new lesson to learning path
           await supabase
             .from('learning_path_lessons')
             .insert({
               path_id: pathId,
               lesson_id: newLesson.id,
-              order_index: 1, // Next lesson in path
+              order_index: nextOrderIndex,
             });
         }
       } else {
         // If performance is good, move on to a new lesson
         const newLesson = await handleGenerateLesson(subject);
         if (newLesson) {
+          // Get the latest order_index again
+          const { data: lastLesson, error: orderError } = await supabase
+            .from('learning_path_lessons')
+            .select('order_index')
+            .eq('path_id', pathId)
+            .order('order_index', { ascending: false })
+            .limit(1);
+
+          if (orderError) throw orderError;
+
+          const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
+
           // Add new lesson to learning path
           await supabase
             .from('learning_path_lessons')
             .insert({
               path_id: pathId,
               lesson_id: newLesson.id,
-              order_index: 1, // Next lesson in path
+              order_index: nextOrderIndex,
             });
         }
       }

@@ -79,10 +79,8 @@ export const QuestionComponent = ({
   };
 
   const getExplanation = () => {
-    if (!answerState.isSubmitted || answerState.isCorrect) {
-      return answerState.explanation;
-    }
-
+    if (!answerState.isSubmitted) return '';
+    
     // Handle context-dependent questions first
     if (isContextDependentQuestion(question.question)) {
       return `This question cannot be automatically validated as it depends on your physical surroundings. The correct answers would vary based on what you actually see around you. For learning purposes, focus on understanding what these shapes look like:\n\n` +
@@ -137,15 +135,11 @@ export const QuestionComponent = ({
             explanation += `Therefore, the statement is ${correctAnswer}`;
           }
           
-          if (answerState.explanation) {
-            explanation += `\n\n${answerState.explanation}`;
-          }
-          
           return explanation;
         }
       }
       
-      return `You answered "${userAnswer}". The correct answer is "${correctAnswer}". ${answerState.explanation || ''}`;
+      return `You answered "${userAnswer}". The correct answer is "${correctAnswer}".`;
     }
 
     if (question.type === 'multiple-answer' && 'correctAnswers' in question) {
@@ -202,10 +196,6 @@ export const QuestionComponent = ({
         explanation += `\n\nThe correct answers are: ${correctAnswers.join(', ')}. `;
       }
       
-      if (answerState.explanation) {
-        explanation += `\n\n${answerState.explanation}`;
-      }
-      
       return explanation;
     }
 
@@ -215,16 +205,17 @@ export const QuestionComponent = ({
       let explanation = `The correct answer is "${question.answer}". Here's why:\n\n`;
       explanation += getShapeExplanation(question.answer);
       
-      // Add explanation for the chosen incorrect answer
+      // Add explanation for the chosen answer
       if (answerState.answer) {
-        explanation += `\n\nYou chose "${answerState.answer}": ${getShapeExplanation(answerState.answer as string)}`;
+        const userAnswer = answerState.answer as string;
+        explanation += `\n\nYou chose "${userAnswer}": ${getShapeExplanation(userAnswer)}`;
       }
       
       return explanation;
     }
 
     // For other multiple choice questions
-    return `The correct answer is "${question.answer}". ${answerState.explanation || ''}`;
+    return `The correct answer is "${question.answer}".`;
   };
 
   return (

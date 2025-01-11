@@ -9,7 +9,6 @@ import { LearningPath } from "@/types/learning-path";
 import { Button } from "@/components/ui/button";
 import { Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { differenceInDays } from "date-fns";
 
 interface LearningProgressProps {
   isGenerating: boolean;
@@ -71,28 +70,6 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     enabled: !!user,
   });
 
-  const { data: generatedLessons } = useQuery({
-    queryKey: ["generated-lessons"],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data: lessons, error } = await supabase
-        .from("generated_lessons")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("subject")
-        .order("order_index");
-
-      if (error) throw error;
-      
-      // Show all lessons, including those in learning paths
-      const now = new Date();
-      return lessons.filter(lesson => 
-        differenceInDays(now, new Date(lesson.created_at)) < 1
-      );
-    },
-    enabled: !!user,
-  });
-
   // Fetch question responses to determine completed lessons
   const { data: questionResponses } = useQuery({
     queryKey: ["question-responses"],
@@ -118,39 +95,25 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     queryClient.invalidateQueries({ queryKey: ["archived-lessons"] });
   };
 
-  // Group lessons by subject for regular progress view
-  const subjectProgress = generatedLessons?.reduce((acc, lesson) => {
-    if (!acc[lesson.subject]) {
-      acc[lesson.subject] = {
-        totalModules: 0,
-        completedModules: 0,
-        modules: [],
-      };
-    }
-
-    acc[lesson.subject].totalModules++;
-    acc[lesson.subject].modules.push({
-      id: lesson.id,
-      title: lesson.title,
-      completed: completedLessonIds.has(lesson.id),
-      created_at: lesson.created_at,
-    });
-
-    if (completedLessonIds.has(lesson.id)) {
-      acc[lesson.subject].completedModules++;
-    }
-
-    return acc;
-  }, {} as Record<string, { totalModules: number; completedModules: number; modules: any[] }>);
-
   // Group learning paths by subject
   const pathsBySubject = learningPaths?.reduce((acc, path) => {
     if (!acc[path.subject]) {
-      acc[path.subject] = [];
+      acc[path.subject] = {
+        totalModules: 0,
+        completedModules: 0,
+        paths: [],
+      };
     }
-    acc[path.subject].push(path);
+
+    const pathLessons = path.lessons || [];
+    acc[path.subject].totalModules += pathLessons.length;
+    acc[path.subject].completedModules += pathLessons.filter(
+      lesson => completedLessonIds.has(lesson.lesson_id)
+    ).length;
+    acc[path.subject].paths.push(path);
+
     return acc;
-  }, {} as Record<string, LearningPath[]>);
+  }, {} as Record<string, { totalModules: number; completedModules: number; paths: LearningPath[] }>);
 
   return (
     <Card>
@@ -171,14 +134,14 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
-          {Object.entries(subjectProgress || {}).map(([subject, data]) => (
+          {Object.entries(pathsBySubject || {}).map(([subject, data]) => (
             <SubjectProgress
               key={subject}
               subject={subject}
               totalModules={data.totalModules}
               completedModules={data.completedModules}
-              modules={data.modules}
-              learningPaths={pathsBySubject?.[subject] || []}
+              modules={[]}
+              learningPaths={data.paths}
               isGenerating={isGenerating}
               onLessonDeleted={handleLessonDeleted}
             />

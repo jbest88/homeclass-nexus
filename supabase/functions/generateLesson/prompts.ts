@@ -42,8 +42,13 @@ export const createQuestionsPrompt = (
        - Avoid subjective or opinion-based questions
        - For multiple choice, ensure options are distinct and unambiguous
        - Use vocabulary appropriate for ${gradeLevelText} students
-    
-    3. For all questions:
+       - Cover the most important points from the lesson content
+
+    3. For multiple-answer questions:
+       - Ensure there are at least two correct answers
+       - Options should test understanding, not just recall
+
+    4. For all questions:
        - Double-check that the correct answer is included in the options
        - Ensure options don't contain duplicate values
        - Make sure questions are grade-appropriate
@@ -53,7 +58,7 @@ export const createQuestionsPrompt = (
     - Clear and straightforward for ${gradeLevelText} students
     - Directly related to the main concepts covered
     - Encouraging and supportive in tone
-    - Focused on understanding rather than memorization
+    - Balanced between conceptual and factual understanding
 
     Include a mix of these question types:
     1. Multiple choice (2 questions)
@@ -61,7 +66,7 @@ export const createQuestionsPrompt = (
     3. True/False (1 question)
     4. Dropdown (1 question)
 
-    Return ONLY a JSON array with these structures:
+    Return ONLY a properly formatted JSON array with these structures:
 
     Multiple choice:
     {
@@ -94,5 +99,5 @@ export const createQuestionsPrompt = (
       "answer": "correct option"
     }
 
-    Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
+    Return ONLY the JSON array with EXACTLY 5 questions, no additional text or formatting.`;
 };

@@ -55,6 +55,62 @@ export const QuestionComponent = ({
       return answerState.explanation;
     }
 
+    if (question.type === 'true-false') {
+      const userAnswer = String(answerState.answer).toLowerCase();
+      const correctAnswer = String(question.answer).toLowerCase();
+      
+      // Handle number comparison questions
+      if (question.question.toLowerCase().includes('bigger than') || 
+          question.question.toLowerCase().includes('smaller than') ||
+          question.question.toLowerCase().includes('greater than') ||
+          question.question.toLowerCase().includes('less than') ||
+          question.question.toLowerCase().includes('equal to')) {
+        
+        // Extract numbers from the question
+        const numbers = question.question.match(/['"](\w+)['"]|(\d+)/g)
+          ?.map(n => n.replace(/['"]/g, ''))
+          .filter(Boolean) || [];
+        
+        if (numbers.length >= 2) {
+          const [firstNum, secondNum] = numbers;
+          const numberWords: { [key: string]: number } = {
+            'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
+            'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+          };
+          
+          const num1 = numberWords[firstNum.toLowerCase()] ?? parseInt(firstNum);
+          const num2 = numberWords[secondNum.toLowerCase()] ?? parseInt(secondNum);
+          
+          let explanation = `You answered "${userAnswer}". `;
+          explanation += `Let's break this down:\n`;
+          explanation += `- The first number "${firstNum}" is equal to ${num1}\n`;
+          explanation += `- The second number "${secondNum}" is equal to ${num2}\n`;
+          
+          if (question.question.toLowerCase().includes('bigger than') || 
+              question.question.toLowerCase().includes('greater than')) {
+            explanation += `- ${num1} is ${num1 > num2 ? '' : 'not'} greater than ${num2}\n`;
+            explanation += `Therefore, the statement is ${correctAnswer}`;
+          } else if (question.question.toLowerCase().includes('smaller than') || 
+                     question.question.toLowerCase().includes('less than')) {
+            explanation += `- ${num1} is ${num1 < num2 ? '' : 'not'} less than ${num2}\n`;
+            explanation += `Therefore, the statement is ${correctAnswer}`;
+          } else if (question.question.toLowerCase().includes('equal to')) {
+            explanation += `- ${num1} is ${num1 === num2 ? '' : 'not'} equal to ${num2}\n`;
+            explanation += `Therefore, the statement is ${correctAnswer}`;
+          }
+          
+          if (answerState.explanation) {
+            explanation += `\n\n${answerState.explanation}`;
+          }
+          
+          return explanation;
+        }
+      }
+      
+      // For other true/false questions, provide a standard explanation
+      return `You answered "${userAnswer}". The correct answer is "${correctAnswer}". ${answerState.explanation || ''}`;
+    }
+
     if (question.type === 'multiple-answer' && 'correctAnswers' in question) {
       const userAnswers = (answerState.answer as string[]) || [];
       const correctAnswers = question.correctAnswers || [];

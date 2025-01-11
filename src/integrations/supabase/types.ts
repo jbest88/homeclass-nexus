@@ -42,41 +42,6 @@ export type Database = {
         }
         Relationships: []
       }
-      question_help: {
-        Row: {
-          id: string
-          user_id: string
-          lesson_id: string
-          question_index: number
-          explanation: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          lesson_id: string
-          question_index: number
-          explanation: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          lesson_id?: string
-          question_index?: number
-          explanation?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "question_help_lesson_id_fkey"
-            columns: ["lesson_id"]
-            isOneToOne: false
-            referencedRelation: "generated_lessons"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       learning_modules: {
         Row: {
           content: string
@@ -114,7 +79,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
-          created_at: string
+          created_at?: string
           id?: string
           module_id: string
           user_id: string
@@ -165,12 +130,47 @@ export type Database = {
           city?: string | null
           country?: string | null
           grade_level?: number | null
-          id: string
+          id?: string
           state_province?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Relationships: []
+      }
+      question_help: {
+        Row: {
+          created_at: string
+          explanation: string
+          id: string
+          lesson_id: string
+          question_index: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          explanation: string
+          id?: string
+          lesson_id: string
+          question_index: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          explanation?: string
+          id?: string
+          lesson_id?: string
+          question_index?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_help_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "generated_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       question_responses: {
         Row: {
@@ -277,10 +277,10 @@ export type Tables<
         PublicSchema["Views"])
     ? (PublicSchema["Tables"] &
         PublicSchema["Views"])[PublicTableNameOrOptions] extends {
-      Row: infer R
-    }
-    ? R
-    : never
+        Row: infer R
+      }
+      ? R
+      : never
     : never
 
 export type TablesInsert<

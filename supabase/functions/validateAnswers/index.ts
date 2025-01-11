@@ -1,7 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from './utils.ts';
 import { ValidationRequest } from './types.ts';
-import { validateMultipleChoice, validateMultipleAnswer, validateText, validateTrueFalse, validateDropdown } from './validators.ts';
+import { 
+  validateMultipleChoice, 
+  validateMultipleAnswer, 
+  validateText, 
+  validateTrueFalse, 
+  validateDropdown 
+} from './validators/index.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -34,7 +40,11 @@ serve(async (req) => {
           throw new Error('Correct answers array is required for multiple-answer questions');
         }
         const userAnswerArray = Array.isArray(userAnswer) ? userAnswer : [];
-        result = validateMultipleAnswer(userAnswerArray, correctAnswers, question);
+        result = validateMultipleAnswer({
+          userAnswers: userAnswerArray,
+          correctAnswers,
+          question
+        });
         break;
 
       case 'text':

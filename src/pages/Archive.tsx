@@ -15,6 +15,15 @@ const Archive = () => {
     queryFn: async () => {
       if (!user) return null;
       
+      // First, get the lesson IDs that have responses
+      const { data: lessonResponses } = await supabase
+        .from('question_responses')
+        .select('lesson_id')
+        .eq('user_id', user.id);
+
+      const lessonIds = lessonResponses?.map(response => response.lesson_id) || [];
+      
+      // Then use these IDs to filter archived lessons
       const { data, error } = await supabase
         .from("archived_lessons")
         .select(`
@@ -29,13 +38,7 @@ const Archive = () => {
           )
         `)
         .eq('user_id', user.id)
-        // Only fetch lessons that have question responses
-        .in('lesson_id', 
-          supabase
-            .from('question_responses')
-            .select('lesson_id')
-            .eq('user_id', user.id)
-        )
+        .in('lesson_id', lessonIds)
         .order("archived_at", { ascending: false });
 
       if (error) throw error;

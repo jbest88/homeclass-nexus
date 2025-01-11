@@ -19,6 +19,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // Fetch learning paths
   const { data: learningPaths } = useQuery({
     queryKey: ["learning-paths"],
     queryFn: async () => {
@@ -65,8 +66,24 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
         })
       );
 
-      // Filter out paths that have no lessons
       return pathsWithLessons.filter(path => path.lessons && path.lessons.length > 0);
+    },
+    enabled: !!user,
+  });
+
+  // Fetch individual lessons
+  const { data: individualLessons } = useQuery({
+    queryKey: ["generated-lessons"],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("generated_lessons")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
     },
     enabled: !!user,
   });
@@ -96,25 +113,45 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     queryClient.invalidateQueries({ queryKey: ["archived-lessons"] });
   };
 
-  // Group learning paths by subject
-  const pathsBySubject = learningPaths?.reduce((acc, path) => {
-    if (!acc[path.subject]) {
-      acc[path.subject] = {
+  // Group all lessons by subject (both from paths and individual lessons)
+  const allLessonsBySubject = new Map();
+
+  // Add learning path lessons to the grouping
+  learningPaths?.forEach(path => {
+    if (!allLessonsBySubject.has(path.subject)) {
+      allLessonsBySubject.set(path.subject, {
         totalModules: 0,
         completedModules: 0,
         paths: [],
-      };
+        modules: [],
+      });
     }
 
+    const subjectData = allLessonsBySubject.get(path.subject);
     const pathLessons = path.lessons || [];
-    acc[path.subject].totalModules += pathLessons.length;
-    acc[path.subject].completedModules += pathLessons.filter(
+    subjectData.totalModules += pathLessons.length;
+    subjectData.completedModules += pathLessons.filter(
       lesson => completedLessonIds.has(lesson.lesson_id)
     ).length;
-    acc[path.subject].paths.push(path);
+    subjectData.paths.push(path);
+  });
 
-    return acc;
-  }, {} as Record<string, { totalModules: number; completedModules: number; paths: LearningPath[] }>);
+  // Add individual lessons to the grouping
+  individualLessons?.forEach(lesson => {
+    if (!allLessonsBySubject.has(lesson.subject)) {
+      allLessonsBySubject.set(lesson.subject, {
+        totalModules: 0,
+        completedModules: 0,
+        paths: [],
+        modules: [],
+      });
+    }
+
+    const subjectData = allLessonsBySubject.get(lesson.subject);
+    subjectData.totalModules += 1;
+    subjectData.completedModules += completedLessonIds.has(lesson.id) ? 1 : 0;
+    subjectData.modules.push(lesson);
+  });
 
   return (
     <Card>
@@ -135,13 +172,13 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
-          {Object.entries(pathsBySubject || {}).map(([subject, data]) => (
+          {Array.from(allLessonsBySubject.entries()).map(([subject, data]) => (
             <SubjectProgress
               key={subject}
               subject={subject}
               totalModules={data.totalModules}
               completedModules={data.completedModules}
-              modules={[]}
+              modules={data.modules}
               learningPaths={data.paths}
               isGenerating={isGenerating}
               onLessonDeleted={handleLessonDeleted}

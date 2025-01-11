@@ -73,12 +73,9 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
         .select('*')
         .eq('path_id', pathId)
         .eq('lesson_id', lessonId)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 means no rows returned, which is what we want
-        throw checkError;
-      }
+      if (checkError) throw checkError;
 
       if (!existingLesson) {
         // Get the highest order_index for this path

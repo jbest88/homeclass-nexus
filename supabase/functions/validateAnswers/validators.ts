@@ -19,7 +19,7 @@ export const validateTrueFalse = (
   };
 };
 
-// Validate multiple choice questions
+// Validate multiple choice and dropdown questions
 export const validateMultipleChoice = (
   userAnswer: string,
   correctAnswer: string,
@@ -116,4 +116,13 @@ export const validateText = (
       ? 'Correct!' 
       : `Incorrect. The expected answer was: ${correctAnswer}`
   };
+};
+
+// Validate dropdown questions (same logic as multiple choice)
+export const validateDropdown = (
+  userAnswer: string,
+  correctAnswer: string,
+  question: string
+): ValidationResult => {
+  return validateMultipleChoice(userAnswer, correctAnswer, question);
 };

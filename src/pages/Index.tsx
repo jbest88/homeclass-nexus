@@ -44,11 +44,14 @@ const Index = () => {
           variant: "destructive",
           title: "Error",
           description: getErrorMessage(error),
+          duration: 3000, // 3 seconds for error messages
         });
       } else {
         toast({
           title: "Success",
           description: "Logged in successfully!",
+          duration: 2000, // 2 seconds for success message
+          className: "bottom-4 right-4 fixed", // Position in bottom right
         });
         navigate("/dashboard");
       }
@@ -58,6 +61,7 @@ const Index = () => {
         variant: "destructive",
         title: "Error",
         description: "An unexpected error occurred",
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);

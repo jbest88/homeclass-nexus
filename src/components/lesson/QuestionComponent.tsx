@@ -44,7 +44,20 @@ export const QuestionComponent = ({
       if (error) throw error;
 
       toast.info("AI Tutor Help", {
-        description: data.explanation,
+        description: (
+          <div className="prose prose-slate dark:prose-invert max-w-none
+            prose-headings:font-bold prose-headings:text-foreground
+            prose-h1:text-3xl prose-h1:mb-8
+            prose-h2:text-2xl prose-h2:mb-6
+            prose-h3:text-xl prose-h3:mb-4
+            prose-p:mb-4 prose-p:leading-7
+            prose-li:my-2
+            prose-ul:my-6 prose-ul:list-disc prose-ul:pl-6
+            prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6
+            [&_blockquote]:border-l-4 [&_blockquote]:border-muted [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6">
+            {data.explanation}
+          </div>
+        ),
         duration: 10000,
       });
     } catch (error) {

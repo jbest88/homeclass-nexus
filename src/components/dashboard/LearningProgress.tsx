@@ -78,6 +78,25 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     path.lessons?.map(lesson => lesson.lesson_id) || []
   ) || [];
 
+  // Fetch question responses to determine completed lessons
+  const { data: questionResponses } = useQuery({
+    queryKey: ["question-responses"],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("question_responses")
+        .select("lesson_id")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Create a set of completed lesson IDs
+  const completedLessonIds = new Set(questionResponses?.map(response => response.lesson_id));
+
   const { data: generatedLessons } = useQuery({
     queryKey: ["generated-lessons"],
     queryFn: async () => {
@@ -143,11 +162,13 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     acc[lesson.subject].modules.push({
       id: lesson.id,
       title: lesson.title,
-      completed: true,
+      completed: completedLessonIds.has(lesson.id),
       created_at: lesson.created_at,
     });
 
-    acc[lesson.subject].completedModules++;
+    if (completedLessonIds.has(lesson.id)) {
+      acc[lesson.subject].completedModules++;
+    }
 
     return acc;
   }, {} as Record<string, { totalModules: number; completedModules: number; modules: any[] }>);

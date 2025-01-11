@@ -77,7 +77,9 @@ const SubjectProgress = ({
     }
   };
 
-  const progressPercentage = (completedModules / totalModules) * 100;
+  // Calculate progress only for completed modules
+  const completedCount = modules.filter(module => module.completed).length;
+  const progressPercentage = totalModules > 0 ? (completedCount / totalModules) * 100 : 0;
 
   // Function to clean title and add grade level
   const cleanTitle = (title: string) => {
@@ -110,7 +112,7 @@ const SubjectProgress = ({
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-lg font-semibold">{subject}</h3>
         <span className="text-sm text-muted-foreground">
-          {totalModules > 0 ? `${Math.round((completedModules / totalModules) * 100)}%` : '0%'}
+          {Math.round(progressPercentage)}%
         </span>
       </div>
       <Progress value={progressPercentage} className="mb-4" />

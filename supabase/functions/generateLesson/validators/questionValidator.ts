@@ -29,7 +29,7 @@ const validateQuestion = (q: any, index: number) => {
     throw new Error(`Question ${index + 1} is missing a valid type`);
   }
 
-  const validTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown', 'text'];
+  const validTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown'];
   if (!validTypes.includes(q.type)) {
     throw new Error(`Question ${index + 1} has an invalid type: ${q.type}`);
   }
@@ -48,9 +48,6 @@ const validateQuestionType = (q: any, index: number) => {
       break;
     case 'true-false':
       validateTrueFalse(q, index);
-      break;
-    case 'text':
-      validateText(q, index);
       break;
   }
 };
@@ -87,16 +84,21 @@ const validateTrueFalse = (q: any, index: number) => {
   }
 };
 
-const validateText = (q: any, index: number) => {
-  if (!q.answer || typeof q.answer !== 'string') {
-    throw new Error(`Question ${index + 1} must have a valid text answer`);
-  }
-};
-
 const validateQuestionTypes = (questions: Question[]) => {
   const types = questions.map(q => q.type);
-  const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown', 'text'];
-  const missingTypes = requiredTypes.filter(type => !types.includes(type));
+  const typeCount = types.reduce((acc, type) => {
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Check for exactly 2 multiple-choice questions
+  if (typeCount['multiple-choice'] !== 2) {
+    throw new Error('Must have exactly 2 multiple-choice questions');
+  }
+
+  // Check for exactly 1 of each other type
+  const requiredSingleTypes = ['multiple-answer', 'true-false', 'dropdown'];
+  const missingTypes = requiredSingleTypes.filter(type => typeCount[type] !== 1);
   
   if (missingTypes.length > 0) {
     throw new Error(`Missing required question types: ${missingTypes.join(', ')}`);

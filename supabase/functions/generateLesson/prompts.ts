@@ -6,8 +6,7 @@ export const createLessonPrompt = (
 ): string => {
   return `Create an educational lesson about ${subject} appropriate for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
     The lesson should be comprehensive but concise, focusing on key concepts that are grade-appropriate. 
-    Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.
-    Make the content slightly more challenging than their current level to promote growth.`;
+    Include a title for the lesson. Ensure the language and complexity level matches ${gradeLevelText} understanding.`;
 };
 
 export const createQuestionsPrompt = (

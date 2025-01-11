@@ -24,6 +24,8 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
+    console.log(`Generating lesson for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}`);
+
     // Get user's profile for grade level
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -55,6 +57,8 @@ serve(async (req) => {
     const proficiencyLevel = proficiencyData?.proficiency_level ?? 5; // Default to level 5 if not set
     const difficultyLevel = getDifficultyLevel(proficiencyLevel);
 
+    console.log(`Grade Level: ${gradeLevelText}, Proficiency: ${proficiencyLevel}, Difficulty: ${difficultyLevel}`);
+
     // Generate lesson content
     const lessonResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
       method: 'POST',
@@ -77,12 +81,14 @@ serve(async (req) => {
     });
 
     if (!lessonResponse.ok) {
-      console.error('Gemini API error:', await lessonResponse.text());
+      console.error('Gemini API error (lesson):', await lessonResponse.text());
       throw new Error('Failed to generate lesson content');
     }
 
     const lessonData = await lessonResponse.json();
     const lessonContent = lessonData.candidates[0].content.parts[0].text;
+
+    console.log('Successfully generated lesson content');
 
     // Generate questions
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
@@ -106,12 +112,14 @@ serve(async (req) => {
     });
 
     if (!questionsResponse.ok) {
-      console.error('Gemini API error:', await questionsResponse.text());
+      console.error('Gemini API error (questions):', await questionsResponse.text());
       throw new Error('Failed to generate questions');
     }
 
     const questionsData = await questionsResponse.json();
     const questionsText = questionsData.candidates[0].content.parts[0].text;
+
+    console.log('Successfully generated questions');
 
     let questions: Question[];
     try {

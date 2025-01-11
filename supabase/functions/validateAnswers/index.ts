@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from './utils.ts';
 import { ValidationRequest } from './types.ts';
 import { 
   validateMultipleChoice, 
@@ -9,16 +8,26 @@ import {
   validateDropdown 
 } from './validators/index.ts';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
     const requestData = await req.json();
     const { question, userAnswer, correctAnswer, type } = requestData as ValidationRequest;
     
-    console.log('Validating answer:', requestData);
+    console.log('Validating answer:', { question, type, userAnswer });
 
     if (!question || !type) {
       throw new Error('Missing required fields: question and type are required');

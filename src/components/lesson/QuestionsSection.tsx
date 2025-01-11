@@ -53,11 +53,9 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
   // Initialize answers with previous responses if they exist
   React.useEffect(() => {
     if (previousResponses && previousResponses.length > 0) {
-      // Get the original question answers from the questions array
       const initialAnswers = questions.map((question, index) => {
         const response = previousResponses.find(r => r.question_index === index);
         
-        // If this question was previously answered
         if (response) {
           return {
             answer: question.type === 'multiple-answer' ? 
@@ -79,8 +77,6 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     }
   }, [previousResponses, questions, initializeAnswers]);
 
-  if (!questions.length) return null;
-
   const handleContinue = () => {
     navigate("/dashboard");
   };
@@ -89,7 +85,10 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     if (!user) return;
 
     try {
-      // Create or get the latest learning path for this subject
+      let pathId;
+      let newLesson;
+
+      // Only create or get learning path if this is the first lesson being completed
       const { data: existingPaths, error: pathError } = await supabase
         .from('learning_paths')
         .select('*')
@@ -100,10 +99,18 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
 
       if (pathError) throw pathError;
 
-      let pathId;
-      
-      if (!existingPaths?.length) {
-        // Create new learning path
+      // Check if this lesson is already part of a learning path
+      const { data: existingPathLesson, error: checkError } = await supabase
+        .from('learning_path_lessons')
+        .select('path_id')
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      // If this lesson isn't part of a path yet and there are no existing paths,
+      // create a new learning path
+      if (!existingPathLesson && !existingPaths?.length) {
         const { data: newPath, error: createPathError } = await supabase
           .from('learning_paths')
           .insert({
@@ -115,75 +122,36 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
 
         if (createPathError) throw createPathError;
         pathId = newPath.id;
-      } else {
-        pathId = existingPaths[0].id;
-      }
 
-      // Check if the lesson is already in the path
-      const { data: existingLesson, error: checkError } = await supabase
-        .from('learning_path_lessons')
-        .select('*')
-        .eq('path_id', pathId)
-        .eq('lesson_id', lessonId)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      if (!existingLesson) {
-        // Get the highest order_index for this path
-        const { data: lastLesson, error: orderError } = await supabase
-          .from('learning_path_lessons')
-          .select('order_index')
-          .eq('path_id', pathId)
-          .order('order_index', { ascending: false })
-          .limit(1);
-
-        if (orderError) throw orderError;
-
-        const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
-
-        // Add current lesson to learning path if it's not already there
+        // Add current lesson to the new path
         const { error: lessonError } = await supabase
           .from('learning_path_lessons')
           .insert({
             path_id: pathId,
             lesson_id: lessonId,
-            order_index: nextOrderIndex,
+            order_index: 0,
           });
 
         if (lessonError) throw lessonError;
+      } else if (existingPathLesson) {
+        // If lesson is already in a path, use that path
+        pathId = existingPathLesson.path_id;
+      } else if (existingPaths?.length) {
+        // Use the most recent existing path
+        pathId = existingPaths[0].id;
       }
 
-      if (performance && performance.correctPercentage < 70) {
-        // If performance is below 70%, regenerate a lesson on the same subject
-        const newLesson = await handleGenerateLesson(subject, true);
-        if (newLesson) {
-          // Get the latest order_index again
-          const { data: lastLesson, error: orderError } = await supabase
-            .from('learning_path_lessons')
-            .select('order_index')
-            .eq('path_id', pathId)
-            .order('order_index', { ascending: false })
-            .limit(1);
-
-          if (orderError) throw orderError;
-
-          const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
-
-          // Add new lesson to learning path
-          await supabase
-            .from('learning_path_lessons')
-            .insert({
-              path_id: pathId,
-              lesson_id: newLesson.id,
-              order_index: nextOrderIndex,
-            });
+      if (performance && pathId) {
+        if (performance.correctPercentage < 70) {
+          // If performance is below 70%, regenerate a lesson on the same subject
+          newLesson = await handleGenerateLesson(subject, true);
+        } else {
+          // If performance is good, move on to a new lesson
+          newLesson = await handleGenerateLesson(subject);
         }
-      } else {
-        // If performance is good, move on to a new lesson
-        const newLesson = await handleGenerateLesson(subject);
-        if (newLesson) {
-          // Get the latest order_index again
+
+        if (newLesson && pathId) {
+          // Get the latest order_index
           const { data: lastLesson, error: orderError } = await supabase
             .from('learning_path_lessons')
             .select('order_index')
@@ -210,6 +178,8 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
       toast.error('Failed to update learning path');
     }
   };
+
+  if (!questions.length) return null;
 
   return (
     <div className="mt-8">

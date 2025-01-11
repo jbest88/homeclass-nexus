@@ -69,6 +69,66 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_path_lessons: {
+        Row: {
+          created_at: string
+          id: string
+          lesson_id: string
+          order_index: number
+          path_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lesson_id: string
+          order_index: number
+          path_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          order_index?: number
+          path_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_path_lessons_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "generated_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_path_lessons_path_id_fkey"
+            columns: ["path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_paths: {
+        Row: {
+          created_at: string
+          id: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subject: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       module_progress: {
         Row: {
           completed_at: string | null

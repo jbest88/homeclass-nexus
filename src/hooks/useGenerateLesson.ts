@@ -29,7 +29,7 @@ export const useGenerateLesson = () => {
   const handleGenerateLesson = async (subject: string, isRetry: boolean = false) => {
     if (!user) {
       toast.error("Please sign in to generate lessons");
-      return;
+      return null;
     }
 
     try {
@@ -43,7 +43,7 @@ export const useGenerateLesson = () => {
         body: { 
           subject, 
           userId: user.id,
-          isRetry, // Pass this to the edge function to adjust content generation
+          isRetry,
         },
       });
 
@@ -68,9 +68,12 @@ export const useGenerateLesson = () => {
         ? "New approach generated! Let's try this topic again." 
         : "New lesson generated successfully!");
       navigate(`/generated-lesson/${insertData.id}`);
+      
+      return insertData;
     } catch (error) {
       console.error("Error generating lesson:", error);
       toast.error("Failed to generate lesson");
+      return null;
     } finally {
       setIsGenerating(false);
     }

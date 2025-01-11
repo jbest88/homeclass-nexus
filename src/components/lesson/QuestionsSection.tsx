@@ -4,6 +4,9 @@ import { useQuestionResponses } from "@/hooks/useQuestionResponses";
 import { Question } from "@/types/questions";
 import { useNavigate } from "react-router-dom";
 import { useGenerateLesson } from "@/hooks/useGenerateLesson";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useUser } from "@supabase/auth-helpers-react";
 
 interface QuestionsSectionProps {
   questions: Question[];
@@ -13,6 +16,7 @@ interface QuestionsSectionProps {
 
 export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSectionProps) => {
   const navigate = useNavigate();
+  const user = useUser();
   const { handleGenerateLesson, isGenerating } = useGenerateLesson();
   const {
     answers,
@@ -30,12 +34,80 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
   };
 
   const handleGenerateNewLesson = async () => {
-    if (performance && performance.correctPercentage < 70) {
-      // If performance is below 70%, regenerate a lesson on the same subject
-      await handleGenerateLesson(subject, true);
-    } else {
-      // If performance is good, move on to a new lesson
-      await handleGenerateLesson(subject);
+    if (!user) return;
+
+    try {
+      // Create or get the latest learning path for this subject
+      const { data: existingPaths, error: pathError } = await supabase
+        .from('learning_paths')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('subject', subject)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (pathError) throw pathError;
+
+      let pathId;
+      
+      if (!existingPaths?.length) {
+        // Create new learning path
+        const { data: newPath, error: createPathError } = await supabase
+          .from('learning_paths')
+          .insert({
+            user_id: user.id,
+            subject: subject,
+          })
+          .select()
+          .single();
+
+        if (createPathError) throw createPathError;
+        pathId = newPath.id;
+      } else {
+        pathId = existingPaths[0].id;
+      }
+
+      // Add current lesson to learning path
+      const { error: lessonError } = await supabase
+        .from('learning_path_lessons')
+        .insert({
+          path_id: pathId,
+          lesson_id: lessonId,
+          order_index: 0, // First lesson in path
+        });
+
+      if (lessonError) throw lessonError;
+
+      if (performance && performance.correctPercentage < 70) {
+        // If performance is below 70%, regenerate a lesson on the same subject
+        const newLesson = await handleGenerateLesson(subject, true);
+        if (newLesson) {
+          // Add new lesson to learning path
+          await supabase
+            .from('learning_path_lessons')
+            .insert({
+              path_id: pathId,
+              lesson_id: newLesson.id,
+              order_index: 1, // Next lesson in path
+            });
+        }
+      } else {
+        // If performance is good, move on to a new lesson
+        const newLesson = await handleGenerateLesson(subject);
+        if (newLesson) {
+          // Add new lesson to learning path
+          await supabase
+            .from('learning_path_lessons')
+            .insert({
+              path_id: pathId,
+              lesson_id: newLesson.id,
+              order_index: 1, // Next lesson in path
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Error managing learning path:', error);
+      toast.error('Failed to update learning path');
     }
   };
 

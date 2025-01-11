@@ -92,14 +92,14 @@ const Dashboard = () => {
   return (
     <div className="container mx-auto p-4 space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">Learning Dashboard</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary">My Learning Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2 w-full sm:w-auto">
                 <Plus className="h-4 w-4" />
-                {!isMobile && "Generate Lesson"}
-                {isMobile && "Generate"}
+                {!isMobile && "Create Lesson"}
+                {isMobile && "Create"}
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -144,8 +144,8 @@ const Dashboard = () => {
             <DialogTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
                 <Settings className="h-4 w-4" />
-                {!isMobile && "Profile Settings"}
-                {isMobile && "Profile"}
+                {!isMobile && "My Profile"}
+                {isMobile && "My Profile"}
               </Button>
             </DialogTrigger>
             <DialogContent>

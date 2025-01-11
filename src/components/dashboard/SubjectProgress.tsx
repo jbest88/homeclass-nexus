@@ -59,9 +59,12 @@ const SubjectProgress = ({
 
   const progressPercentage = (completedModules / totalModules) * 100;
 
-  // Function to clean title by removing markdown formatting
+  // Function to clean title and add grade level
   const cleanTitle = (title: string) => {
-    return title.replace(/[*#]/g, '').trim();
+    const baseTitle = title.replace(/[*#]/g, '').trim();
+    const gradeLevel = profile?.grade_level;
+    if (gradeLevel === null || gradeLevel === undefined) return baseTitle;
+    return `${baseTitle} (Grade ${gradeLevel === 0 ? 'K' : gradeLevel})`;
   };
 
   // Function to get curriculum period based on date
@@ -87,7 +90,7 @@ const SubjectProgress = ({
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-lg font-semibold">{subject}</h3>
         <span className="text-sm text-muted-foreground">
-          {completedModules} / {totalModules} completed
+          {totalModules > 0 ? `${Math.round((completedModules / totalModules) * 100)}%` : '0%'}
         </span>
       </div>
       <Progress value={progressPercentage} className="mb-4" />

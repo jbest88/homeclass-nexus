@@ -134,7 +134,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <GraduationCap className="h-5 w-5" />
-          Learning Progress
+          Learning Journey
         </CardTitle>
       </CardHeader>
       <CardContent>

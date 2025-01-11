@@ -164,34 +164,61 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           birthday: string | null
           city: string | null
           country: string | null
           grade_level: number | null
           id: string
+          interests: string[] | null
+          language_preference: string | null
+          notification_preferences: Json | null
+          portfolio_items: Json[] | null
+          privacy_settings: Json | null
+          skills: string[] | null
+          social_links: Json | null
           state_province: string | null
+          timezone: string | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           birthday?: string | null
           city?: string | null
           country?: string | null
           grade_level?: number | null
           id: string
+          interests?: string[] | null
+          language_preference?: string | null
+          notification_preferences?: Json | null
+          portfolio_items?: Json[] | null
+          privacy_settings?: Json | null
+          skills?: string[] | null
+          social_links?: Json | null
           state_province?: string | null
+          timezone?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           birthday?: string | null
           city?: string | null
           country?: string | null
           grade_level?: number | null
           id?: string
+          interests?: string[] | null
+          language_preference?: string | null
+          notification_preferences?: Json | null
+          portfolio_items?: Json[] | null
+          privacy_settings?: Json | null
+          skills?: string[] | null
+          social_links?: Json | null
           state_province?: string | null
+          timezone?: string | null
           updated_at?: string | null
           username?: string | null
         }

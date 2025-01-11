@@ -7,15 +7,17 @@ export const createLessonPrompt = (
   return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
     IMPORTANT: The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
-    
+
     Write as if you're directly speaking to the student. Use clear, conversational language and include:
     - A friendly introduction that gets them excited about the topic
-    - Real-world examples and relatable scenarios that a ${gradeLevelText} student would understand
+    - Real-world examples that relate to common experiences of a ${gradeLevelText} student (e.g., school life, popular hobbies, or age-appropriate interests)
     - Clear explanations of key concepts using age-appropriate language
     - "Did you know?" facts that would interest a student at this grade level
     - Brief recap points throughout the lesson
-    
-    The content should be easy to read and understand, avoiding overly technical language unless necessary.
+    - One or two simple activities or thought questions to keep them engaged
+
+    The content should be easy to read and understand, avoiding overly technical language unless necessary. Break the lesson into labeled sections with concise paragraphs and bullet points where applicable.
+
     Include a clear, student-friendly title for the lesson.`;
 };
 

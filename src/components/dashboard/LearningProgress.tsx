@@ -71,10 +71,27 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     enabled: !!user,
   });
 
-  // Get all lesson IDs that are part of any learning path
-  const pathLessonIds = learningPaths?.flatMap(path => 
-    path.lessons?.map(lesson => lesson.lesson_id) || []
-  ) || [];
+  const { data: generatedLessons } = useQuery({
+    queryKey: ["generated-lessons"],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data: lessons, error } = await supabase
+        .from("generated_lessons")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("subject")
+        .order("order_index");
+
+      if (error) throw error;
+      
+      // Show all lessons, including those in learning paths
+      const now = new Date();
+      return lessons.filter(lesson => 
+        differenceInDays(now, new Date(lesson.created_at)) < 1
+      );
+    },
+    enabled: !!user,
+  });
 
   // Fetch question responses to determine completed lessons
   const { data: questionResponses } = useQuery({
@@ -94,29 +111,6 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
 
   // Create a set of completed lesson IDs
   const completedLessonIds = new Set(questionResponses?.map(response => response.lesson_id));
-
-  const { data: generatedLessons } = useQuery({
-    queryKey: ["generated-lessons"],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data: lessons, error } = await supabase
-        .from("generated_lessons")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("subject")
-        .order("order_index");
-
-      if (error) throw error;
-      
-      // Only show lessons that are not part of any learning path and are not archived
-      const now = new Date();
-      return lessons.filter(lesson => 
-        !pathLessonIds.includes(lesson.id) && 
-        differenceInDays(now, new Date(lesson.created_at)) < 1
-      );
-    },
-    enabled: !!user,
-  });
 
   const handleLessonDeleted = () => {
     queryClient.invalidateQueries({ queryKey: ["generated-lessons"] });

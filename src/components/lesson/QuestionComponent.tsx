@@ -53,13 +53,14 @@ export const QuestionComponent = ({
         .eq("lesson_id", lessonId)
         .eq("question_index", questionIndex)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (fetchError && fetchError.code !== "PGRST116") {
+      if (fetchError) {
+        console.error("Error fetching cached help:", fetchError);
         throw fetchError;
       }
 
-      if (cachedHelp) {
+      if (cachedHelp?.explanation) {
         return cachedHelp.explanation;
       }
 

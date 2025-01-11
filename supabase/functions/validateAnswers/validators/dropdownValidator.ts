@@ -1,7 +1,7 @@
 import { ValidationResult } from '../types.ts';
 import { normalizeText } from '../utils.ts';
 
-export const validateText = (
+export const validateDropdown = (
   userAnswer: string,
   correctAnswer: string,
   question: string
@@ -13,11 +13,11 @@ export const validateText = (
     };
   }
 
-  // Normalize answers by trimming whitespace and converting to lowercase
-  const normalizedUserAnswer = normalizeText(userAnswer).trim();
-  const normalizedCorrectAnswer = normalizeText(correctAnswer).trim();
+  // Normalize answers by trimming whitespace
+  const normalizedUserAnswer = userAnswer.trim();
+  const normalizedCorrectAnswer = correctAnswer.trim();
 
-  // Special handling for mathematical symbols
+  // Special handling for mathematical symbols and operators
   if (question.toLowerCase().includes('sign') || 
       question.toLowerCase().includes('symbol') ||
       question.toLowerCase().includes('operator')) {
@@ -30,12 +30,12 @@ export const validateText = (
     };
   }
 
-  // Regular text validation
-  const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+  // Regular dropdown validation
+  const isCorrect = normalizeText(userAnswer) === normalizeText(correctAnswer);
   return {
     isCorrect,
     explanation: isCorrect 
       ? 'Correct!' 
-      : `Incorrect. The expected answer was: ${correctAnswer}`
+      : `Incorrect. The correct answer is: ${correctAnswer}`
   };
 };

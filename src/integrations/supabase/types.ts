@@ -38,6 +38,36 @@ export type Database = {
           },
         ]
       }
+      daily_study_stats: {
+        Row: {
+          average_proficiency: number
+          correct_answers: number
+          created_at: string
+          date: string
+          id: string
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          average_proficiency?: number
+          correct_answers?: number
+          created_at?: string
+          date?: string
+          id?: string
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          average_proficiency?: number
+          correct_answers?: number
+          created_at?: string
+          date?: string
+          id?: string
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_lessons: {
         Row: {
           content: string

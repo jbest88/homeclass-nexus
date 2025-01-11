@@ -44,6 +44,59 @@ export const useQuestionResponses = (lessonId: string, subject: string, isPreAns
     }));
   };
 
+  const updateDailyStats = async (correctCount: number, totalCount: number) => {
+    if (!user) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    // First, get current daily stats
+    const { data: existingStats, error: fetchError } = await supabase
+      .from("daily_study_stats")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("date", today)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error("Error fetching daily stats:", fetchError);
+      return;
+    }
+
+    if (existingStats) {
+      // Update existing stats
+      const { error: updateError } = await supabase
+        .from("daily_study_stats")
+        .update({
+          total_questions: existingStats.total_questions + totalCount,
+          correct_answers: existingStats.correct_answers + correctCount,
+        })
+        .eq("id", existingStats.id);
+
+      if (updateError) {
+        console.error("Error updating daily stats:", updateError);
+      }
+    } else {
+      // Create new daily stats
+      const { error: insertError } = await supabase
+        .from("daily_study_stats")
+        .insert([
+          {
+            user_id: user.id,
+            date: today,
+            total_questions: totalCount,
+            correct_answers: correctCount,
+          }
+        ]);
+
+      if (insertError) {
+        console.error("Error inserting daily stats:", insertError);
+      }
+    }
+
+    // Invalidate the daily stats query to trigger a refresh
+    queryClient.invalidateQueries({ queryKey: ["daily-stats"] });
+  };
+
   const handleSubmit = async (questions: Question[]) => {
     if (!user?.id || isSubmitted) return;
     setIsSubmitting(true);
@@ -76,6 +129,9 @@ export const useQuestionResponses = (lessonId: string, subject: string, isPreAns
       const newAnswers = { ...answers };
       const correctAnswers = results.filter(r => r.isCorrect).length;
       const correctPercentage = (correctAnswers / questions.length) * 100;
+
+      // Update daily stats
+      await updateDailyStats(correctAnswers, questions.length);
 
       results.forEach(({ index, isCorrect, explanation }) => {
         newAnswers[index] = {

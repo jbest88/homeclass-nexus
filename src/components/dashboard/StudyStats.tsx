@@ -3,9 +3,11 @@ import { BookOpen } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@supabase/auth-helpers-react";
+import { useDailyStats } from "@/hooks/useDailyStats";
 
 const StudyStats = () => {
   const user = useUser();
+  const { data: dailyStats, isLoading: isDailyStatsLoading } = useDailyStats();
 
   const { data: proficiencyData } = useQuery({
     queryKey: ["subject-proficiency"],
@@ -22,51 +24,47 @@ const StudyStats = () => {
     enabled: !!user,
   });
 
-  const { data: questionResponses } = useQuery({
-    queryKey: ["question-responses"],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from("question_responses")
-        .select("*")
-        .eq("user_id", user.id)
-        .order('created_at', { ascending: false });  // Order by most recent first
-
-      if (error) throw error;
-      console.log("Question responses:", data); // Add this log to debug
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Calculate stats from the responses
-  const totalQuestions = questionResponses?.length || 0;
-  const correctAnswers = questionResponses?.filter(r => r.is_correct === true)?.length || 0;
+  // Calculate average proficiency from all subjects
   const averageProficiency = proficiencyData?.reduce((acc, curr) => acc + curr.proficiency_level, 0) / (proficiencyData?.length || 1);
   const maxProficiency = 10; // Maximum proficiency level
+
+  if (isDailyStatsLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Loading Stats...
+          </CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BookOpen className="h-5 w-5" />
-          Study Stats
+          Today's Study Stats
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">Questions Attempted</span>
-            <span className="text-2xl font-bold">{totalQuestions}</span>
+            <span className="text-2xl font-bold">{dailyStats?.total_questions || 0}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">Correct Answers</span>
-            <span className="text-2xl font-bold">{correctAnswers}</span>
+            <span className="text-2xl font-bold">{dailyStats?.correct_answers || 0}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">Success Rate</span>
             <span className="text-2xl font-bold">
-              {totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0}%
+              {dailyStats?.total_questions > 0
+                ? Math.round((dailyStats.correct_answers / dailyStats.total_questions) * 100)
+                : 0}%
             </span>
           </div>
           <div className="flex justify-between items-center">

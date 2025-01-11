@@ -6,7 +6,6 @@ import { corsHeaders, getDifficultyLevel, getGradeLevelText, fetchUserProfile, f
 import { createLessonPrompt, createQuestionsPrompt } from './prompts.ts';
 
 serve(async (req) => {
-  // Add proper CORS handling
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -14,19 +13,12 @@ serve(async (req) => {
   try {
     console.log('Received request to generate lesson');
 
-    // Validate request method
-    if (req.method !== 'POST') {
-      throw new Error(`HTTP method ${req.method} is not allowed`);
-    }
-
-    // Validate API key
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       console.error('GEMINI_API_KEY is not configured');
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    // Validate Supabase configuration
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -36,7 +28,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse and validate request body
     let requestBody;
     try {
       requestBody = await req.json() as LessonRequest;
@@ -45,7 +36,7 @@ serve(async (req) => {
       throw new Error('Invalid request body');
     }
 
-    const { subject, userId } = requestBody;
+    const { subject, userId, isRetry } = requestBody;
     if (!subject || !userId) {
       console.error('Missing required fields:', { subject, userId });
       throw new Error('Missing required fields: subject and userId are required');
@@ -53,14 +44,18 @@ serve(async (req) => {
 
     console.log('Fetching user data for:', userId);
 
-    // Fetch user data with error handling
     try {
       const [profile, proficiencyResult] = await Promise.all([
         fetchUserProfile(supabase, userId),
         fetchProficiencyLevel(supabase, userId, subject),
       ]);
 
-      const gradeLevel = profile.grade_level ?? 5;
+      if (!profile || profile.grade_level === null) {
+        console.error('User profile or grade level not found');
+        throw new Error('User profile or grade level not found');
+      }
+
+      const gradeLevel = profile.grade_level;
       const proficiencyLevel = proficiencyResult.proficiency_level;
       const gradeLevelText = getGradeLevelText(gradeLevel);
       const difficultyLevel = getDifficultyLevel(proficiencyLevel);
@@ -72,16 +67,29 @@ serve(async (req) => {
         difficultyLevel,
       });
 
-      // Generate lesson content with error handling
-      console.log('Generating lesson content');
-      const lessonPrompt = createLessonPrompt(subject, gradeLevelText, difficultyLevel, proficiencyLevel);
+      // If this is a retry, adjust difficulty level down one notch
+      const adjustedDifficultyLevel = isRetry ? 
+        getDifficultyLevel(Math.max(1, proficiencyLevel - 2)) : 
+        difficultyLevel;
+
+      console.log('Generating lesson content with difficulty:', adjustedDifficultyLevel);
+      const lessonPrompt = createLessonPrompt(
+        subject, 
+        gradeLevelText, 
+        adjustedDifficultyLevel, 
+        isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel
+      );
       const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
 
       console.log('Generating questions');
-      const questionsPrompt = createQuestionsPrompt(lessonContent, gradeLevelText, difficultyLevel, proficiencyLevel);
+      const questionsPrompt = createQuestionsPrompt(
+        lessonContent, 
+        gradeLevelText, 
+        adjustedDifficultyLevel, 
+        isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel
+      );
       const questionsText = await generateWithGemini(geminiApiKey, questionsPrompt);
 
-      // Parse and validate questions
       let questions;
       try {
         console.log('Raw questions text:', questionsText);
@@ -187,7 +195,6 @@ serve(async (req) => {
         throw new Error(`Question validation failed: ${error.message}`);
       }
 
-      // Extract title and content
       const title = lessonContent.split('\n')[0].replace('#', '').trim();
       const content = lessonContent.split('\n').slice(1).join('\n').trim();
 

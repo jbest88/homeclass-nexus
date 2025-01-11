@@ -4,13 +4,15 @@ export const createLessonPrompt = (
   difficultyLevel: string,
   proficiencyLevel: number
 ): string => {
-  return `Create an engaging, student-friendly lesson about ${subject} for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
+    IMPORTANT: The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
+    
     Write as if you're directly speaking to the student. Use clear, conversational language and include:
     - A friendly introduction that gets them excited about the topic
-    - Real-world examples and relatable scenarios
-    - Clear explanations of key concepts
-    - "Did you know?" facts to maintain interest
+    - Real-world examples and relatable scenarios that a ${gradeLevelText} student would understand
+    - Clear explanations of key concepts using age-appropriate language
+    - "Did you know?" facts that would interest a student at this grade level
     - Brief recap points throughout the lesson
     
     The content should be easy to read and understand, avoiding overly technical language unless necessary.
@@ -25,17 +27,21 @@ export const createQuestionsPrompt = (
 ): string => {
   return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions that will help a ${gradeLevelText} student check their understanding. The questions should be at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
+    IMPORTANT: The questions MUST be appropriate for ${gradeLevelText} students. Do not include concepts or vocabulary that are too advanced.
+
     IMPORTANT VALIDATION RULES:
     1. For math questions:
        - All numerical answers must be exact and unambiguous
        - If using multiple choice, ensure only ONE answer is mathematically correct
        - Include units where applicable (e.g., cm, kg)
        - For word problems, ensure all necessary information is provided
+       - Use age-appropriate numbers and concepts
     
     2. For text-based questions:
        - Answers must be clearly supported by the lesson content
        - Avoid subjective or opinion-based questions
        - For multiple choice, ensure options are distinct and unambiguous
+       - Use vocabulary appropriate for ${gradeLevelText} students
     
     3. For all questions:
        - Double-check that the correct answer is included in the options
@@ -44,7 +50,7 @@ export const createQuestionsPrompt = (
        - Verify that questions test understanding, not just memorization
 
     Make the questions:
-    - Clear and straightforward
+    - Clear and straightforward for ${gradeLevelText} students
     - Directly related to the main concepts covered
     - Encouraging and supportive in tone
     - Focused on understanding rather than memorization

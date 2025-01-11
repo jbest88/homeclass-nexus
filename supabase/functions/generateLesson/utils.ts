@@ -7,13 +7,17 @@ export const corsHeaders = {
 };
 
 export const getDifficultyLevel = (proficiencyLevel: number): string => {
-  return proficiencyLevel <= 3 ? 'basic' : 
-         proficiencyLevel <= 6 ? 'intermediate' : 
-         'advanced';
+  if (proficiencyLevel <= 3) return 'basic';
+  if (proficiencyLevel <= 6) return 'intermediate';
+  return 'advanced';
 };
 
 export const getGradeLevelText = (gradeLevel: number): string => {
-  return gradeLevel === 0 ? 'Kindergarten' : `${gradeLevel}th grade`;
+  if (gradeLevel === 0) return 'Kindergarten';
+  if (gradeLevel === 1) return '1st grade';
+  if (gradeLevel === 2) return '2nd grade';
+  if (gradeLevel === 3) return '3rd grade';
+  return `${gradeLevel}th grade`;
 };
 
 export const fetchUserProfile = async (
@@ -26,7 +30,16 @@ export const fetchUserProfile = async (
     .eq('id', userId)
     .single();
 
-  if (error) throw new Error('Failed to fetch user profile');
+  if (error) {
+    console.error('Error fetching user profile:', error);
+    throw new Error('Failed to fetch user profile');
+  }
+  
+  if (!data || data.grade_level === null) {
+    console.error('User profile or grade level not found:', data);
+    throw new Error('User profile or grade level not found');
+  }
+
   return data;
 };
 
@@ -42,7 +55,10 @@ export const fetchProficiencyLevel = async (
     .eq('subject', subject)
     .single();
 
-  if (error) return { proficiency_level: 1 };
+  if (error) {
+    console.log('No existing proficiency found, defaulting to level 1');
+    return { proficiency_level: 1 };
+  }
   return data;
 };
 

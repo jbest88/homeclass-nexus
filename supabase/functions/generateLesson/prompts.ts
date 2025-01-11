@@ -29,6 +29,13 @@ export const createQuestionsPrompt = (
 
     IMPORTANT: The questions MUST be appropriate for ${gradeLevelText} students. Do not include concepts or vocabulary that are too advanced.
 
+    CRITICAL: You MUST include EXACTLY ONE of each of these question types:
+    1. Multiple choice question (1 question)
+    2. Multiple answer question where students select multiple correct options (1 question)
+    3. True/False question (1 question)
+    4. Dropdown question (1 question)
+    5. Text question (1 question)
+
     IMPORTANT VALIDATION RULES:
     1. For math questions:
        - All numerical answers must be exact and unambiguous
@@ -55,11 +62,10 @@ export const createQuestionsPrompt = (
     - Encouraging and supportive in tone
     - Focused on understanding rather than memorization
 
-    Include a mix of these question types:
-    1. Multiple choice (2 questions)
-    2. Multiple answer (1 question)
-    3. True/False (1 question)
-    4. Dropdown (1 question)
+    For the multiple answer question:
+    - Include at least 2-4 correct answers
+    - Make it clear that multiple answers should be selected
+    - Use phrases like "Select all that apply" or "Choose all correct answers"
 
     Return ONLY a JSON array with these structures:
 
@@ -92,6 +98,13 @@ export const createQuestionsPrompt = (
       "type": "dropdown",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "correct option"
+    }
+
+    Text:
+    {
+      "question": "Explain...",
+      "type": "text",
+      "answer": "expected answer"
     }
 
     Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;

@@ -83,11 +83,10 @@ serve(async (req) => {
     const questionsPrompt = `Based on this lesson: "${lessonContent}", generate EXACTLY 5 questions to test understanding for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
     Include a mix of these question types:
-    1. Multiple choice (1 question)
+    1. Multiple choice (2 questions)
     2. Multiple answer (1 question)
     3. True/False (1 question)
-    4. Slider (1 question) - for numerical answers
-    5. Dropdown (1 question)
+    4. Dropdown (1 question)
 
     Return ONLY a JSON array with these structures:
 
@@ -114,16 +113,6 @@ serve(async (req) => {
       "answer": "true"
     }
 
-    Slider:
-    {
-      "question": "What is the value...?",
-      "type": "slider",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "answer": "50"
-    }
-
     Dropdown:
     {
       "question": "Choose the correct...?",
@@ -133,7 +122,7 @@ serve(async (req) => {
     }
 
     Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
-    
+
     const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
       method: 'POST',
       headers: {
@@ -171,7 +160,7 @@ serve(async (req) => {
 
       // Validate question types
       const types = questions.map(q => q.type);
-      const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'slider', 'dropdown'];
+      const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown'];
       const hasAllTypes = requiredTypes.every(type => types.includes(type));
       
       if (!hasAllTypes) {

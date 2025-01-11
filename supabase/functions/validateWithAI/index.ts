@@ -8,12 +8,37 @@ const corsHeaders = {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function callGeminiWithRetry(prompt: string, maxRetries = 3) {
+// Simple request queue to prevent overwhelming the API
+const requestQueue: Array<() => Promise<any>> = [];
+let isProcessing = false;
+
+async function processQueue() {
+  if (isProcessing) return;
+  isProcessing = true;
+
+  while (requestQueue.length > 0) {
+    const request = requestQueue.shift();
+    if (request) {
+      try {
+        await request();
+      } catch (error) {
+        console.error('Error processing queued request:', error);
+      }
+      // Add a small delay between processing queue items
+      await sleep(500);
+    }
+  }
+
+  isProcessing = false;
+}
+
+async function callGeminiWithRetry(prompt: string, maxRetries = 5) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const backoffTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+      // Exponential backoff with additional random delay to prevent thundering herd
+      const backoffTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
       if (attempt > 0) {
         console.log(`Retry attempt ${attempt + 1}, waiting ${backoffTime}ms`);
         await sleep(backoffTime);
@@ -45,8 +70,10 @@ async function callGeminiWithRetry(prompt: string, maxRetries = 3) {
       if (response.status === 429) {
         console.log(`Rate limit hit on attempt ${attempt + 1}`);
         if (attempt === maxRetries - 1) {
-          throw new Error('Rate limit exceeded after all retry attempts');
+          throw new Error('Rate limit exceeded after all retry attempts. Please try again in a few minutes.');
         }
+        // Add increasingly longer delays for rate limit errors
+        await sleep(Math.pow(2, attempt + 1) * 2000);
         continue;
       }
 
@@ -56,12 +83,13 @@ async function callGeminiWithRetry(prompt: string, maxRetries = 3) {
         throw new Error(`Gemini API error: ${errorText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return data;
     } catch (error) {
+      console.error(`Attempt ${attempt + 1} failed:`, error);
       if (attempt === maxRetries - 1) {
         throw error;
       }
-      console.error(`Attempt ${attempt + 1} failed:`, error);
     }
   }
 }
@@ -132,24 +160,34 @@ serve(async (req) => {
 
     console.log('Sending prompt to Gemini:', prompt);
 
-    const data = await callGeminiWithRetry(prompt);
-    console.log('Raw Gemini response:', data);
+    // Add request to queue
+    let result: any;
+    await new Promise((resolve, reject) => {
+      requestQueue.push(async () => {
+        try {
+          result = await callGeminiWithRetry(prompt);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      processQueue();
+    });
 
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      console.error('Invalid Gemini response format:', data);
+    console.log('Raw Gemini response:', result);
+
+    if (!result.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Invalid Gemini response format:', result);
       throw new Error('Invalid Gemini response structure');
     }
 
-    const responseText = data.candidates[0].content.parts[0].text.trim();
+    const responseText = result.candidates[0].content.parts[0].text.trim();
     console.log('Response text:', responseText);
 
-    // Try to find a JSON object in the response
     let jsonMatch;
     try {
-      // First try to parse the entire response as JSON
       jsonMatch = JSON.parse(responseText);
     } catch (e) {
-      // If that fails, try to extract JSON from the text
       const matches = responseText.match(/\{[\s\S]*\}/);
       if (!matches) {
         console.error('No JSON found in response:', responseText);

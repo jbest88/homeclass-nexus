@@ -56,23 +56,22 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
       // Get the original question answers from the questions array
       const initialAnswers = questions.map((question, index) => {
         const response = previousResponses.find(r => r.question_index === index);
-        let answer = "";
         
         // If this question was previously answered
         if (response) {
-          // For multiple-answer questions, the answer should be an array
-          if (question.type === 'multiple-answer' && Array.isArray(question.correctAnswers)) {
-            answer = question.correctAnswers;
-          } else {
-            // For all other question types, use the correct answer from the question
-            answer = question.answer;
-          }
+          return {
+            answer: question.type === 'multiple-answer' ? 
+              (question.correctAnswers || []) : 
+              question.answer,
+            isSubmitted: true,
+            isCorrect: response?.is_correct || false,
+          };
         }
 
         return {
-          answer,
+          answer: question.type === 'multiple-answer' ? [] : "",
           isSubmitted: true,
-          isCorrect: response?.is_correct || false,
+          isCorrect: false,
         };
       });
       

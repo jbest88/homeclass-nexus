@@ -7,17 +7,15 @@ export const createLessonPrompt = (
   return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
     IMPORTANT: The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
-
+    
     Write as if you're directly speaking to the student. Use clear, conversational language and include:
     - A friendly introduction that gets them excited about the topic
-    - Real-world examples that relate to common experiences of a ${gradeLevelText} student (e.g., school life, popular hobbies, or age-appropriate interests)
+    - Real-world examples and relatable scenarios that a ${gradeLevelText} student would understand
     - Clear explanations of key concepts using age-appropriate language
     - "Did you know?" facts that would interest a student at this grade level
     - Brief recap points throughout the lesson
-    - One or two simple activities or thought questions to keep them engaged
-
-    The content should be easy to read and understand, avoiding overly technical language unless necessary. Break the lesson into labeled sections with concise paragraphs and bullet points where applicable.
-
+    
+    The content should be easy to read and understand, avoiding overly technical language unless necessary.
     Include a clear, student-friendly title for the lesson.`;
 };
 
@@ -44,13 +42,8 @@ export const createQuestionsPrompt = (
        - Avoid subjective or opinion-based questions
        - For multiple choice, ensure options are distinct and unambiguous
        - Use vocabulary appropriate for ${gradeLevelText} students
-       - Cover the most important points from the lesson content
-
-    3. For multiple-answer questions:
-       - Ensure there are at least two correct answers
-       - Options should test understanding, not just recall
-
-    4. For all questions:
+    
+    3. For all questions:
        - Double-check that the correct answer is included in the options
        - Ensure options don't contain duplicate values
        - Make sure questions are grade-appropriate
@@ -60,7 +53,7 @@ export const createQuestionsPrompt = (
     - Clear and straightforward for ${gradeLevelText} students
     - Directly related to the main concepts covered
     - Encouraging and supportive in tone
-    - Balanced between conceptual and factual understanding
+    - Focused on understanding rather than memorization
 
     Include a mix of these question types:
     1. Multiple choice (2 questions)
@@ -68,7 +61,7 @@ export const createQuestionsPrompt = (
     3. True/False (1 question)
     4. Dropdown (1 question)
 
-    Return ONLY a properly formatted JSON array with these structures:
+    Return ONLY a JSON array with these structures:
 
     Multiple choice:
     {
@@ -101,5 +94,5 @@ export const createQuestionsPrompt = (
       "answer": "correct option"
     }
 
-    Return ONLY the JSON array with EXACTLY 5 questions, no additional text or formatting.`;
+    Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
 };

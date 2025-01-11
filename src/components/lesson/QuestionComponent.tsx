@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
+import { useUser } from "@supabase/auth-helpers-react";
 
 interface QuestionComponentProps {
   question: Question;
@@ -38,17 +39,25 @@ export const QuestionComponent = ({
 }: QuestionComponentProps) => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isGettingHelp, setIsGettingHelp] = useState(false);
+  const user = useUser();
 
   const { data: helpData, isLoading: isLoadingHelp } = useQuery({
     queryKey: ["question-help", lessonId, questionIndex],
     queryFn: async () => {
+      if (!user) throw new Error("User not authenticated");
+
       // First, try to get cached help from the database
-      const { data: cachedHelp } = await supabase
+      const { data: cachedHelp, error: fetchError } = await supabase
         .from("question_help")
         .select("explanation")
         .eq("lesson_id", lessonId)
         .eq("question_index", questionIndex)
+        .eq("user_id", user.id)
         .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        throw fetchError;
+      }
 
       if (cachedHelp) {
         return cachedHelp.explanation;
@@ -64,18 +73,23 @@ export const QuestionComponent = ({
         if (error) throw error;
 
         // Cache the help response
-        await supabase.from("question_help").insert({
-          lesson_id: lessonId,
-          question_index: questionIndex,
-          explanation: data.explanation,
-        });
+        const { error: insertError } = await supabase
+          .from("question_help")
+          .insert({
+            lesson_id: lessonId,
+            question_index: questionIndex,
+            explanation: data.explanation,
+            user_id: user.id,
+          });
+
+        if (insertError) throw insertError;
 
         return data.explanation;
       } finally {
         setIsGettingHelp(false);
       }
     },
-    enabled: isHelpOpen, // Only fetch when dialog is opened
+    enabled: isHelpOpen && !!user, // Only fetch when dialog is opened and user is authenticated
   });
 
   const handleAnswerChange = (value: string | string[]) => {

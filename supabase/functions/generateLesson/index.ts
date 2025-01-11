@@ -67,7 +67,6 @@ serve(async (req) => {
         difficultyLevel,
       });
 
-      // If this is a retry, adjust difficulty level down one notch
       const adjustedDifficultyLevel = isRetry ? 
         getDifficultyLevel(Math.max(1, proficiencyLevel - 2)) : 
         difficultyLevel;
@@ -117,7 +116,7 @@ serve(async (req) => {
           throw new Error(`Expected 5 questions, but got ${questions.length}`);
         }
 
-        // Validate each question
+        // Enhanced validation for each question
         questions.forEach((q, index) => {
           if (!q || typeof q !== 'object') {
             throw new Error(`Question ${index + 1} is not a valid object`);
@@ -136,7 +135,7 @@ serve(async (req) => {
             throw new Error(`Question ${index + 1} has an invalid type: ${q.type}`);
           }
 
-          // Type-specific validation
+          // Type-specific validation with detailed error messages
           switch (q.type) {
             case 'multiple-choice':
             case 'dropdown':
@@ -144,7 +143,7 @@ serve(async (req) => {
                 throw new Error(`Question ${index + 1} needs at least 2 options`);
               }
               if (!q.answer || !q.options.includes(q.answer)) {
-                throw new Error(`Question ${index + 1}'s answer must be one of the options`);
+                throw new Error(`Question ${index + 1}'s answer (${q.answer}) must be one of the options: ${q.options.join(', ')}`);
               }
               break;
 
@@ -155,20 +154,19 @@ serve(async (req) => {
               if (!Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) {
                 throw new Error(`Question ${index + 1} needs at least one correct answer`);
               }
-              if (!q.correctAnswers.every(answer => q.options.includes(answer))) {
-                throw new Error(`Question ${index + 1}'s correct answers must all be in the options`);
+              const invalidAnswers = q.correctAnswers.filter(answer => !q.options.includes(answer));
+              if (invalidAnswers.length > 0) {
+                throw new Error(`Question ${index + 1}'s correct answers (${invalidAnswers.join(', ')}) must all be in the options: ${q.options.join(', ')}`);
               }
               break;
 
             case 'true-false':
-              // Convert answer to lowercase string for consistent validation
               if (typeof q.answer === 'boolean') {
                 q.answer = q.answer.toString();
               }
               q.answer = q.answer.toLowerCase();
-              
               if (q.answer !== 'true' && q.answer !== 'false') {
-                throw new Error(`Question ${index + 1}'s answer must be 'true' or 'false'`);
+                throw new Error(`Question ${index + 1}'s answer must be 'true' or 'false', got: ${q.answer}`);
               }
               break;
 

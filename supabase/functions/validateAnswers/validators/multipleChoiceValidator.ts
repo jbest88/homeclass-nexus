@@ -17,60 +17,51 @@ export const validateMultipleChoice = (
   const normalizedUserAnswer = normalizeText(userAnswer);
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
 
-  // Direct string comparison for exact matches
-  if (normalizedUserAnswer === normalizedCorrectAnswer) {
-    return {
-      isCorrect: true,
-      explanation: `Correct! "${userAnswer}" is the right answer.`
-    };
-  }
+  let isCorrect = false;
+  let explanation = '';
 
-  // Handle math-specific questions
   if (isMathQuestion(question)) {
     if (isNumberComparisonQuestion(question)) {
       const userNum = wordToNumber(normalizedUserAnswer);
       const correctNum = wordToNumber(normalizedCorrectAnswer);
-      const isCorrect = userNum !== null && correctNum !== null && userNum === correctNum;
-      
-      return {
-        isCorrect,
-        explanation: isCorrect 
-          ? `Correct! "${userAnswer}" is the right answer.`
-          : `Your answer "${userAnswer}" is incorrect. The correct answer is "${correctAnswer}".`
-      };
+      isCorrect = userNum !== null && correctNum !== null && userNum === correctNum;
+      if (!isCorrect) {
+        explanation = `Your answer "${userAnswer}" is incorrect. The question asked about ${question.toLowerCase()}. The correct answer is "${correctAnswer}" because ${correctNum} is the value that satisfies the comparison.`;
+      }
     } else {
       const userValue = evaluateExponentExpression(normalizedUserAnswer);
       const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
-      const isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
-                Math.abs(userValue - correctValue) < 0.0001;
-      
-      return {
-        isCorrect,
-        explanation: isCorrect
-          ? `Correct! "${userAnswer}" is the right answer.`
-          : `Your calculation "${userAnswer}" is incorrect. The correct answer is "${correctAnswer}".`
-      };
+      isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
+                  Math.abs(userValue - correctValue) < 0.0001;
+      if (!isCorrect) {
+        explanation = `Your calculation "${userAnswer}" resulted in ${userValue}, but the correct answer "${correctAnswer}" equals ${correctValue}. Make sure to follow the order of operations.`;
+      }
+    }
+  } else {
+    const userNum = parseInt(normalizedUserAnswer);
+    const correctNum = parseInt(normalizedCorrectAnswer);
+    
+    if (!isNaN(userNum) && !isNaN(correctNum)) {
+      isCorrect = userNum === correctNum;
+      if (!isCorrect) {
+        explanation = `You selected "${userAnswer}" which is not correct. The answer "${correctAnswer}" is correct because ${normalizedCorrectAnswer.includes('explanation:') ? 
+          normalizedCorrectAnswer.split('explanation:')[1].trim() : 'it matches the concept discussed in the lesson'}.`;
+      }
+    } else {
+      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+      if (!isCorrect) {
+        explanation = `You selected "${userAnswer}" which is incorrect. The correct answer is "${correctAnswer}". This is because ${
+          question.toLowerCase().includes('what') ? 'it directly answers what was asked in the question' :
+          question.toLowerCase().includes('why') ? 'it provides the correct reasoning based on the lesson content' :
+          question.toLowerCase().includes('how') ? 'it describes the correct process or method' :
+          'it aligns with the information provided in the lesson'
+        }.`;
+      }
     }
   }
 
-  // For questions about uses or purposes
-  if (question.toLowerCase().includes('use') || question.toLowerCase().includes('purpose')) {
-    const explanations: Record<string, string> = {
-      'numbers': 'Numbers are essential for counting, measuring, and performing calculations.',
-      'shapes': 'Shapes help us understand and describe geometric forms and patterns.',
-      'patterns': 'Patterns help us recognize and predict sequences and relationships.',
-      'letters': 'Letters are used for writing and representing sounds in language.'
-    };
-
-    return {
-      isCorrect: false,
-      explanation: `Your answer "${userAnswer}" is incorrect. The correct answer is "${correctAnswer}". ${explanations[normalizedCorrectAnswer.toLowerCase()] || ''}`
-    };
-  }
-
-  // Default case for other types of questions
   return {
-    isCorrect: false,
-    explanation: `Your answer "${userAnswer}" is incorrect. The correct answer is "${correctAnswer}".`
+    isCorrect,
+    explanation: isCorrect ? 'Correct!' : explanation
   };
 };

@@ -6,14 +6,8 @@ import { corsHeaders, getDifficultyLevel, getGradeLevelText, fetchUserProfile, f
 import { generateLesson } from './services/lessonService.ts';
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Max-Age': '86400',
-      } 
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -39,58 +33,26 @@ serve(async (req) => {
       requestBody = await req.json() as LessonRequest;
     } catch (error) {
       console.error('Failed to parse request body:', error);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid request body',
-          details: error.message 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('Invalid request body');
     }
 
     const { subject, userId, isRetry } = requestBody;
     if (!subject || !userId) {
       console.error('Missing required fields:', { subject, userId });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing required fields: subject and userId are required',
-          details: { subject, userId }
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('Missing required fields: subject and userId are required');
     }
 
     console.log('Fetching user data for:', userId);
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-
       const [profile, proficiencyResult] = await Promise.all([
         fetchUserProfile(supabase, userId),
         fetchProficiencyLevel(supabase, userId, subject),
       ]);
 
-      clearTimeout(timeout);
-
       if (!profile || profile.grade_level === null) {
         console.error('User profile or grade level not found');
-        return new Response(
-          JSON.stringify({ 
-            error: 'User profile or grade level not found',
-            details: { userId, profile }
-          }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+        throw new Error('User profile or grade level not found');
       }
 
       const gradeLevel = profile.grade_level;
@@ -118,44 +80,13 @@ serve(async (req) => {
         isRetry
       );
 
-      return new Response(
-        JSON.stringify(response),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate'
-          }
-        }
-      );
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
 
     } catch (error) {
       console.error('Error fetching user data or generating content:', error);
-      
-      // Check if it's an abort error (timeout)
-      if (error.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Request timeout',
-            details: 'The request took too long to complete'
-          }),
-          { 
-            status: 504, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          error: error.message,
-          details: error.stack
-        }),
-        { 
-          status: error.status || 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw error;
     }
 
   } catch (error) {
@@ -165,9 +96,9 @@ serve(async (req) => {
         error: error.message,
         details: error.stack
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }

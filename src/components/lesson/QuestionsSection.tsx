@@ -16,11 +16,10 @@ interface QuestionsSectionProps {
   subject: string;
 }
 
-export const QuestionsSection = ({ questions: initialQuestions, lessonId, subject }: QuestionsSectionProps) => {
+export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSectionProps) => {
   const navigate = useNavigate();
   const user = useUser();
   const { handleGenerateLesson, isGenerating } = useGenerateLesson();
-  const [questions, setQuestions] = React.useState(initialQuestions);
 
   // Fetch previous responses for this lesson
   const { data: previousResponses } = useQuery({
@@ -76,10 +75,6 @@ export const QuestionsSection = ({ questions: initialQuestions, lessonId, subjec
       initializeAnswers(initialAnswers);
     }
   }, [previousResponses, questions, initializeAnswers]);
-
-  const handleQuestionInvalid = (index: number) => {
-    setQuestions(prev => prev.filter((_, i) => i !== index));
-  };
 
   const handleContinue = () => {
     navigate("/dashboard");
@@ -200,15 +195,7 @@ export const QuestionsSection = ({ questions: initialQuestions, lessonId, subjec
     }
   };
 
-  if (!questions.length) {
-    return (
-      <div className="mt-8 text-center">
-        <h3 className="text-lg font-semibold mb-4">No Valid Questions Available</h3>
-        <p className="text-gray-600 mb-4">All questions have been filtered out due to validation issues.</p>
-        <Button onClick={handleContinue}>Return to Dashboard</Button>
-      </div>
-    );
-  }
+  if (!questions.length) return null;
 
   return (
     <div className="mt-8">
@@ -221,7 +208,6 @@ export const QuestionsSection = ({ questions: initialQuestions, lessonId, subjec
             answerState={answers[index] || { answer: "", isSubmitted: false }}
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
             isLocked={hasAnsweredBefore}
-            onQuestionInvalid={() => handleQuestionInvalid(index)}
           />
         ))}
         {!hasAnsweredBefore && !isSubmitted ? (

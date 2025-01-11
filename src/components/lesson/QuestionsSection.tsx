@@ -9,9 +9,15 @@ interface QuestionsSectionProps {
   questions: Question[];
   lessonId: string;
   subject: string;
+  onHighlightContent: (text: string | null) => void;
 }
 
-export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSectionProps) => {
+export const QuestionsSection = ({ 
+  questions, 
+  lessonId, 
+  subject,
+  onHighlightContent 
+}: QuestionsSectionProps) => {
   const navigate = useNavigate();
   const { handleGenerateLesson, isGenerating } = useGenerateLesson();
   const {
@@ -31,10 +37,8 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
 
   const handleGenerateNewLesson = async () => {
     if (performance && performance.correctPercentage < 70) {
-      // If performance is below 70%, regenerate a lesson on the same subject
       await handleGenerateLesson(subject, true);
     } else {
-      // If performance is good, move on to a new lesson
       await handleGenerateLesson(subject);
     }
   };
@@ -51,6 +55,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
             isLocked={isSubmitted}
             subject={subject}
+            onHighlightContent={onHighlightContent}
           />
         ))}
         {!isSubmitted ? (

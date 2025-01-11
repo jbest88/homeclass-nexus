@@ -12,6 +12,7 @@ const GeneratedLesson = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [highlightedText, setHighlightedText] = useState<string | null>(null);
 
   const { data: lesson, isLoading } = useQuery({
     queryKey: ["generated-lesson", lessonId],
@@ -70,12 +71,14 @@ const GeneratedLesson = () => {
         title={lesson.title}
         subject={lesson.subject}
         content={lesson.content}
+        highlightedText={highlightedText}
       />
       {hasQuestions && (
         <QuestionsSection
           questions={questions}
           lessonId={lesson.id}
           subject={lesson.subject}
+          onHighlightContent={setHighlightedText}
         />
       )}
     </div>

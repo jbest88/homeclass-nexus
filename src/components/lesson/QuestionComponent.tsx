@@ -17,6 +17,7 @@ interface QuestionComponentProps {
   onAnswerChange: (answer: string | string[]) => void;
   isLocked?: boolean;
   subject: string;
+  onHighlightContent: (text: string | null) => void;
 }
 
 export const QuestionComponent = ({
@@ -25,6 +26,7 @@ export const QuestionComponent = ({
   onAnswerChange,
   isLocked = false,
   subject,
+  onHighlightContent,
 }: QuestionComponentProps) => {
   const [isGettingHelp, setIsGettingHelp] = useState(false);
 
@@ -42,6 +44,16 @@ export const QuestionComponent = ({
       });
 
       if (error) throw error;
+
+      // Extract key terms from the question
+      const keyTerms = question.question
+        .toLowerCase()
+        .replace(/[.,?!]/g, '')
+        .split(' ')
+        .filter(word => word.length > 4);
+
+      // Highlight relevant content
+      onHighlightContent(keyTerms[0]);
 
       toast.info("AI Tutor Help", {
         description: data.explanation,

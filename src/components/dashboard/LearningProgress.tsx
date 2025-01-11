@@ -49,6 +49,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
       id: lesson.id,
       title: lesson.title,
       completed: true,
+      created_at: lesson.created_at,
     });
 
     acc[lesson.subject].completedModules++;

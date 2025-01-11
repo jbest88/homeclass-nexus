@@ -21,6 +21,7 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
   const queryClient = useQueryClient();
   const [birthday, setBirthday] = useState<Date>();
   const [gradeLevel, setGradeLevel] = useState<number | null>(null);
+  const [gradeOverride, setGradeOverride] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [month, setMonth] = useState<string>("");
   const [day, setDay] = useState<string>("");
@@ -75,6 +76,7 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
           setYear(date.getFullYear().toString());
         }
         if (profile.grade_level !== null) setGradeLevel(profile.grade_level);
+        if (profile.grade_override !== null) setGradeOverride(profile.grade_override);
         if (profile.bio) setBio(profile.bio);
         if (profile.interests) setInterests(profile.interests as string[]);
         if (profile.skills) setSkills(profile.skills as string[]);
@@ -129,6 +131,7 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
         .from("profiles")
         .update({
           birthday: date?.toISOString().split('T')[0],
+          grade_override: gradeOverride,
           bio,
           interests,
           skills,
@@ -143,12 +146,10 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
 
       if (error) throw error;
       
-      // Invalidate the profile query to trigger a refresh
       await queryClient.invalidateQueries({ queryKey: ["profile"] });
       
       toast.success("Profile updated successfully!");
       
-      // Close the modal if onClose prop is provided
       if (onClose) {
         onClose();
       }
@@ -187,6 +188,8 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
             setLanguagePreference={setLanguagePreference}
             timezone={timezone}
             setTimezone={setTimezone}
+            gradeOverride={gradeOverride}
+            setGradeOverride={setGradeOverride}
           />
         </TabsContent>
 

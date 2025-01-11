@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface GeneralTabProps {
   month: string;
@@ -17,6 +18,8 @@ interface GeneralTabProps {
   setLanguagePreference: (value: string) => void;
   timezone: string;
   setTimezone: (value: string) => void;
+  gradeOverride: number | null;
+  setGradeOverride: (value: number | null) => void;
 }
 
 const GeneralTab = ({
@@ -33,7 +36,11 @@ const GeneralTab = ({
   setLanguagePreference,
   timezone,
   setTimezone,
+  gradeOverride,
+  setGradeOverride,
 }: GeneralTabProps) => {
+  const [useCustomGrade, setUseCustomGrade] = useState(gradeOverride !== null);
+
   // Generate arrays for the dropdowns
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: (i + 1).toString(),
@@ -50,6 +57,18 @@ const GeneralTab = ({
     value: (currentYear - i).toString(),
     label: (currentYear - i).toString()
   }));
+
+  const grades = Array.from({ length: 13 }, (_, i) => ({
+    value: i.toString(),
+    label: i === 0 ? "Kindergarten" : `Grade ${i}`
+  }));
+
+  const handleGradeOverrideToggle = (checked: boolean) => {
+    setUseCustomGrade(checked);
+    if (!checked) {
+      setGradeOverride(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -91,17 +110,42 @@ const GeneralTab = ({
         </div>
       </div>
 
-      {gradeLevel !== null && (
-        <div>
-          <Label>Current Grade Level</Label>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Grade Level</Label>
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="custom-grade" className="text-sm">Custom Grade</Label>
+            <Switch
+              id="custom-grade"
+              checked={useCustomGrade}
+              onCheckedChange={handleGradeOverrideToggle}
+            />
+          </div>
+        </div>
+        
+        {useCustomGrade ? (
+          <Select
+            value={gradeOverride?.toString() ?? ""}
+            onValueChange={(value) => setGradeOverride(parseInt(value))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select grade level" />
+            </SelectTrigger>
+            <SelectContent>
+              {grades.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
           <div className="text-lg font-semibold">
             {gradeLevel === 0 ? "Kindergarten" : `Grade ${gradeLevel}`}
+            <p className="text-sm text-muted-foreground mt-1">
+              Grade level is automatically calculated based on your birthday
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Grade level is automatically calculated based on your birthday
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="space-y-2">
         <Label>Bio</Label>

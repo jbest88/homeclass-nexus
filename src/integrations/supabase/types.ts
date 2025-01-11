@@ -169,6 +169,7 @@ export type Database = {
           city: string | null
           country: string | null
           grade_level: number | null
+          grade_override: number | null
           id: string
           interests: string[] | null
           language_preference: string | null
@@ -189,6 +190,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           grade_level?: number | null
+          grade_override?: number | null
           id: string
           interests?: string[] | null
           language_preference?: string | null
@@ -209,6 +211,7 @@ export type Database = {
           city?: string | null
           country?: string | null
           grade_level?: number | null
+          grade_override?: number | null
           id?: string
           interests?: string[] | null
           language_preference?: string | null

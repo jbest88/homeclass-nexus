@@ -1,233 +1,158 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { LessonRequest, GeneratedLesson } from './types.ts';
-import { corsHeaders, getDifficultyLevel, getGradeLevelText, fetchUserProfile, fetchProficiencyLevel, generateWithGemini } from './utils.ts';
-import { createLessonPrompt, createQuestionsPrompt } from './prompts.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createLessonPrompt, createQuestionsPrompt } from "./prompts.ts";
+import { validateQuestions } from "./utils.ts";
+import { getDifficultyLevel } from "./utils.ts";
+import { Question } from "./types.ts";
+
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || '';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('Received request to generate lesson');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { subject, userId, isRetry = false } = await req.json();
 
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) {
-      console.error('GEMINI_API_KEY is not configured');
-      throw new Error('GEMINI_API_KEY is not configured');
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Supabase configuration is missing');
-      throw new Error('Supabase configuration is missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    let requestBody;
-    try {
-      requestBody = await req.json() as LessonRequest;
-    } catch (error) {
-      console.error('Failed to parse request body:', error);
-      throw new Error('Invalid request body');
-    }
-
-    const { subject, userId, isRetry } = requestBody;
     if (!subject || !userId) {
-      console.error('Missing required fields:', { subject, userId });
-      throw new Error('Missing required fields: subject and userId are required');
+      throw new Error('Missing required parameters');
     }
 
-    console.log('Fetching user data for:', userId);
+    // Get user's profile for grade level
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('grade_level')
+      .eq('id', userId)
+      .single();
 
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      throw new Error('Failed to fetch user profile');
+    }
+
+    const gradeLevel = profile?.grade_level ?? 5; // Default to 5th grade if not set
+    const gradeLevelText = gradeLevel === 0 ? 'Kindergarten' : `Grade ${gradeLevel}`;
+
+    // Get user's proficiency level for the subject
+    const { data: proficiencyData, error: proficiencyError } = await supabase
+      .from('subject_proficiency')
+      .select('proficiency_level')
+      .eq('user_id', userId)
+      .eq('subject', subject)
+      .single();
+
+    if (proficiencyError && proficiencyError.code !== 'PGRST116') { // Ignore "not found" errors
+      console.error('Error fetching proficiency:', proficiencyError);
+      throw new Error('Failed to fetch subject proficiency');
+    }
+
+    const proficiencyLevel = proficiencyData?.proficiency_level ?? 5; // Default to level 5 if not set
+    const difficultyLevel = getDifficultyLevel(proficiencyLevel);
+
+    // Generate lesson content
+    const lessonResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: createLessonPrompt(
+              subject,
+              gradeLevelText,
+              difficultyLevel,
+              proficiencyLevel,
+            ),
+          }],
+        }],
+      }),
+    });
+
+    if (!lessonResponse.ok) {
+      console.error('Gemini API error:', await lessonResponse.text());
+      throw new Error('Failed to generate lesson content');
+    }
+
+    const lessonData = await lessonResponse.json();
+    const lessonContent = lessonData.candidates[0].content.parts[0].text;
+
+    // Generate questions
+    const questionsResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: createQuestionsPrompt(
+              lessonContent,
+              gradeLevelText,
+              difficultyLevel,
+              proficiencyLevel,
+            ),
+          }],
+        }],
+      }),
+    });
+
+    if (!questionsResponse.ok) {
+      console.error('Gemini API error:', await questionsResponse.text());
+      throw new Error('Failed to generate questions');
+    }
+
+    const questionsData = await questionsResponse.json();
+    const questionsText = questionsData.candidates[0].content.parts[0].text;
+
+    let questions: Question[];
     try {
-      const [profile, proficiencyResult] = await Promise.all([
-        fetchUserProfile(supabase, userId),
-        fetchProficiencyLevel(supabase, userId, subject),
-      ]);
+      // Parse and validate the questions
+      questions = JSON.parse(questionsText);
+      validateQuestions(questions);
 
-      if (!profile || profile.grade_level === null) {
-        console.error('User profile or grade level not found');
-        throw new Error('User profile or grade level not found');
-      }
+      // Extract title from lesson content (first line)
+      const title = lessonContent.split('\n')[0].replace(/^#\s*/, '');
 
-      const gradeLevel = profile.grade_level;
-      const proficiencyLevel = proficiencyResult.proficiency_level;
-      const gradeLevelText = getGradeLevelText(gradeLevel);
-      const difficultyLevel = getDifficultyLevel(proficiencyLevel);
-
-      console.log('User data fetched successfully:', {
-        gradeLevel,
-        proficiencyLevel,
-        gradeLevelText,
-        difficultyLevel,
-      });
-
-      const adjustedDifficultyLevel = isRetry ? 
-        getDifficultyLevel(Math.max(1, proficiencyLevel - 2)) : 
-        difficultyLevel;
-
-      console.log('Generating lesson content with difficulty:', adjustedDifficultyLevel);
-      const lessonPrompt = createLessonPrompt(
-        subject, 
-        gradeLevelText, 
-        adjustedDifficultyLevel, 
-        isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel
+      return new Response(
+        JSON.stringify({
+          title,
+          content: lessonContent,
+          questions,
+        }),
+        { 
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        },
       );
-      const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
-
-      console.log('Generating questions');
-      const questionsPrompt = createQuestionsPrompt(
-        lessonContent, 
-        gradeLevelText, 
-        adjustedDifficultyLevel, 
-        isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel
-      );
-      const questionsText = await generateWithGemini(geminiApiKey, questionsPrompt);
-
-      let questions;
-      try {
-        console.log('Raw questions text:', questionsText);
-        
-        const cleanedQuestionsText = questionsText
-          .replace(/```json\n|\n```/g, '')
-          .replace(/^[\s\n]*\[/, '[')
-          .replace(/\][\s\n]*$/, ']')
-          .trim();
-        
-        console.log('Cleaned questions text:', cleanedQuestionsText);
-        
-        try {
-          questions = JSON.parse(cleanedQuestionsText);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          throw new Error(`Failed to parse questions JSON: ${parseError.message}`);
-        }
-
-        if (!Array.isArray(questions)) {
-          throw new Error('Generated questions must be an array');
-        }
-
-        if (questions.length !== 5) {
-          throw new Error(`Expected 5 questions, but got ${questions.length}`);
-        }
-
-        // Validate each question
-        questions.forEach((q, index) => {
-          if (!q || typeof q !== 'object') {
-            throw new Error(`Question ${index + 1} is not a valid object`);
-          }
-
-          if (!q.question || typeof q.question !== 'string') {
-            throw new Error(`Question ${index + 1} is missing a valid question text`);
-          }
-
-          if (!q.type || typeof q.type !== 'string') {
-            throw new Error(`Question ${index + 1} is missing a valid type`);
-          }
-
-          const validTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown', 'text'];
-          if (!validTypes.includes(q.type)) {
-            throw new Error(`Question ${index + 1} has an invalid type: ${q.type}`);
-          }
-
-          // Type-specific validation
-          switch (q.type) {
-            case 'multiple-choice':
-            case 'dropdown':
-              if (!Array.isArray(q.options) || q.options.length < 2) {
-                throw new Error(`Question ${index + 1} needs at least 2 options`);
-              }
-              if (!q.answer || typeof q.answer !== 'string') {
-                throw new Error(`Question ${index + 1} is missing a valid answer`);
-              }
-              if (!q.options.includes(q.answer)) {
-                console.error('Question options:', q.options);
-                console.error('Question answer:', q.answer);
-                throw new Error(`Question ${index + 1}'s answer must be one of the options`);
-              }
-              break;
-
-            case 'multiple-answer':
-              if (!Array.isArray(q.options) || q.options.length < 2) {
-                throw new Error(`Question ${index + 1} needs at least 2 options`);
-              }
-              if (!Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) {
-                throw new Error(`Question ${index + 1} needs at least one correct answer`);
-              }
-              const invalidAnswers = q.correctAnswers.filter(answer => !q.options.includes(answer));
-              if (invalidAnswers.length > 0) {
-                console.error('Question options:', q.options);
-                console.error('Question correct answers:', q.correctAnswers);
-                throw new Error(`Question ${index + 1}'s correct answers must all be in the options. Invalid answers: ${invalidAnswers.join(', ')}`);
-              }
-              break;
-
-            case 'true-false':
-              if (typeof q.answer !== 'string' || !['true', 'false'].includes(q.answer.toLowerCase())) {
-                throw new Error(`Question ${index + 1}'s answer must be 'true' or 'false'`);
-              }
-              q.answer = q.answer.toLowerCase();
-              break;
-
-            case 'text':
-              if (!q.answer || typeof q.answer !== 'string') {
-                throw new Error(`Question ${index + 1} must have a valid text answer`);
-              }
-              break;
-          }
-        });
-
-        // Ensure we have at least one of each required type
-        const types = questions.map(q => q.type);
-        const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown'];
-        const missingTypes = requiredTypes.filter(type => !types.includes(type));
-        
-        if (missingTypes.length > 0) {
-          throw new Error(`Missing required question types: ${missingTypes.join(', ')}`);
-        }
-
-      } catch (error) {
-        console.error('Error validating questions:', error);
-        console.log('Questions array:', questions);
-        throw new Error(`Question validation failed: ${error.message}`);
-      }
-
-      const title = lessonContent.split('\n')[0].replace('#', '').trim();
-      const content = lessonContent.split('\n').slice(1).join('\n').trim();
-
-      console.log('Successfully generated lesson');
-
-      const response: GeneratedLesson = {
-        title,
-        content,
-        questions,
-      };
-
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-
     } catch (error) {
-      console.error('Error fetching user data or generating content:', error);
+      console.error('Error processing questions:', error);
       throw error;
     }
-
   } catch (error) {
-    console.error('Error in generateLesson function:', error);
+    console.error('Error in generateLesson:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: error.stack
+        details: error.toString(),
       }),
-      {
+      { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      },
     );
   }
 });

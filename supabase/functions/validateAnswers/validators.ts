@@ -4,13 +4,42 @@ import { normalizeText, isAllOfTheAbove, evaluateExponentExpression, isMathQuest
 // Validate true-false questions
 export const validateTrueFalse = (
   userAnswer: string,
-  correctAnswer: string
+  correctAnswer: string,
+  question: string
 ): ValidationResult => {
   const normalizedUserAnswer = normalizeText(userAnswer);
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
   
-  const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+  // Handle numerical comparison questions
+  if (question.includes('greater than') || question.includes('less than') || question.includes('equal to')) {
+    // Extract numbers from the question
+    const numbers = question.match(/[\d,]+/g)?.map(num => Number(num.replace(/,/g, '')));
+    
+    if (numbers && numbers.length >= 2) {
+      const firstNumber = numbers[0];
+      const secondNumber = numbers[1];
+      
+      let calculatedAnswer;
+      if (question.includes('greater than')) {
+        calculatedAnswer = (firstNumber > secondNumber).toString();
+      } else if (question.includes('less than')) {
+        calculatedAnswer = (firstNumber < secondNumber).toString();
+      } else {
+        calculatedAnswer = (firstNumber === secondNumber).toString();
+      }
+      
+      const isCorrect = normalizedUserAnswer === calculatedAnswer;
+      return {
+        isCorrect,
+        explanation: isCorrect 
+          ? 'Correct!' 
+          : `Incorrect. The correct answer is: ${calculatedAnswer}`
+      };
+    }
+  }
   
+  // Default true/false validation for non-numerical questions
+  const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
   return {
     isCorrect,
     explanation: isCorrect 

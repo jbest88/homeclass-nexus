@@ -71,6 +71,7 @@ export const validateMultipleChoice = (
     };
   }
 
+  // Normalize both answers by trimming whitespace and converting to lowercase
   const normalizedUserAnswer = normalizeText(userAnswer);
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
 
@@ -79,22 +80,9 @@ export const validateMultipleChoice = (
 
   if (isMathQuestion(question)) {
     if (isNumberComparisonQuestion(question)) {
-      // Extract the comparison number from the question
-      const comparisonMatch = question.match(/(?:greater than|less than|equal to)\s+(\d+)/i);
-      if (comparisonMatch) {
-        const comparisonNumber = parseInt(comparisonMatch[1]);
-        const userNum = parseInt(normalizedUserAnswer);
-        
-        if (!isNaN(userNum) && !isNaN(comparisonNumber)) {
-          if (question.toLowerCase().includes('greater than')) {
-            isCorrect = userNum > comparisonNumber;
-          } else if (question.toLowerCase().includes('less than')) {
-            isCorrect = userNum < comparisonNumber;
-          } else {
-            isCorrect = userNum === comparisonNumber;
-          }
-        }
-      }
+      const userNum = wordToNumber(normalizedUserAnswer);
+      const correctNum = wordToNumber(normalizedCorrectAnswer);
+      isCorrect = userNum !== null && correctNum !== null && userNum === correctNum;
     } else {
       const userValue = evaluateExponentExpression(normalizedUserAnswer);
       const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
@@ -102,28 +90,18 @@ export const validateMultipleChoice = (
                   Math.abs(userValue - correctValue) < 0.0001;
     }
   } else {
-    // For basic numerical fact questions, convert string numbers to actual numbers
-    const userNum = parseInt(normalizedUserAnswer);
-    const correctNum = parseInt(normalizedCorrectAnswer);
-    
-    if (!isNaN(userNum) && !isNaN(correctNum)) {
-      isCorrect = userNum === correctNum;
-      if (!isCorrect) {
-        explanation = `The correct answer is: ${correctNum}. ${normalizedCorrectAnswer.includes('explanation:') ? 
-          normalizedCorrectAnswer.split('explanation:')[1].trim() : ''}`;
-      }
-    } else {
-      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-    }
+    // For non-math questions, do a direct string comparison after normalization
+    isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
   }
 
   return {
     isCorrect,
-    explanation: isCorrect ? 'Correct!' : (explanation || `Incorrect. The correct answer is: ${correctAnswer}`)
+    explanation: isCorrect 
+      ? 'Correct!' 
+      : `Incorrect. The correct answer is: ${correctAnswer}`
   };
 };
 
-// Validate multiple answer questions
 export const validateMultipleAnswer = (
   userAnswers: string[],
   correctAnswers: string[],

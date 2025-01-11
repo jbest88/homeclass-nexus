@@ -6,6 +6,7 @@ import { corsHeaders, getDifficultyLevel, getGradeLevelText, fetchUserProfile, f
 import { generateLesson } from './services/lessonService.ts';
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -33,13 +34,25 @@ serve(async (req) => {
       requestBody = await req.json() as LessonRequest;
     } catch (error) {
       console.error('Failed to parse request body:', error);
-      throw new Error('Invalid request body');
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const { subject, userId, isRetry } = requestBody;
     if (!subject || !userId) {
       console.error('Missing required fields:', { subject, userId });
-      throw new Error('Missing required fields: subject and userId are required');
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: subject and userId are required' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Fetching user data for:', userId);
@@ -52,7 +65,13 @@ serve(async (req) => {
 
       if (!profile || profile.grade_level === null) {
         console.error('User profile or grade level not found');
-        throw new Error('User profile or grade level not found');
+        return new Response(
+          JSON.stringify({ error: 'User profile or grade level not found' }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
 
       const gradeLevel = profile.grade_level;
@@ -80,13 +99,25 @@ serve(async (req) => {
         isRetry
       );
 
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify(response),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
 
     } catch (error) {
       console.error('Error fetching user data or generating content:', error);
-      throw error;
+      return new Response(
+        JSON.stringify({ 
+          error: error.message,
+          details: error.stack
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
   } catch (error) {
@@ -96,9 +127,9 @@ serve(async (req) => {
         error: error.message,
         details: error.stack
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

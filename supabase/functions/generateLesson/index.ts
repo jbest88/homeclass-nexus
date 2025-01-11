@@ -67,7 +67,6 @@ serve(async (req) => {
         difficultyLevel,
       });
 
-      // If this is a retry, adjust difficulty level down one notch
       const adjustedDifficultyLevel = isRetry ? 
         getDifficultyLevel(Math.max(1, proficiencyLevel - 2)) : 
         difficultyLevel;
@@ -143,7 +142,12 @@ serve(async (req) => {
               if (!Array.isArray(q.options) || q.options.length < 2) {
                 throw new Error(`Question ${index + 1} needs at least 2 options`);
               }
-              if (!q.answer || !q.options.includes(q.answer)) {
+              if (!q.answer || typeof q.answer !== 'string') {
+                throw new Error(`Question ${index + 1} is missing a valid answer`);
+              }
+              if (!q.options.includes(q.answer)) {
+                console.error('Question options:', q.options);
+                console.error('Question answer:', q.answer);
                 throw new Error(`Question ${index + 1}'s answer must be one of the options`);
               }
               break;
@@ -155,21 +159,19 @@ serve(async (req) => {
               if (!Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) {
                 throw new Error(`Question ${index + 1} needs at least one correct answer`);
               }
-              if (!q.correctAnswers.every(answer => q.options.includes(answer))) {
-                throw new Error(`Question ${index + 1}'s correct answers must all be in the options`);
+              const invalidAnswers = q.correctAnswers.filter(answer => !q.options.includes(answer));
+              if (invalidAnswers.length > 0) {
+                console.error('Question options:', q.options);
+                console.error('Question correct answers:', q.correctAnswers);
+                throw new Error(`Question ${index + 1}'s correct answers must all be in the options. Invalid answers: ${invalidAnswers.join(', ')}`);
               }
               break;
 
             case 'true-false':
-              // Convert answer to lowercase string for consistent validation
-              if (typeof q.answer === 'boolean') {
-                q.answer = q.answer.toString();
-              }
-              q.answer = q.answer.toLowerCase();
-              
-              if (q.answer !== 'true' && q.answer !== 'false') {
+              if (typeof q.answer !== 'string' || !['true', 'false'].includes(q.answer.toLowerCase())) {
                 throw new Error(`Question ${index + 1}'s answer must be 'true' or 'false'`);
               }
+              q.answer = q.answer.toLowerCase();
               break;
 
             case 'text':

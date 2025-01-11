@@ -1,10 +1,17 @@
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useState } from "react";
+import { LearningPath } from "@/types/learning-path";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface SubjectProgressProps {
   subject: string;
@@ -16,6 +23,7 @@ interface SubjectProgressProps {
     completed: boolean;
     created_at: string;
   }>;
+  learningPaths: LearningPath[];
   isGenerating: boolean;
   onLessonDeleted: () => void;
 }
@@ -25,10 +33,12 @@ const SubjectProgress = ({
   totalModules,
   completedModules,
   modules,
+  learningPaths,
   isGenerating,
   onLessonDeleted,
 }: SubjectProgressProps) => {
   const navigate = useNavigate();
+  const [openPaths, setOpenPaths] = useState<Record<string, boolean>>({});
 
   const handleDelete = async (lessonId: string) => {
     try {
@@ -59,11 +69,17 @@ const SubjectProgress = ({
     const lessonDate = new Date(date);
     const month = lessonDate.getMonth();
     
-    // Academic periods based on typical school year
     if (month >= 8 && month <= 10) return "Fall Semester";
     if (month >= 11 || month <= 1) return "Winter Term";
     if (month >= 2 && month <= 4) return "Spring Semester";
     return "Summer Term";
+  };
+
+  const togglePath = (pathId: string) => {
+    setOpenPaths(prev => ({
+      ...prev,
+      [pathId]: !prev[pathId]
+    }));
   };
 
   return (
@@ -75,6 +91,59 @@ const SubjectProgress = ({
         </span>
       </div>
       <Progress value={progressPercentage} className="mb-4" />
+      
+      {/* Learning Paths */}
+      {learningPaths.map((path) => (
+        <Collapsible
+          key={path.id}
+          open={openPaths[path.id]}
+          onOpenChange={() => togglePath(path.id)}
+          className="mb-4"
+        >
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-2 hover:bg-accent">
+            <span className="font-medium">
+              Learning Path - {format(new Date(path.created_at), 'MMM d, yyyy')}
+            </span>
+            {openPaths[path.id] ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-2">
+            {path.lessons?.map((lesson) => (
+              <div
+                key={lesson.id}
+                className="flex items-center justify-between rounded-lg border p-2 ml-4"
+              >
+                <div className="flex-1">
+                  <div 
+                    className="cursor-pointer hover:text-primary"
+                    onClick={() => navigate(`/generated-lesson/${lesson.lesson_id}`)}
+                  >
+                    {cleanTitle(lesson.title)}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    <span className="font-medium">
+                      {getCurriculumPeriod(lesson.created_at)}
+                    </span> • {format(new Date(lesson.created_at), 'MMM d, yyyy h:mm a')}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(lesson.lesson_id)}
+                  disabled={isGenerating}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      ))}
+
+      {/* Individual Lessons */}
       <div className="space-y-2">
         {modules.map((module) => (
           <div

@@ -26,6 +26,8 @@ export const QuestionComponent = ({
   const [isValidating, setIsValidating] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [validatedQuestion, setValidatedQuestion] = useState<Question | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   useEffect(() => {
     const validateQuestion = async () => {
@@ -45,6 +47,35 @@ export const QuestionComponent = ({
 
         if (!isValid) {
           console.error("Question validation failed:", explanation);
+          
+          // If we haven't exceeded max retries, generate a new question
+          if (retryCount < MAX_RETRIES) {
+            setRetryCount(prev => prev + 1);
+            try {
+              const newQuestionResponse = await supabase.functions.invoke("generateLesson", {
+                body: {
+                  subject: "math", // You might want to pass this as a prop
+                  userId: (await supabase.auth.getUser()).data.user?.id,
+                  isRetry: true,
+                  singleQuestion: true,
+                  questionType: question.type
+                },
+              });
+
+              if (newQuestionResponse.error) throw newQuestionResponse.error;
+              
+              const newQuestion = newQuestionResponse.data.questions[0];
+              if (newQuestion) {
+                setValidatedQuestion(newQuestion);
+                setValidationError(null);
+                setIsValidating(false);
+                return;
+              }
+            } catch (error) {
+              console.error("Error generating new question:", error);
+            }
+          }
+          
           setValidationError(explanation);
           toast.error("This question needs review by your teacher");
         } else {
@@ -60,7 +91,7 @@ export const QuestionComponent = ({
     };
 
     validateQuestion();
-  }, [question]);
+  }, [question, retryCount]);
 
   const handleAnswerChange = (value: string | string[]) => {
     if (!isLocked) {
@@ -81,7 +112,7 @@ export const QuestionComponent = ({
     );
   }
 
-  if (validationError) {
+  if (validationError && retryCount >= MAX_RETRIES) {
     return (
       <Card>
         <CardHeader>
@@ -89,6 +120,10 @@ export const QuestionComponent = ({
         </CardHeader>
         <CardContent>
           <p>{validationError}</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Unable to generate a valid question after {MAX_RETRIES} attempts.
+            Please try again later or contact support.
+          </p>
         </CardContent>
       </Card>
     );

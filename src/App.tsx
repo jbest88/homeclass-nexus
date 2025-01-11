@@ -16,21 +16,34 @@ const queryClient = new QueryClient();
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
+      setIsLoading(false);
     });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <SessionContextProvider supabaseClient={supabase}>
+        <SessionContextProvider supabaseClient={supabase} initialSession={null}>
           <TooltipProvider>
             <Toaster />
             <Sonner />

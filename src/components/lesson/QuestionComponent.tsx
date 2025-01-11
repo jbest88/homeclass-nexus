@@ -65,6 +65,19 @@ export const QuestionComponent = ({
     return contextPatterns.some(pattern => pattern.test(questionText));
   };
 
+  const getShapeExplanation = (shape: string): string => {
+    const shapeExplanations: Record<string, string> = {
+      'circle': 'A circle has no sides - it is a curved line where every point is the same distance from the center.',
+      'square': 'A square has 4 equal sides and 4 right angles.',
+      'triangle': 'A triangle has 3 sides.',
+      'rectangle': 'A rectangle has 4 sides with opposite sides being equal.',
+      'pentagon': 'A pentagon has 5 sides.',
+      'hexagon': 'A hexagon has 6 sides.',
+      'octagon': 'An octagon has 8 sides.',
+    };
+    return shapeExplanations[shape.toLowerCase()] || '';
+  };
+
   const getExplanation = () => {
     if (!answerState.isSubmitted || answerState.isCorrect) {
       return answerState.explanation;
@@ -92,7 +105,6 @@ export const QuestionComponent = ({
           question.question.toLowerCase().includes('less than') ||
           question.question.toLowerCase().includes('equal to')) {
         
-        // Extract numbers from the question
         const numbers = question.question.match(/['"](\w+)['"]|(\d+)/g)
           ?.map(n => n.replace(/['"]/g, ''))
           .filter(Boolean) || [];
@@ -133,7 +145,6 @@ export const QuestionComponent = ({
         }
       }
       
-      // For other true/false questions, provide a standard explanation
       return `You answered "${userAnswer}". The correct answer is "${correctAnswer}". ${answerState.explanation || ''}`;
     }
 
@@ -146,15 +157,50 @@ export const QuestionComponent = ({
       
       let explanation = '';
       
-      if (missed.length > 0) {
-        explanation += `You missed these correct options: ${missed.join(', ')}. `;
+      // Special handling for questions about using numbers
+      if (question.question.toLowerCase().includes('use numbers') || 
+          question.question.toLowerCase().includes('we use numbers')) {
+        explanation = `Let's understand how we use numbers:\n\n`;
+        correctAnswers.forEach(answer => {
+          explanation += `✓ ${answer}: `;
+          switch(answer.toLowerCase()) {
+            case 'tell time':
+              explanation += 'Numbers help us read clocks and schedules\n';
+              break;
+            case 'count things':
+              explanation += 'Numbers let us know how many items we have\n';
+              break;
+            case 'measure things':
+              explanation += 'Numbers help us understand length, weight, and volume\n';
+              break;
+            default:
+              explanation += '\n';
+          }
+        });
+        
+        if (incorrect.length > 0) {
+          explanation += `\nYou selected "${incorrect.join(', ')}" which ${incorrect.length > 1 ? 'are' : 'is'} not a primary use of numbers in this context.`;
+        }
+      } else if (question.question.toLowerCase().includes('shape') && 
+                 (question.question.toLowerCase().includes('sides') || 
+                  question.question.toLowerCase().includes('angles'))) {
+        explanation = `Let's understand the shapes:\n\n`;
+        if (question.answer) {
+          explanation += getShapeExplanation(question.answer as string) + '\n\n';
+        }
+        explanation += `You selected "${userAnswers.join(', ')}" but the correct answer is different because:\n`;
+        userAnswers.forEach(answer => {
+          explanation += `- ${answer}: ${getShapeExplanation(answer)}\n`;
+        });
+      } else {
+        if (missed.length > 0) {
+          explanation += `You missed these correct options: ${missed.join(', ')}. `;
+        }
+        if (incorrect.length > 0) {
+          explanation += `You incorrectly selected: ${incorrect.join(', ')}. `;
+        }
+        explanation += `\n\nThe correct answers are: ${correctAnswers.join(', ')}. `;
       }
-      
-      if (incorrect.length > 0) {
-        explanation += `You incorrectly selected: ${incorrect.join(', ')}. `;
-      }
-      
-      explanation += `\n\nThe correct answers are: ${correctAnswers.join(', ')}. `;
       
       if (answerState.explanation) {
         explanation += `\n\n${answerState.explanation}`;
@@ -163,12 +209,22 @@ export const QuestionComponent = ({
       return explanation;
     }
 
-    // For multiple choice questions, provide a clearer explanation
-    if (question.type === 'multiple-choice') {
-      return `The correct answer is "${question.answer}". ${answerState.explanation || ''}`;
+    // For multiple choice questions about shapes
+    if (question.type === 'multiple-choice' && 
+        question.question.toLowerCase().includes('shape')) {
+      let explanation = `The correct answer is "${question.answer}". Here's why:\n\n`;
+      explanation += getShapeExplanation(question.answer);
+      
+      // Add explanation for the chosen incorrect answer
+      if (answerState.answer) {
+        explanation += `\n\nYou chose "${answerState.answer}": ${getShapeExplanation(answerState.answer as string)}`;
+      }
+      
+      return explanation;
     }
 
-    return answerState.explanation;
+    // For other multiple choice questions
+    return `The correct answer is "${question.answer}". ${answerState.explanation || ''}`;
   };
 
   return (

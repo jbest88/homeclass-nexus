@@ -10,9 +10,15 @@ import PrivacyTab from "./tabs/PrivacyTab";
 import NotificationsTab from "./tabs/NotificationsTab";
 import SecurityTab from "./tabs/SecurityTab";
 import { NotificationPreferences, PrivacySettings, SocialLinks } from "./types";
+import { useQueryClient } from "@tanstack/react-query";
 
-const ProfileSettings = () => {
+interface ProfileSettingsProps {
+  onClose?: () => void;
+}
+
+const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
   const user = useUser();
+  const queryClient = useQueryClient();
   const [birthday, setBirthday] = useState<Date>();
   const [gradeLevel, setGradeLevel] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +142,16 @@ const ProfileSettings = () => {
         .eq("id", user.id);
 
       if (error) throw error;
+      
+      // Invalidate the profile query to trigger a refresh
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+      
       toast.success("Profile updated successfully!");
+      
+      // Close the modal if onClose prop is provided
+      if (onClose) {
+        onClose();
+      }
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Failed to update profile");

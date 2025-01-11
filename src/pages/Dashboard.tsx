@@ -152,7 +152,7 @@ const Dashboard = () => {
               <DialogHeader>
                 <DialogTitle>Profile Settings</DialogTitle>
               </DialogHeader>
-              <ProfileSettings />
+              <ProfileSettings onClose={() => setIsProfileOpen(false)} />
             </DialogContent>
           </Dialog>
 

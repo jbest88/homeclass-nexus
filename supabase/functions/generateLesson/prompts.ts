@@ -27,7 +27,13 @@ export const createQuestionsPrompt = (
 ): string => {
   return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions that will help a ${gradeLevelText} student check their understanding. The questions should be at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
-    IMPORTANT: The questions MUST be appropriate for ${gradeLevelText} students. Do not include concepts or vocabulary that are too advanced.
+    IMPORTANT RULES:
+    1. The questions MUST be appropriate for ${gradeLevelText} students.
+    2. EVERY question must be directly related to the content in the lesson.
+    3. The correct answer MUST be one of the provided options.
+    4. Each option must be a complete, clear phrase or statement.
+    5. Do not reference any visual elements unless they are explicitly provided.
+    6. Keep options concise and clear - ideally 1-5 words each.
 
     CRITICAL: You MUST include EXACTLY ONE of each of these question types:
     1. Multiple choice question (2 questions)
@@ -35,42 +41,35 @@ export const createQuestionsPrompt = (
     3. True/False question (1 question)
     4. Dropdown question (1 question)
 
-    DO NOT include any text/open-ended questions. All questions must have predefined answer choices.
+    For EVERY question:
+    - Make sure the correct answer exactly matches one of the options
+    - Keep options simple and straightforward
+    - Avoid ambiguous or tricky wording
+    - Do not reference images or diagrams
+    - Ensure all options are relevant to the question
 
-    IMPORTANT VALIDATION RULES:
-    1. For math questions:
-       - All numerical answers must be exact and unambiguous
-       - If using multiple choice, ensure only ONE answer is mathematically correct
-       - Include units where applicable (e.g., cm, kg)
-       - For word problems, ensure all necessary information is provided
-       - Use age-appropriate numbers and concepts
-    
-    2. For all questions:
-       - Double-check that the correct answer is included in the options
-       - Ensure options don't contain duplicate values
-       - Make sure questions are grade-appropriate
-       - Verify that questions test understanding, not just memorization
-       - NEVER use open-ended or text input questions
+    For multiple choice and dropdown questions:
+    - Provide 3-4 distinct, clear options
+    - Make sure the correct answer is exactly one of these options
+    - Keep options similar in length and style
 
-    Make the questions:
-    - Clear and straightforward for ${gradeLevelText} students
-    - Directly related to the main concepts covered
-    - Encouraging and supportive in tone
-    - Focused on understanding rather than memorization
+    For multiple answer questions:
+    - Include 2-3 correct answers from the options
+    - Make it clear multiple answers should be selected
+    - Use "Select all that apply" in the question text
 
-    For the multiple answer question:
-    - Include at least 2-4 correct answers
-    - Make it clear that multiple answers should be selected
-    - Use phrases like "Select all that apply" or "Choose all correct answers"
+    For true/false questions:
+    - Make the statement clear and unambiguous
+    - Base it directly on information from the lesson
 
-    Return ONLY a JSON array with these structures:
+    Return ONLY a JSON array with these exact structures:
 
     Multiple choice:
     {
       "question": "What is...?",
       "type": "multiple-choice",
       "options": ["option1", "option2", "option3", "option4"],
-      "answer": "correct option"
+      "answer": "option1"
     }
 
     Multiple answer:
@@ -78,7 +77,7 @@ export const createQuestionsPrompt = (
       "question": "Select all that apply...",
       "type": "multiple-answer",
       "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswers": ["correct1", "correct2"]
+      "correctAnswers": ["option1", "option2"]
     }
 
     True/False:
@@ -93,7 +92,7 @@ export const createQuestionsPrompt = (
       "question": "Choose the correct...?",
       "type": "dropdown",
       "options": ["option1", "option2", "option3", "option4"],
-      "answer": "correct option"
+      "answer": "option1"
     }
 
     Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;

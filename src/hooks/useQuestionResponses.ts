@@ -13,15 +13,24 @@ interface Performance {
   correctAnswers: number;
 }
 
-export const useQuestionResponses = (lessonId: string, subject: string) => {
+export const useQuestionResponses = (lessonId: string, subject: string, isPreAnswered: boolean = false) => {
   const [answers, setAnswers] = useState<Record<number, AnswerState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(isPreAnswered);
   const [performance, setPerformance] = useState<Performance | null>(null);
   const user = useUser();
   const { updateProficiencyMutation } = useProficiency();
   const queryClient = useQueryClient();
   const { validateAnswer } = useAnswerValidation();
+
+  const initializeAnswers = (initialAnswers: AnswerState[]) => {
+    const answersRecord: Record<number, AnswerState> = {};
+    initialAnswers.forEach((answer, index) => {
+      answersRecord[index] = answer;
+    });
+    setAnswers(answersRecord);
+    setIsSubmitted(true);
+  };
 
   const handleAnswerChange = (index: number, value: string | string[]) => {
     if (isSubmitted) return;
@@ -107,5 +116,6 @@ export const useQuestionResponses = (lessonId: string, subject: string) => {
     performance,
     handleAnswerChange,
     handleSubmit,
+    initializeAnswers,
   };
 };

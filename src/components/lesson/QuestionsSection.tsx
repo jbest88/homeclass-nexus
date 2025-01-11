@@ -7,6 +7,7 @@ import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface QuestionsSectionProps {
   questions: Question[];
@@ -18,6 +19,26 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
   const navigate = useNavigate();
   const user = useUser();
   const { handleGenerateLesson, isGenerating } = useGenerateLesson();
+
+  // Fetch previous responses for this lesson
+  const { data: previousResponses } = useQuery({
+    queryKey: ["question-responses", lessonId],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("question_responses")
+        .select("*")
+        .eq("lesson_id", lessonId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!lessonId,
+  });
+
+  const hasAnsweredBefore = previousResponses && previousResponses.length > 0;
+
   const {
     answers,
     isSubmitting,
@@ -25,7 +46,23 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     handleAnswerChange,
     handleSubmit,
     performance,
-  } = useQuestionResponses(lessonId, subject);
+    initializeAnswers,
+  } = useQuestionResponses(lessonId, subject, hasAnsweredBefore);
+
+  // Initialize answers with previous responses if they exist
+  React.useEffect(() => {
+    if (previousResponses && previousResponses.length > 0) {
+      const initialAnswers = questions.map((_, index) => {
+        const response = previousResponses.find(r => r.question_index === index);
+        return {
+          answer: "",  // This will be populated from the previous response
+          isSubmitted: true,
+          isCorrect: response?.is_correct || false,
+        };
+      });
+      initializeAnswers(initialAnswers);
+    }
+  }, [previousResponses, questions, initializeAnswers]);
 
   if (!questions.length) return null;
 
@@ -169,10 +206,10 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             question={question}
             answerState={answers[index] || { answer: "", isSubmitted: false }}
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
-            isLocked={isSubmitted}
+            isLocked={hasAnsweredBefore}
           />
         ))}
-        {!isSubmitted ? (
+        {!hasAnsweredBefore && !isSubmitted ? (
           <Button 
             onClick={() => handleSubmit(questions)} 
             disabled={isSubmitting}

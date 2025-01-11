@@ -1,5 +1,12 @@
 import { ValidationResult } from './types.ts';
-import { normalizeText, isAllOfTheAbove, evaluateExponentExpression, isMathQuestion } from './utils.ts';
+import { 
+  normalizeText, 
+  isAllOfTheAbove, 
+  evaluateExponentExpression, 
+  isMathQuestion,
+  wordToNumber,
+  isNumberComparisonQuestion
+} from './utils.ts';
 
 // Validate true-false questions
 export const validateTrueFalse = (
@@ -18,7 +25,7 @@ export const validateTrueFalse = (
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
   
   // Handle numerical comparison questions
-  if (question.includes('greater than') || question.includes('less than') || question.includes('equal to')) {
+  if (isNumberComparisonQuestion(question)) {
     // Extract numbers from the question
     const numbers = question.match(/[\d,]+/g)?.map(num => Number(num.replace(/,/g, '')));
     
@@ -45,7 +52,6 @@ export const validateTrueFalse = (
     }
   }
   
-  // Default true/false validation for non-numerical questions
   const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
   return {
     isCorrect,
@@ -73,10 +79,16 @@ export const validateMultipleChoice = (
 
   let isCorrect = false;
   if (isMathQuestion(question)) {
-    const userValue = evaluateExponentExpression(normalizedUserAnswer);
-    const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
-    isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
-                Math.abs(userValue - correctValue) < 0.0001;
+    if (isNumberComparisonQuestion(question)) {
+      const userNum = wordToNumber(normalizedUserAnswer);
+      const correctNum = wordToNumber(normalizedCorrectAnswer);
+      isCorrect = userNum !== null && correctNum !== null && userNum === correctNum;
+    } else {
+      const userValue = evaluateExponentExpression(normalizedUserAnswer);
+      const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
+      isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
+                  Math.abs(userValue - correctValue) < 0.0001;
+    }
   } else {
     isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
   }
@@ -92,7 +104,8 @@ export const validateMultipleChoice = (
 // Validate multiple answer questions
 export const validateMultipleAnswer = (
   userAnswers: string[],
-  correctAnswers: string[]
+  correctAnswers: string[],
+  question?: string
 ): ValidationResult => {
   if (!Array.isArray(userAnswers) || !Array.isArray(correctAnswers)) {
     return {
@@ -106,6 +119,30 @@ export const validateMultipleAnswer = (
       isCorrect: false,
       explanation: 'No answers provided'
     };
+  }
+
+  // Handle number comparison questions (e.g., "less than five")
+  if (question && isNumberComparisonQuestion(question)) {
+    const comparisonNumber = question.toLowerCase().includes('less than') ? 5 :
+                            question.toLowerCase().includes('greater than') ? 5 : null;
+    
+    if (comparisonNumber !== null) {
+      const userNumbers = userAnswers.map(ans => wordToNumber(ans)).filter((n): n is number => n !== null);
+      const correctNumbers = correctAnswers.map(ans => wordToNumber(ans)).filter((n): n is number => n !== null);
+      
+      const isCorrect = userNumbers.length === correctNumbers.length &&
+                       userNumbers.every(num => 
+                         question.toLowerCase().includes('less than') ? 
+                           num < comparisonNumber : num > comparisonNumber
+                       );
+
+      return {
+        isCorrect,
+        explanation: isCorrect 
+          ? 'All correct answers selected!' 
+          : `Incorrect. The correct answers were: ${correctAnswers.join(', ')}`
+      };
+    }
   }
   
   // Normalize all answers for comparison
@@ -164,10 +201,16 @@ export const validateText = (
   
   let isCorrect = false;
   if (isMathQuestion(question)) {
-    const userValue = evaluateExponentExpression(normalizedUserAnswer);
-    const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
-    isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
-               Math.abs(userValue - correctValue) < 0.0001;
+    if (isNumberComparisonQuestion(question)) {
+      const userNum = wordToNumber(normalizedUserAnswer);
+      const correctNum = wordToNumber(normalizedCorrectAnswer);
+      isCorrect = userNum !== null && correctNum !== null && userNum === correctNum;
+    } else {
+      const userValue = evaluateExponentExpression(normalizedUserAnswer);
+      const correctValue = evaluateExponentExpression(normalizedCorrectAnswer);
+      isCorrect = !isNaN(userValue) && !isNaN(correctValue) && 
+                 Math.abs(userValue - correctValue) < 0.0001;
+    }
   } else {
     isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
   }

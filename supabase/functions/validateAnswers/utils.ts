@@ -52,5 +52,27 @@ export const evaluateExponentExpression = (expr: string): number => {
 // Utility function to check if a question involves math
 export const isMathQuestion = (question: string): boolean => {
   if (!question) return false;
-  return /[²³⁴⁵⁶⁷⁸⁹¹×\+\-\/\^]/.test(question);
+  return /[²³⁴⁵⁶⁷⁸⁹¹×\+\-\/\^]|less than|greater than|equal to/.test(question);
+};
+
+// Utility function to convert word numbers to digits
+export const wordToNumber = (word: string): number | null => {
+  const numberWords: { [key: string]: number } = {
+    'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
+    'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
+    'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13,
+    'fourteen': 14, 'fifteen': 15, 'sixteen': 16,
+    'seventeen': 17, 'eighteen': 18, 'nineteen': 19, 'twenty': 20
+  };
+
+  const normalized = normalizeText(word);
+  return numberWords[normalized] ?? null;
+};
+
+// Utility function to check if text contains a number comparison
+export const isNumberComparisonQuestion = (question: string): boolean => {
+  const normalized = normalizeText(question);
+  return normalized.includes('less than') || 
+         normalized.includes('greater than') || 
+         normalized.includes('equal to');
 };

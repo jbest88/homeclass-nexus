@@ -34,7 +34,7 @@ serve(async (req) => {
           throw new Error('Correct answers array is required for multiple-answer questions');
         }
         const userAnswerArray = Array.isArray(userAnswer) ? userAnswer : [];
-        result = validateMultipleAnswer(userAnswerArray, correctAnswers);
+        result = validateMultipleAnswer(userAnswerArray, correctAnswers, question);
         break;
 
       case 'text':
@@ -75,7 +75,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in validateAnswers:', error);
     
-    // Return a more detailed error response
     return new Response(
       JSON.stringify({ 
         error: error.message,
@@ -84,7 +83,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400, // Use 400 for client errors instead of 500
+        status: 400,
       }
     );
   }

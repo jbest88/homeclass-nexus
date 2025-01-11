@@ -65,7 +65,8 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
         })
       );
 
-      return pathsWithLessons;
+      // Filter out paths that have no lessons
+      return pathsWithLessons.filter(path => path.lessons && path.lessons.length > 0);
     },
     enabled: !!user,
   });

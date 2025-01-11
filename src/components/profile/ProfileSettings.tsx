@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Json } from "@/integrations/supabase/types";
 
 interface NotificationPreferences {
   email: boolean;
@@ -94,10 +95,19 @@ const ProfileSettings = () => {
         if (profile.portfolio_items) setPortfolioItems(profile.portfolio_items);
         if (profile.social_links) setSocialLinks(profile.social_links as SocialLinks);
         if (profile.notification_preferences) {
-          setNotificationPreferences(profile.notification_preferences as NotificationPreferences);
+          const notifPrefs = profile.notification_preferences as { [key: string]: boolean };
+          setNotificationPreferences({
+            email: notifPrefs.email ?? true,
+            push: notifPrefs.push ?? true,
+            in_app: notifPrefs.in_app ?? true
+          });
         }
         if (profile.privacy_settings) {
-          setPrivacySettings(profile.privacy_settings as PrivacySettings);
+          const privacyPrefs = profile.privacy_settings as { [key: string]: string };
+          setPrivacySettings({
+            profile_visibility: privacyPrefs.profile_visibility ?? "public",
+            portfolio_visibility: privacyPrefs.portfolio_visibility ?? "public"
+          });
         }
         if (profile.language_preference) setLanguagePreference(profile.language_preference);
         if (profile.timezone) setTimezone(profile.timezone);
@@ -137,9 +147,9 @@ const ProfileSettings = () => {
           interests,
           skills,
           portfolio_items: portfolioItems,
-          social_links: socialLinks,
-          notification_preferences: notificationPreferences,
-          privacy_settings: privacySettings,
+          social_links: socialLinks as Json,
+          notification_preferences: notificationPreferences as unknown as Json,
+          privacy_settings: privacySettings as unknown as Json,
           language_preference: languagePreference,
           timezone,
         })
@@ -439,6 +449,7 @@ const ProfileSettings = () => {
       </Button>
     </div>
   );
+
 };
 
 export default ProfileSettings;

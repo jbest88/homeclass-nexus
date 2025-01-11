@@ -1,3 +1,4 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
@@ -7,6 +8,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { useState } from "react";
 import { LearningPath } from "@/types/learning-path";
+import { useQuery } from "@tanstack/react-query";
+import { useUser } from "@supabase/auth-helpers-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -39,6 +42,23 @@ const SubjectProgress = ({
 }: SubjectProgressProps) => {
   const navigate = useNavigate();
   const [openPaths, setOpenPaths] = useState<Record<string, boolean>>({});
+  const user = useUser();
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("grade_level")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const handleDelete = async (lessonId: string) => {
     try {

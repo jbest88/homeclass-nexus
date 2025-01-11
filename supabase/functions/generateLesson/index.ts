@@ -8,7 +8,12 @@ import { generateLesson } from './services/lessonService.ts';
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Max-Age': '86400',
+      } 
+    });
   }
 
   try {
@@ -35,7 +40,10 @@ serve(async (req) => {
     } catch (error) {
       console.error('Failed to parse request body:', error);
       return new Response(
-        JSON.stringify({ error: 'Invalid request body' }),
+        JSON.stringify({ 
+          error: 'Invalid request body',
+          details: error.message 
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -47,7 +55,10 @@ serve(async (req) => {
     if (!subject || !userId) {
       console.error('Missing required fields:', { subject, userId });
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: subject and userId are required' }),
+        JSON.stringify({ 
+          error: 'Missing required fields: subject and userId are required',
+          details: { subject, userId }
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -58,15 +69,23 @@ serve(async (req) => {
     console.log('Fetching user data for:', userId);
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
       const [profile, proficiencyResult] = await Promise.all([
         fetchUserProfile(supabase, userId),
         fetchProficiencyLevel(supabase, userId, subject),
       ]);
 
+      clearTimeout(timeout);
+
       if (!profile || profile.grade_level === null) {
         console.error('User profile or grade level not found');
         return new Response(
-          JSON.stringify({ error: 'User profile or grade level not found' }),
+          JSON.stringify({ 
+            error: 'User profile or grade level not found',
+            details: { userId, profile }
+          }),
           { 
             status: 404, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -102,19 +121,38 @@ serve(async (req) => {
       return new Response(
         JSON.stringify(response),
         { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate'
+          }
         }
       );
 
     } catch (error) {
       console.error('Error fetching user data or generating content:', error);
+      
+      // Check if it's an abort error (timeout)
+      if (error.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Request timeout',
+            details: 'The request took too long to complete'
+          }),
+          { 
+            status: 504, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
       return new Response(
         JSON.stringify({ 
           error: error.message,
           details: error.stack
         }),
         { 
-          status: 500, 
+          status: error.status || 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );

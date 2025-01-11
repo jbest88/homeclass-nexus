@@ -28,6 +28,14 @@ const Archive = () => {
             created_at
           )
         `)
+        .eq('user_id', user.id)
+        // Only fetch lessons that have question responses
+        .in('lesson_id', 
+          supabase
+            .from('question_responses')
+            .select('lesson_id')
+            .eq('user_id', user.id)
+        )
         .order("archived_at", { ascending: false });
 
       if (error) throw error;
@@ -55,9 +63,9 @@ const Archive = () => {
     acc[subject].totalModules += 1;
     acc[subject].paths[0].lessons?.push({
       id: lesson.id,
-      path_id: subject, // Add required path_id
+      path_id: subject,
       lesson_id: lesson.lesson_id,
-      order_index: 0, // Add required order_index
+      order_index: 0,
       title: lesson.generated_lessons.title,
       created_at: lesson.archived_at,
     });

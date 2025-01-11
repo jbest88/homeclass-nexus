@@ -1,4 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { generateWithGemini } from '../utils.ts';
 import { createLessonPrompt, createQuestionsPrompt } from '../prompts.ts';
 import { validateQuestions } from '../validators/questionValidator.ts';

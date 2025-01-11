@@ -1,4 +1,4 @@
-import { Question } from '../types';
+import { Question } from '../types.ts';
 
 export const validateQuestions = (questions: Question[]) => {
   if (!Array.isArray(questions)) {
@@ -95,7 +95,7 @@ const validateText = (q: any, index: number) => {
 
 const validateQuestionTypes = (questions: Question[]) => {
   const types = questions.map(q => q.type);
-  const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown'];
+  const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown', 'text'];
   const missingTypes = requiredTypes.filter(type => !types.includes(type));
   
   if (missingTypes.length > 0) {

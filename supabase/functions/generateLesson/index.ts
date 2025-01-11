@@ -49,8 +49,8 @@ serve(async (req) => {
       // Clean up the JSON string
       const cleanedQuestionsText = questionsText
         .replace(/```json\n|\n```/g, '')
-        .replace(/^[\s\n]*\[/, '[') // Remove leading whitespace before [
-        .replace(/\][\s\n]*$/, ']') // Remove trailing whitespace after ]
+        .replace(/^[\s\n]*\[/, '[')
+        .replace(/\][\s\n]*$/, ']')
         .trim();
       
       console.log('Cleaned questions text:', cleanedQuestionsText);
@@ -114,6 +114,12 @@ serve(async (req) => {
             break;
 
           case 'true-false':
+            // Convert answer to lowercase string for consistent validation
+            if (typeof q.answer === 'boolean') {
+              q.answer = q.answer.toString();
+            }
+            q.answer = q.answer.toLowerCase();
+            
             if (q.answer !== 'true' && q.answer !== 'false') {
               throw new Error(`Question ${index + 1}'s answer must be 'true' or 'false'`);
             }

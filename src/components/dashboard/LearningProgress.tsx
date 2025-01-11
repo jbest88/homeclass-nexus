@@ -25,7 +25,6 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     queryFn: async () => {
       if (!user) return null;
       
-      // Fetch learning paths
       const { data: paths, error: pathsError } = await supabase
         .from("learning_paths")
         .select("*")
@@ -34,7 +33,6 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
 
       if (pathsError) throw pathsError;
 
-      // For each path, fetch its lessons
       const pathsWithLessons = await Promise.all(
         paths.map(async (path) => {
           const { data: pathLessons, error: lessonsError } = await supabase
@@ -110,32 +108,10 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
 
       if (error) throw error;
       
-      // Filter out lessons that are part of a learning path
-      const filteredLessons = lessons.filter(lesson => !pathLessonIds.includes(lesson.id));
-
-      // Check for lessons older than a day and archive them
+      // Only show lessons that are not part of any learning path and are not archived
       const now = new Date();
-      const oldLessons = filteredLessons.filter(lesson => 
-        differenceInDays(now, new Date(lesson.created_at)) >= 1
-      );
-
-      // Archive old lessons
-      if (oldLessons.length > 0) {
-        const archivePromises = oldLessons.map(lesson => 
-          supabase
-            .from("archived_lessons")
-            .upsert({ 
-              user_id: user.id, 
-              lesson_id: lesson.id 
-            })
-        );
-        
-        await Promise.all(archivePromises);
-        queryClient.invalidateQueries({ queryKey: ["archived-lessons"] });
-      }
-
-      // Return only lessons newer than a day
-      return filteredLessons.filter(lesson => 
+      return lessons.filter(lesson => 
+        !pathLessonIds.includes(lesson.id) && 
         differenceInDays(now, new Date(lesson.created_at)) < 1
       );
     },

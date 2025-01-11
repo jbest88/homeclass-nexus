@@ -5,6 +5,10 @@ import { DropdownQuestion } from "./question-types/DropdownQuestion";
 import { TextQuestion } from "./question-types/TextQuestion";
 import { Question, AnswerState } from "@/types/questions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface QuestionComponentProps {
   question: Question;
@@ -19,22 +23,89 @@ export const QuestionComponent = ({
   onAnswerChange,
   isLocked = false,
 }: QuestionComponentProps) => {
+  const [isValidating, setIsValidating] = useState(true);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [validatedQuestion, setValidatedQuestion] = useState<Question | null>(null);
+
+  useEffect(() => {
+    const validateQuestion = async () => {
+      try {
+        const response = await supabase.functions.invoke("validateWithAI", {
+          body: {
+            question: question.question,
+            correctAnswer: question.answer,
+            type: question.type,
+            mode: "validate_question"
+          },
+        });
+
+        if (response.error) throw response.error;
+
+        const { isValid, explanation, suggestedCorrection } = response.data;
+
+        if (!isValid) {
+          console.error("Question validation failed:", explanation);
+          setValidationError(explanation);
+          toast.error("This question needs review by your teacher");
+        } else {
+          setValidatedQuestion(question);
+        }
+      } catch (error) {
+        console.error("Error validating question:", error);
+        // Fall back to using the original question if validation fails
+        setValidatedQuestion(question);
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validateQuestion();
+  }, [question]);
+
   const handleAnswerChange = (value: string | string[]) => {
     if (!isLocked) {
       onAnswerChange(value);
     }
   };
 
+  if (isValidating) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-4 w-3/4" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (validationError) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="text-red-600">Question Validation Error</div>
+        </CardHeader>
+        <CardContent>
+          <p>{validationError}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!validatedQuestion) return null;
+
   const props = {
-    question: question.question,
+    question: validatedQuestion.question,
     value: answerState.answer,
     onChange: handleAnswerChange,
     disabled: isLocked,
-    options: 'options' in question ? question.options : undefined,
+    options: 'options' in validatedQuestion ? validatedQuestion.options : undefined,
   };
 
   const renderQuestionInput = () => {
-    switch (question.type) {
+    switch (validatedQuestion.type) {
       case 'multiple-choice':
         return <MultipleChoiceQuestion {...props} />;
       case 'multiple-answer':
@@ -50,46 +121,10 @@ export const QuestionComponent = ({
     }
   };
 
-  const isContextDependentQuestion = (questionText: string): boolean => {
-    const contextPatterns = [
-      /around you/i,
-      /do you see/i,
-      /can you see/i,
-      /in your room/i,
-      /in front of you/i,
-      /near you/i,
-      /beside you/i,
-      /in your environment/i,
-      /in your surroundings/i,
-    ];
-    return contextPatterns.some(pattern => pattern.test(questionText));
-  };
-
-  const getExplanation = () => {
-    if (!answerState.isSubmitted) return '';
-    
-    // Handle context-dependent questions first
-    if (isContextDependentQuestion(question.question)) {
-      return `This question cannot be automatically validated as it depends on your physical surroundings. The correct answers would vary based on what you actually see around you.`;
-    }
-
-    // For questions with explanations from the validation service
-    if (answerState.explanation) {
-      return answerState.explanation;
-    }
-
-    // Default explanations if no specific explanation is provided
-    if (answerState.isCorrect) {
-      return 'Correct!';
-    } else {
-      return `Incorrect. The correct answer is "${question.answer}".`;
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
-        <div className="text-lg font-medium">{question.question}</div>
+        <div className="text-lg font-medium">{validatedQuestion.question}</div>
       </CardHeader>
       <CardContent>
         {renderQuestionInput()}
@@ -100,7 +135,9 @@ export const QuestionComponent = ({
             ) : (
               <div className="space-y-2">
                 <p className="text-red-600">Incorrect</p>
-                <p className="text-gray-700 whitespace-pre-line">{getExplanation()}</p>
+                <p className="text-gray-700 whitespace-pre-line">
+                  {answerState.explanation}
+                </p>
               </div>
             )}
           </div>

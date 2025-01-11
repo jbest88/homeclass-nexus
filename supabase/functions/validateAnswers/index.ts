@@ -15,6 +15,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Received request:', req.method);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
@@ -25,7 +27,7 @@ serve(async (req) => {
 
   try {
     const requestData = await req.json();
-    const { question, userAnswer, correctAnswer, type } = requestData as ValidationRequest;
+    const { question, userAnswer, correctAnswer, type, correctAnswers } = requestData as ValidationRequest;
     
     console.log('Validating answer:', { question, type, userAnswer });
 
@@ -44,16 +46,10 @@ serve(async (req) => {
         break;
 
       case 'multiple-answer':
-        const correctAnswers = requestData.correctAnswers;
         if (!Array.isArray(correctAnswers)) {
           throw new Error('Correct answers array is required for multiple-answer questions');
         }
-        const userAnswerArray = Array.isArray(userAnswer) ? userAnswer : [];
-        result = validateMultipleAnswer({
-          userAnswers: userAnswerArray,
-          correctAnswers,
-          question
-        });
+        result = validateMultipleAnswer(userAnswer as string[], correctAnswers, question);
         break;
 
       case 'text':
@@ -86,7 +82,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(result),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
         status: 200,
       }
     );
@@ -101,7 +100,10 @@ serve(async (req) => {
         explanation: `Error validating answer: ${error.message}`
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
         status: 400,
       }
     );

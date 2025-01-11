@@ -30,11 +30,12 @@ export const createQuestionsPrompt = (
     IMPORTANT: The questions MUST be appropriate for ${gradeLevelText} students. Do not include concepts or vocabulary that are too advanced.
 
     CRITICAL: You MUST include EXACTLY ONE of each of these question types:
-    1. Multiple choice question (1 question)
+    1. Multiple choice question (2 questions)
     2. Multiple answer question where students select multiple correct options (1 question)
     3. True/False question (1 question)
     4. Dropdown question (1 question)
-    5. Text question (1 question)
+
+    DO NOT include any text/open-ended questions. All questions must have predefined answer choices.
 
     IMPORTANT VALIDATION RULES:
     1. For math questions:
@@ -44,17 +45,12 @@ export const createQuestionsPrompt = (
        - For word problems, ensure all necessary information is provided
        - Use age-appropriate numbers and concepts
     
-    2. For text-based questions:
-       - Answers must be clearly supported by the lesson content
-       - Avoid subjective or opinion-based questions
-       - For multiple choice, ensure options are distinct and unambiguous
-       - Use vocabulary appropriate for ${gradeLevelText} students
-    
-    3. For all questions:
+    2. For all questions:
        - Double-check that the correct answer is included in the options
        - Ensure options don't contain duplicate values
        - Make sure questions are grade-appropriate
        - Verify that questions test understanding, not just memorization
+       - NEVER use open-ended or text input questions
 
     Make the questions:
     - Clear and straightforward for ${gradeLevelText} students
@@ -98,13 +94,6 @@ export const createQuestionsPrompt = (
       "type": "dropdown",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "correct option"
-    }
-
-    Text:
-    {
-      "question": "Explain...",
-      "type": "text",
-      "answer": "expected answer"
     }
 
     Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;

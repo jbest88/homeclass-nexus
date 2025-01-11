@@ -78,6 +78,8 @@ export const validateMultipleChoice = (
   const normalizedCorrectAnswer = normalizeText(correctAnswer);
 
   let isCorrect = false;
+  let explanation = '';
+
   if (isMathQuestion(question)) {
     if (isNumberComparisonQuestion(question)) {
       const userNum = wordToNumber(normalizedUserAnswer);
@@ -90,14 +92,24 @@ export const validateMultipleChoice = (
                   Math.abs(userValue - correctValue) < 0.0001;
     }
   } else {
-    isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+    // For basic numerical fact questions, convert string numbers to actual numbers
+    const userNum = parseInt(normalizedUserAnswer);
+    const correctNum = parseInt(normalizedCorrectAnswer);
+    
+    if (!isNaN(userNum) && !isNaN(correctNum)) {
+      isCorrect = userNum === correctNum;
+      if (!isCorrect) {
+        explanation = `The correct answer is: ${correctNum}. ${normalizedCorrectAnswer.includes('explanation:') ? 
+          normalizedCorrectAnswer.split('explanation:')[1].trim() : ''}`;
+      }
+    } else {
+      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+    }
   }
 
   return {
     isCorrect,
-    explanation: isCorrect 
-      ? 'Correct!' 
-      : `Incorrect. The correct answer is: ${correctAnswer}`
+    explanation: isCorrect ? 'Correct!' : (explanation || `Incorrect. The correct answer is: ${correctAnswer}`)
   };
 };
 

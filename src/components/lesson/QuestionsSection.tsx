@@ -1,3 +1,4 @@
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { QuestionComponent } from "./QuestionComponent";
 import { useQuestionResponses } from "@/hooks/useQuestionResponses";

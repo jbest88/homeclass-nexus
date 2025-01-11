@@ -4,6 +4,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 async function callGeminiAPI(prompt: string) {
@@ -16,7 +18,7 @@ async function callGeminiAPI(prompt: string) {
     console.log('Calling Gemini API with prompt:', prompt);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     const response = await fetch(
       'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
@@ -67,6 +69,7 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
+      status: 204,
       headers: corsHeaders 
     });
   }
@@ -202,7 +205,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(jsonMatch),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 200,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json'
+        } 
+      }
     );
 
   } catch (error) {

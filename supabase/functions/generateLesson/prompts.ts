@@ -25,6 +25,24 @@ export const createQuestionsPrompt = (
 ): string => {
   return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions that will help a ${gradeLevelText} student check their understanding. The questions should be at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
+    IMPORTANT VALIDATION RULES:
+    1. For math questions:
+       - All numerical answers must be exact and unambiguous
+       - If using multiple choice, ensure only ONE answer is mathematically correct
+       - Include units where applicable (e.g., cm, kg)
+       - For word problems, ensure all necessary information is provided
+    
+    2. For text-based questions:
+       - Answers must be clearly supported by the lesson content
+       - Avoid subjective or opinion-based questions
+       - For multiple choice, ensure options are distinct and unambiguous
+    
+    3. For all questions:
+       - Double-check that the correct answer is included in the options
+       - Ensure options don't contain duplicate values
+       - Make sure questions are grade-appropriate
+       - Verify that questions test understanding, not just memorization
+
     Make the questions:
     - Clear and straightforward
     - Directly related to the main concepts covered

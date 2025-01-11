@@ -51,6 +51,48 @@ serve(async (req) => {
         throw new Error('Generated questions must be an array of exactly 5 questions');
       }
 
+      // Validate each question
+      questions.forEach((q, index) => {
+        // Check required fields
+        if (!q.question || !q.type) {
+          throw new Error(`Question ${index + 1} is missing required fields`);
+        }
+
+        // Validate based on question type
+        switch (q.type) {
+          case 'multiple-choice':
+          case 'dropdown':
+            if (!Array.isArray(q.options) || q.options.length < 2) {
+              throw new Error(`Question ${index + 1} needs at least 2 options`);
+            }
+            if (!q.options.includes(q.answer)) {
+              throw new Error(`Question ${index + 1}'s correct answer is not in the options`);
+            }
+            break;
+
+          case 'multiple-answer':
+            if (!Array.isArray(q.options) || q.options.length < 2) {
+              throw new Error(`Question ${index + 1} needs at least 2 options`);
+            }
+            if (!Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) {
+              throw new Error(`Question ${index + 1} needs at least one correct answer`);
+            }
+            if (!q.correctAnswers.every(answer => q.options.includes(answer))) {
+              throw new Error(`Question ${index + 1}'s correct answers must all be in the options`);
+            }
+            break;
+
+          case 'true-false':
+            if (q.answer !== 'true' && q.answer !== 'false') {
+              throw new Error(`Question ${index + 1}'s answer must be 'true' or 'false'`);
+            }
+            break;
+
+          default:
+            throw new Error(`Question ${index + 1} has an invalid type: ${q.type}`);
+        }
+      });
+
       const types = questions.map(q => q.type);
       const requiredTypes = ['multiple-choice', 'multiple-answer', 'true-false', 'dropdown'];
       const hasAllTypes = requiredTypes.every(type => types.includes(type));

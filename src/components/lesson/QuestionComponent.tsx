@@ -50,6 +50,19 @@ export const QuestionComponent = ({
     }
   };
 
+  const getExplanation = () => {
+    if (!answerState.isSubmitted || answerState.isCorrect) {
+      return answerState.explanation;
+    }
+
+    // For multiple choice questions, provide a clearer explanation
+    if (question.type === 'multiple-choice') {
+      return `The correct answer is "${question.answer}". ${answerState.explanation || ''}`;
+    }
+
+    return answerState.explanation;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -63,7 +76,7 @@ export const QuestionComponent = ({
               <p className="text-green-600">Correct!</p>
             ) : (
               <p className="text-red-600">
-                Incorrect. {answerState.explanation}
+                Incorrect. {getExplanation()}
               </p>
             )}
           </div>

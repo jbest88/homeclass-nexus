@@ -6,7 +6,8 @@ export const MultipleChoiceQuestion = ({
   options, 
   value, 
   onChange, 
-  disabled 
+  disabled,
+  question 
 }: QuestionInputProps) => {
   return (
     <RadioGroup

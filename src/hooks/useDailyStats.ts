@@ -17,7 +17,7 @@ export const useDailyStats = () => {
         .select("*")
         .eq("user_id", user.id)
         .eq("date", today)
-        .single();
+        .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
         throw fetchError;

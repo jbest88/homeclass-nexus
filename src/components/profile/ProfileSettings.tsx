@@ -10,6 +10,21 @@ import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+interface NotificationPreferences {
+  email: boolean;
+  push: boolean;
+  in_app: boolean;
+}
+
+interface PrivacySettings {
+  profile_visibility: string;
+  portfolio_visibility: string;
+}
+
+interface SocialLinks {
+  [key: string]: string;
+}
+
 const ProfileSettings = () => {
   const user = useUser();
   const [birthday, setBirthday] = useState<Date>();
@@ -19,18 +34,18 @@ const ProfileSettings = () => {
   const [day, setDay] = useState<string>("");
   const [year, setYear] = useState<string>("");
   
-  // New state variables for additional profile fields
+  // New state variables with proper typing
   const [bio, setBio] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
-  const [socialLinks, setSocialLinks] = useState<{ [key: string]: string }>({});
-  const [notificationPreferences, setNotificationPreferences] = useState({
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>({
     email: true,
     push: true,
     in_app: true,
   });
-  const [privacySettings, setPrivacySettings] = useState({
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
     profile_visibility: "public",
     portfolio_visibility: "public",
   });
@@ -64,7 +79,7 @@ const ProfileSettings = () => {
           return;
         }
 
-        // Set all profile data
+        // Set all profile data with proper type checking
         if (profile.birthday) {
           const date = new Date(profile.birthday);
           setBirthday(date);
@@ -74,12 +89,16 @@ const ProfileSettings = () => {
         }
         if (profile.grade_level !== null) setGradeLevel(profile.grade_level);
         if (profile.bio) setBio(profile.bio);
-        if (profile.interests) setInterests(profile.interests);
-        if (profile.skills) setSkills(profile.skills);
+        if (profile.interests) setInterests(profile.interests as string[]);
+        if (profile.skills) setSkills(profile.skills as string[]);
         if (profile.portfolio_items) setPortfolioItems(profile.portfolio_items);
-        if (profile.social_links) setSocialLinks(profile.social_links);
-        if (profile.notification_preferences) setNotificationPreferences(profile.notification_preferences);
-        if (profile.privacy_settings) setPrivacySettings(profile.privacy_settings);
+        if (profile.social_links) setSocialLinks(profile.social_links as SocialLinks);
+        if (profile.notification_preferences) {
+          setNotificationPreferences(profile.notification_preferences as NotificationPreferences);
+        }
+        if (profile.privacy_settings) {
+          setPrivacySettings(profile.privacy_settings as PrivacySettings);
+        }
         if (profile.language_preference) setLanguagePreference(profile.language_preference);
         if (profile.timezone) setTimezone(profile.timezone);
 

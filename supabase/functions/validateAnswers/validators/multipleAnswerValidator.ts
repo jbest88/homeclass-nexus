@@ -22,6 +22,24 @@ export const validateMultipleAnswer = ({
     };
   }
 
+  // Special handling for questions about countable items
+  if (question?.toLowerCase().includes('can count') || 
+      question?.toLowerCase().includes('are countable') ||
+      question?.toLowerCase().includes('things we can count')) {
+    // For questions about countability, all options are typically valid
+    // unless specifically stated otherwise in the question
+    const normalizedUserAnswers = userAnswers.map(normalizeText);
+    const isCorrect = normalizedUserAnswers.length === userAnswers.length;
+    
+    return {
+      isCorrect,
+      explanation: isCorrect 
+        ? 'Correct! All of these items can be counted.'
+        : 'All of these items can be counted. Try selecting all options next time!'
+    };
+  }
+
+  // Handle number comparison questions (e.g., "less than five")
   if (question && isNumberComparisonQuestion(question)) {
     const comparisonText = question.toLowerCase();
     const comparisonNumber = comparisonText.includes('less than') ? 

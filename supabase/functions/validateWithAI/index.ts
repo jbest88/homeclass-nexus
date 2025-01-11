@@ -13,6 +13,8 @@ async function callGeminiAPI(prompt: string) {
   }
 
   try {
+    console.log('Calling Gemini API with prompt:', prompt);
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
@@ -48,7 +50,10 @@ async function callGeminiAPI(prompt: string) {
       throw new Error(`Gemini API error: ${errorText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Gemini API response:', result);
+    return result;
+
   } catch (error) {
     console.error('Error calling Gemini API:', error);
     if (error.name === 'AbortError') {
@@ -59,8 +64,11 @@ async function callGeminiAPI(prompt: string) {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders 
+    });
   }
 
   try {

@@ -96,42 +96,27 @@ export const QuestionComponent = ({
       const userAnswer = String(answerState.answer).toLowerCase();
       const correctAnswer = String(question.answer).toLowerCase();
       
-      // Handle number comparison questions
-      if (question.question.toLowerCase().includes('bigger than') || 
-          question.question.toLowerCase().includes('smaller than') ||
-          question.question.toLowerCase().includes('greater than') ||
-          question.question.toLowerCase().includes('less than') ||
-          question.question.toLowerCase().includes('equal to')) {
+      if (isNumberComparisonQuestion(question)) {
+        const numbers = question.question.match(/[\d,]+/g)?.map(num => Number(num.replace(/,/g, '')));
         
-        const numbers = question.question.match(/['"](\w+)['"]|(\d+)/g)
-          ?.map(n => n.replace(/['"]/g, ''))
-          .filter(Boolean) || [];
-        
-        if (numbers.length >= 2) {
+        if (numbers && numbers.length >= 2) {
           const [firstNum, secondNum] = numbers;
-          const numberWords: { [key: string]: number } = {
-            'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4,
-            'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
-          };
-          
-          const num1 = numberWords[firstNum.toLowerCase()] ?? parseInt(firstNum);
-          const num2 = numberWords[secondNum.toLowerCase()] ?? parseInt(secondNum);
           
           let explanation = `You answered "${userAnswer}". `;
-          explanation += `Let's break this down:\n`;
-          explanation += `- The first number "${firstNum}" is equal to ${num1}\n`;
-          explanation += `- The second number "${secondNum}" is equal to ${num2}\n`;
+          explanation += `Let's understand why:\n`;
+          explanation += `- The first number "${firstNum}" is equal to ${firstNum}\n`;
+          explanation += `- The second number "${secondNum}" is equal to ${secondNum}\n`;
           
           if (question.question.toLowerCase().includes('bigger than') || 
               question.question.toLowerCase().includes('greater than')) {
-            explanation += `- ${num1} is ${num1 > num2 ? '' : 'not'} greater than ${num2}\n`;
+            explanation += `- ${firstNum} is ${firstNum > secondNum ? '' : 'not'} greater than ${secondNum}\n`;
             explanation += `Therefore, the statement is ${correctAnswer}`;
           } else if (question.question.toLowerCase().includes('smaller than') || 
                      question.question.toLowerCase().includes('less than')) {
-            explanation += `- ${num1} is ${num1 < num2 ? '' : 'not'} less than ${num2}\n`;
+            explanation += `- ${firstNum} is ${firstNum < secondNum ? '' : 'not'} less than ${secondNum}\n`;
             explanation += `Therefore, the statement is ${correctAnswer}`;
           } else if (question.question.toLowerCase().includes('equal to')) {
-            explanation += `- ${num1} is ${num1 === num2 ? '' : 'not'} equal to ${num2}\n`;
+            explanation += `- ${firstNum} is ${firstNum === secondNum ? '' : 'not'} equal to ${secondNum}\n`;
             explanation += `Therefore, the statement is ${correctAnswer}`;
           }
           
@@ -139,15 +124,14 @@ export const QuestionComponent = ({
         }
       }
       
-      return `You answered "${userAnswer}". The correct answer is "${correctAnswer}".`;
+      return `You answered "${userAnswer}". ${userAnswer === correctAnswer ? 
+        `This is correct because the statement accurately reflects the concept being tested.` : 
+        `The correct answer is "${correctAnswer}".`}`;
     }
 
     if (question.type === 'multiple-answer' && 'correctAnswers' in question) {
       const userAnswers = (answerState.answer as string[]) || [];
       const correctAnswers = question.correctAnswers || [];
-      
-      const missed = correctAnswers.filter(answer => !userAnswers.includes(answer));
-      const incorrect = userAnswers.filter(answer => !correctAnswers.includes(answer));
       
       let explanation = '';
       
@@ -172,7 +156,10 @@ export const QuestionComponent = ({
           }
         });
         
-        if (incorrect.length > 0) {
+        if (answerState.isCorrect) {
+          explanation += `\nGreat job! You've correctly identified these important uses of numbers in everyday life.`;
+        } else {
+          const incorrect = userAnswers.filter(answer => !correctAnswers.includes(answer));
           explanation += `\nYou selected "${incorrect.join(', ')}" which ${incorrect.length > 1 ? 'are' : 'is'} not a primary use of numbers in this context.`;
         }
       } else if (question.question.toLowerCase().includes('shape') && 
@@ -182,18 +169,33 @@ export const QuestionComponent = ({
         if (question.answer) {
           explanation += getShapeExplanation(question.answer as string) + '\n\n';
         }
-        explanation += `You selected "${userAnswers.join(', ')}" but the correct answer is different because:\n`;
-        userAnswers.forEach(answer => {
-          explanation += `- ${answer}: ${getShapeExplanation(answer)}\n`;
-        });
+        if (answerState.isCorrect) {
+          explanation += `You've correctly identified the properties of these shapes! Here's why each answer is correct:\n`;
+          userAnswers.forEach(answer => {
+            explanation += `✓ ${answer}: ${getShapeExplanation(answer)}\n`;
+          });
+        } else {
+          explanation += `Your selection wasn't quite right. Here's why:\n`;
+          userAnswers.forEach(answer => {
+            explanation += `- ${answer}: ${getShapeExplanation(answer)}\n`;
+          });
+        }
       } else {
-        if (missed.length > 0) {
-          explanation += `You missed these correct options: ${missed.join(', ')}. `;
+        if (answerState.isCorrect) {
+          explanation = `Excellent! You selected all the correct answers: ${correctAnswers.join(', ')}. `;
+          explanation += `Each of these answers demonstrates your understanding of the concept.`;
+        } else {
+          const missed = correctAnswers.filter(answer => !userAnswers.includes(answer));
+          const incorrect = userAnswers.filter(answer => !correctAnswers.includes(answer));
+          
+          if (missed.length > 0) {
+            explanation += `You missed these correct options: ${missed.join(', ')}. `;
+          }
+          if (incorrect.length > 0) {
+            explanation += `You incorrectly selected: ${incorrect.join(', ')}. `;
+          }
+          explanation += `\n\nThe correct answers are: ${correctAnswers.join(', ')}. `;
         }
-        if (incorrect.length > 0) {
-          explanation += `You incorrectly selected: ${incorrect.join(', ')}. `;
-        }
-        explanation += `\n\nThe correct answers are: ${correctAnswers.join(', ')}. `;
       }
       
       return explanation;
@@ -202,11 +204,13 @@ export const QuestionComponent = ({
     // For multiple choice questions about shapes
     if (question.type === 'multiple-choice' && 
         question.question.toLowerCase().includes('shape')) {
-      let explanation = `The correct answer is "${question.answer}". Here's why:\n\n`;
+      let explanation = answerState.isCorrect 
+        ? `Excellent! You correctly chose "${question.answer}". Here's why this is correct:\n\n`
+        : `The correct answer is "${question.answer}". Here's why:\n\n`;
       explanation += getShapeExplanation(question.answer);
       
-      // Add explanation for the chosen answer
-      if (answerState.answer) {
+      // Add explanation for the chosen answer if incorrect
+      if (!answerState.isCorrect && answerState.answer) {
         const userAnswer = answerState.answer as string;
         explanation += `\n\nYou chose "${userAnswer}": ${getShapeExplanation(userAnswer)}`;
       }
@@ -214,8 +218,39 @@ export const QuestionComponent = ({
       return explanation;
     }
 
+    // For mathematical questions
+    if (question.question.toLowerCase().includes('discriminant')) {
+      const equation = question.question.match(/\$.*\$/)?.[0].replace(/\$/g, '') || '';
+      const matches = equation.match(/(-?\d*)?x\^2\s*([+-]\s*\d*)?x\s*([+-]\s*\d+)?/);
+      
+      if (matches) {
+        const a = matches[1] ? parseInt(matches[1]) : 1;
+        const b = matches[2] ? parseInt(matches[2].replace(/\s/g, '')) : 0;
+        const c = matches[3] ? parseInt(matches[3].replace(/\s/g, '')) : 0;
+        
+        const discriminant = b * b - 4 * a * c;
+        
+        let explanation = answerState.isCorrect
+          ? `Correct! Let's break down why the discriminant is ${discriminant}:\n\n`
+          : `The discriminant is ${discriminant}. Here's how we calculate it:\n\n`;
+        
+        explanation += `1. For a quadratic equation ax² + bx + c, the discriminant is b² - 4ac\n`;
+        explanation += `2. In this equation:\n`;
+        explanation += `   - a = ${a}\n`;
+        explanation += `   - b = ${b}\n`;
+        explanation += `   - c = ${c}\n`;
+        explanation += `3. Discriminant = (${b})² - 4(${a})(${c})\n`;
+        explanation += `4. = ${b * b} - ${4 * a * c}\n`;
+        explanation += `5. = ${discriminant}`;
+        
+        return explanation;
+      }
+    }
+
     // For other multiple choice questions
-    return `The correct answer is "${question.answer}".`;
+    return answerState.isCorrect
+      ? `Correct! "${question.answer}" is the right answer because it best matches the concept being tested.`
+      : `The correct answer is "${question.answer}".`;
   };
 
   return (
@@ -228,7 +263,10 @@ export const QuestionComponent = ({
         {answerState.isSubmitted && (
           <div className="mt-4 space-y-2">
             {answerState.isCorrect ? (
-              <p className="text-green-600">Correct!</p>
+              <div className="space-y-2">
+                <p className="text-green-600">Correct!</p>
+                <p className="text-gray-700 whitespace-pre-line">{getExplanation()}</p>
+              </div>
             ) : (
               <div className="space-y-2">
                 <p className="text-red-600">Incorrect</p>

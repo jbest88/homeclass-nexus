@@ -1,5 +1,5 @@
-import { getCurriculumContext } from './curriculumContext';
-import { getPiagetStage, getGradeLevelExpectations } from './gradeUtils';
+import { getCurriculumContext } from './curriculumContext.ts';
+import { getPiagetStage, getGradeLevelExpectations } from './gradeUtils.ts';
 
 export const createLessonPrompt = (
   subject: string,

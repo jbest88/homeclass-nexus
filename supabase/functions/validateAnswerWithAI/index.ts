@@ -23,15 +23,12 @@ serve(async (req) => {
       ? userAnswers.join(", ") 
       : userAnswers;
 
-    const prompt = `You are an expert teacher evaluating a student's answer. I will provide you with a question and the student's answer in JSON format. Please analyze if the answer is correct and provide an explanation.
+    const prompt = `You are an expert teacher evaluating a student's answer. You must respond with a JSON object containing exactly two fields: "isCorrect" (boolean) and "explanation" (string).
 
-Input JSON:
-{
-  "question": "${question}",
-  "studentAnswer": "${userAnswersStr}",
-  "questionType": "${type}",
-  "correctAnswer": "${Array.isArray(correctAnswers) ? correctAnswers.join(", ") : correctAnswers}"
-}
+Question: "${question}"
+Student's answer: "${userAnswersStr}"
+Type: ${type}
+Correct answer(s): ${Array.isArray(correctAnswers) ? correctAnswers.join(", ") : correctAnswers}
 
 For mathematical questions:
 1. Parse numerical expressions carefully
@@ -39,11 +36,13 @@ For mathematical questions:
 3. Handle negative numbers and decimals properly
 4. Show step-by-step solution in explanation
 
-Respond with a JSON object in this exact format:
+Your response must be a valid JSON object with this exact format:
 {
   "isCorrect": true/false,
   "explanation": "Your explanation here"
-}`;
+}
+
+Do not include any other text before or after the JSON object.`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     console.log('Sending prompt to Gemini:', prompt);
@@ -54,9 +53,17 @@ Respond with a JSON object in this exact format:
     
     console.log('Gemini response:', text);
 
-    // Parse the JSON response
+    // Try to parse the JSON response
     try {
-      const jsonResponse = JSON.parse(text);
+      // Clean the response text to ensure it only contains the JSON object
+      const cleanedText = text.trim().replace(/```json\n?|\n?```/g, '');
+      const jsonResponse = JSON.parse(cleanedText);
+
+      // Validate the response structure
+      if (typeof jsonResponse.isCorrect !== 'boolean' || typeof jsonResponse.explanation !== 'string') {
+        throw new Error('Response missing required fields');
+      }
+
       console.log('Parsed response:', jsonResponse);
 
       return new Response(
@@ -70,7 +77,21 @@ Respond with a JSON object in this exact format:
       );
     } catch (parseError) {
       console.error('Error parsing AI response as JSON:', parseError);
-      throw new Error("Invalid response format from AI");
+      console.error('Raw response:', text);
+      
+      // Attempt to extract information from non-JSON response
+      const isCorrect = text.toLowerCase().includes('correct') && !text.toLowerCase().includes('incorrect');
+      const explanation = "The answer was " + (isCorrect ? "correct" : "incorrect") + ". Please try again.";
+      
+      return new Response(
+        JSON.stringify({ isCorrect, explanation }),
+        {
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          },
+        }
+      );
     }
   } catch (error) {
     console.error('Error in validateAnswerWithAI function:', error);

@@ -32,7 +32,7 @@ export const LessonContent = ({ title, subject, content, lessonId }: LessonConte
         .select('*')
         .eq('lesson_id', lessonId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading progress:', error);
@@ -41,7 +41,7 @@ export const LessonContent = ({ title, subject, content, lessonId }: LessonConte
 
       if (data) {
         setCurrentSection(data.current_section);
-        setCompletedSections(data.completed_sections);
+        setCompletedSections(data.completed_sections || []);
       }
     };
 

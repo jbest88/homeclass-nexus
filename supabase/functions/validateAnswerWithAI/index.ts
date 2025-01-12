@@ -16,7 +16,41 @@ serve(async (req) => {
 
   try {
     const { question, userAnswers, correctAnswers, type } = await req.json();
-    console.log('Validating answer:', { question, userAnswers, type });
+    console.log('Validating answer:', { question, userAnswers, correctAnswers, type });
+
+    // Special handling for measuring tools question
+    if (question.toLowerCase().includes('tools we use to measure') || 
+        question.toLowerCase().includes('measuring tools')) {
+      const validMeasuringTools = [
+        'ruler', 'scale', 'measuring cup', 'meter stick', 'tape measure',
+        'thermometer', 'measuring spoon', 'protractor', 'caliper'
+      ];
+
+      // If it's a multiple answer question about measuring tools
+      if (type === 'multiple-answer' && Array.isArray(userAnswers)) {
+        const normalizedUserAnswers = userAnswers.map(a => a.toLowerCase().trim());
+        
+        // Check if all user answers are valid measuring tools
+        const allValid = normalizedUserAnswers.every(answer => 
+          validMeasuringTools.includes(answer.toLowerCase())
+        );
+
+        return new Response(
+          JSON.stringify({
+            isCorrect: allValid,
+            explanation: allValid 
+              ? '' 
+              : 'Some of your selected items are not measuring tools. Valid measuring tools include rulers, scales, measuring cups, meter sticks, and other tools specifically designed for measurement.'
+          }),
+          {
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            },
+          }
+        );
+      }
+    }
 
     // Format answers for display
     const userAnswersStr = Array.isArray(userAnswers) 
@@ -88,10 +122,10 @@ EXPLANATION: [only if incorrect, otherwise leave blank]`;
       }
     );
   } catch (error) {
-    console.error("Error in validateAnswerWithAI:", error);
+    console.error('Error in validateAnswerWithAI function:', error);
     return new Response(
       JSON.stringify({ 
-        error: "Failed to validate answer",
+        error: error.message,
         isCorrect: false,
         explanation: `Error validating answer: ${error.message}`
       }),

@@ -73,8 +73,9 @@ export const validateMultipleAnswer = ({
     }
   }
   
-  const normalizedUserAnswers = userAnswers.map(normalizeText);
-  const normalizedCorrectAnswers = correctAnswers.map(normalizeText);
+  // Normalize both arrays for comparison
+  const normalizedUserAnswers = userAnswers.map(answer => normalizeText(answer || ''));
+  const normalizedCorrectAnswers = correctAnswers.map(answer => normalizeText(answer || ''));
   
   const hasAllOfTheAbove = correctAnswers.some(answer => answer && isAllOfTheAbove(answer));
   
@@ -97,14 +98,13 @@ export const validateMultipleAnswer = ({
         : `You need to either select 'All of the above' or select each correct option individually: ${individualOptions.join(', ')}.`;
     }
   } else {
-    // Updated validation logic to handle order-independent comparison
-    isCorrect = normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
-                normalizedUserAnswers.every(answer => 
-                  normalizedCorrectAnswers.includes(answer)
-                ) &&
-                normalizedCorrectAnswers.every(answer =>
-                  normalizedUserAnswers.includes(answer)
-                );
+    // Sort both arrays to ensure order doesn't matter
+    const sortedUserAnswers = [...normalizedUserAnswers].sort();
+    const sortedCorrectAnswers = [...normalizedCorrectAnswers].sort();
+    
+    // Compare the sorted arrays
+    isCorrect = sortedUserAnswers.length === sortedCorrectAnswers.length &&
+                sortedUserAnswers.every((answer, index) => answer === sortedCorrectAnswers[index]);
     
     if (!isCorrect) {
       const missing = correctAnswers.filter(answer => 

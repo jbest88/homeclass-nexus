@@ -9,15 +9,14 @@ export const useAnswerValidation = () => {
   ) => {
     const responseTime = Math.round((Date.now() - startTime) / 1000);
 
-    const response = await supabase.functions.invoke("validateAnswers", {
+    const response = await supabase.functions.invoke("validateAnswerWithAI", {
       body: {
         question: question.question,
-        userAnswer,
-        correctAnswer: question.answer,
+        userAnswers: userAnswer,
+        correctAnswers: question.type === 'multiple-answer' 
+          ? (question as any).correctAnswers 
+          : question.answer,
         type: question.type,
-        ...(question.type === 'multiple-answer' && { 
-          correctAnswers: (question as any).correctAnswers 
-        }),
       },
     });
 

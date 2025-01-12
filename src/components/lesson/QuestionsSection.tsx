@@ -47,7 +47,8 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     performance,
     initializeAnswers,
     resetAnswers,
-  } = useQuestionResponses(lessonId, subject, false); // Changed hasAnsweredBefore to false
+    setIsSubmitted,  // Now properly destructured from the hook
+  } = useQuestionResponses(lessonId, subject, false);
 
   const handleContinue = () => {
     navigate("/dashboard");
@@ -55,7 +56,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
 
   const handleTryAgain = () => {
     resetAnswers();
-    setIsSubmitted(false);
+    setIsSubmitted(false);  // Now this will work correctly
   };
 
   const handleGenerateNewLesson = async () => {
@@ -185,7 +186,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             question={question}
             answerState={answers[index] || { answer: "", isSubmitted: false }}
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
-            isLocked={false} // Removed hasAnsweredBefore check
+            isLocked={false}
           />
         ))}
         {!isSubmitted ? (

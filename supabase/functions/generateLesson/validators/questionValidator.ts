@@ -1,6 +1,59 @@
 import { Question } from '../types.ts';
+import { GoogleGenerativeAI } from "npm:@google/generative-ai@^0.1.0";
 
-export const validateQuestions = (questions: Question[]) => {
+const validateQuestionWithAI = async (question: Question): Promise<boolean> => {
+  try {
+    const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const prompt = `Validate this question and its answer(s). Return a JSON object with "isValid" (boolean) and "reason" (string) explaining why.
+    
+    Question: "${question.question}"
+    Type: ${question.type}
+    ${question.options ? `Options: ${JSON.stringify(question.options)}` : ''}
+    ${question.type === 'multiple-answer' 
+      ? `Correct Answers: ${JSON.stringify(question.correctAnswers)}`
+      : `Correct Answer: ${question.answer}`}
+
+    Check for:
+    1. Question clarity and completeness
+    2. Answer correctness (must be unambiguously correct)
+    3. For multiple choice/answer questions:
+       - All options are relevant to the question
+       - Options are distinct and unambiguous
+       - Correct answer(s) are present in the options
+    4. For true/false questions:
+       - Statement is clear and unambiguous
+       - Answer is definitively true or false
+    5. For text questions:
+       - Question has a specific, clear answer
+       - Answer is appropriate for the grade level
+
+    Return ONLY a JSON object like this:
+    {
+      "isValid": true/false,
+      "reason": "explanation of validity or issues found"
+    }`;
+
+    console.log('Sending validation prompt to Gemini:', prompt);
+    
+    const result = await model.generateContent(prompt);
+    const response = JSON.parse(result.response.text());
+    
+    console.log('AI validation response:', response);
+    
+    if (!response.isValid) {
+      console.error('Question validation failed:', response.reason);
+    }
+    
+    return response.isValid;
+  } catch (error) {
+    console.error('Error validating question with AI:', error);
+    throw new Error(`AI validation failed: ${error.message}`);
+  }
+};
+
+export const validateQuestions = async (questions: Question[]) => {
   if (!Array.isArray(questions)) {
     throw new Error('Generated questions must be an array');
   }
@@ -9,11 +62,26 @@ export const validateQuestions = (questions: Question[]) => {
     throw new Error(`Expected 5 questions, but got ${questions.length}`);
   }
 
+  // First run basic validation
   questions.forEach((q, index) => {
     validateQuestion(q, index);
   });
 
   validateQuestionTypes(questions);
+
+  // Then run AI validation for each question
+  console.log('Running AI validation on questions...');
+  const validationResults = await Promise.all(
+    questions.map(async (q, index) => {
+      const isValid = await validateQuestionWithAI(q);
+      return { index, isValid };
+    })
+  );
+
+  const invalidQuestions = validationResults.filter(result => !result.isValid);
+  if (invalidQuestions.length > 0) {
+    throw new Error(`Questions at indices ${invalidQuestions.map(q => q.index).join(', ')} failed AI validation`);
+  }
 };
 
 const validateQuestion = (q: any, index: number) => {

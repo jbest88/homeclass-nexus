@@ -44,6 +44,56 @@ export const generateLesson = async (
   const topics = extractTopics(lessonContent);
   console.log('Extracted topics:', topics);
 
+  let validQuestions = null;
+  let attempts = 0;
+  const maxAttempts = 3;
+
+  while (!validQuestions && attempts < maxAttempts) {
+    attempts++;
+    console.log(`Generating questions attempt ${attempts}/${maxAttempts}`);
+    
+    try {
+      const questionsPrompt = createQuestionsPrompt(
+        lessonContent, 
+        gradeLevelText, 
+        difficultyLevel, 
+        isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel
+      );
+      const questionsText = await generateWithGemini(geminiApiKey, questionsPrompt);
+
+      console.log('Raw questions text:', questionsText);
+      
+      const cleanedQuestionsText = questionsText
+        .replace(/```json\n|\n```/g, '')
+        .replace(/^[\s\n]*\[/, '[')
+        .replace(/\][\s\n]*$/, ']')
+        .trim();
+      
+      console.log('Cleaned questions text:', cleanedQuestionsText);
+      
+      try {
+        const questions = JSON.parse(cleanedQuestionsText);
+        await validateQuestions(questions);
+        validQuestions = questions;
+        console.log('Questions validated successfully');
+      } catch (parseError) {
+        console.error(`Attempt ${attempts}: Error validating questions:`, parseError);
+        if (attempts === maxAttempts) {
+          throw new Error(`Failed to generate valid questions after ${maxAttempts} attempts: ${parseError.message}`);
+        }
+      }
+    } catch (error) {
+      console.error(`Attempt ${attempts}: Error generating questions:`, error);
+      if (attempts === maxAttempts) {
+        throw new Error(`Failed to generate questions after ${maxAttempts} attempts: ${error.message}`);
+      }
+    }
+  }
+
+  if (!validQuestions) {
+    throw new Error('Failed to generate valid questions');
+  }
+
   // Search for relevant YouTube videos using the YouTube API directly
   const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
   if (!YOUTUBE_API_KEY) {
@@ -84,42 +134,6 @@ export const generateLesson = async (
     videos = [];
   }
 
-  console.log('Generating questions');
-  const questionsPrompt = createQuestionsPrompt(
-    lessonContent, 
-    gradeLevelText, 
-    difficultyLevel, 
-    isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel
-  );
-  const questionsText = await generateWithGemini(geminiApiKey, questionsPrompt);
-
-  let questions;
-  try {
-    console.log('Raw questions text:', questionsText);
-    
-    const cleanedQuestionsText = questionsText
-      .replace(/```json\n|\n```/g, '')
-      .replace(/^[\s\n]*\[/, '[')
-      .replace(/\][\s\n]*$/, ']')
-      .trim();
-    
-    console.log('Cleaned questions text:', cleanedQuestionsText);
-    
-    try {
-      questions = JSON.parse(cleanedQuestionsText);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      throw new Error(`Failed to parse questions JSON: ${parseError.message}`);
-    }
-
-    validateQuestions(questions);
-
-  } catch (error) {
-    console.error('Error validating questions:', error);
-    console.log('Questions array:', questions);
-    throw new Error(`Question validation failed: ${error.message}`);
-  }
-
   const title = lessonContent.split('\n')[0].replace('#', '').trim();
   const content = lessonContent.split('\n').slice(1).join('\n').trim();
 
@@ -128,7 +142,7 @@ export const generateLesson = async (
   return {
     title,
     content,
-    questions,
-    videos,
+    questions: validQuestions,
+    videos: videos || [],
   };
 };

@@ -9,13 +9,20 @@ export const useAnswerValidation = () => {
   ) => {
     const responseTime = Math.round((Date.now() - startTime) / 1000);
 
+    // Sort arrays to ensure consistent comparison
+    const processedUserAnswer = Array.isArray(userAnswer) 
+      ? [...userAnswer].sort() 
+      : userAnswer;
+
+    const correctAnswers = question.type === 'multiple-answer'
+      ? [...(question as any).correctAnswers].sort()
+      : question.answer;
+
     const response = await supabase.functions.invoke("validateAnswerWithAI", {
       body: {
         question: question.question,
-        userAnswers: userAnswer,
-        correctAnswers: question.type === 'multiple-answer' 
-          ? (question as any).correctAnswers 
-          : question.answer,
+        userAnswers: processedUserAnswer,
+        correctAnswers: correctAnswers,
         type: question.type,
       },
     });

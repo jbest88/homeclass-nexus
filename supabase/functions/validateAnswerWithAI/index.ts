@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,8 +20,28 @@ serve(async (req) => {
     }
 
     // Format answers for the prompt
-    const userAnswersStr = Array.isArray(userAnswers) ? userAnswers.join(', ') : userAnswers;
-    const correctAnswersStr = Array.isArray(correctAnswers) ? correctAnswers.join(', ') : correctAnswers;
+    const userAnswersStr = Array.isArray(userAnswers) 
+      ? userAnswers.join(', ') 
+      : userAnswers;
+    const correctAnswersStr = Array.isArray(correctAnswers) 
+      ? correctAnswers.join(', ') 
+      : correctAnswers;
+
+    // Special handling for multiple-answer questions
+    const isMultipleAnswer = type === 'multiple-answer';
+    let isCorrect = false;
+
+    if (isMultipleAnswer && Array.isArray(userAnswers) && Array.isArray(correctAnswers)) {
+      // Sort both arrays for consistent comparison
+      const sortedUserAnswers = [...userAnswers].sort();
+      const sortedCorrectAnswers = [...correctAnswers].sort();
+      
+      // Check if arrays have same length and same elements
+      isCorrect = sortedUserAnswers.length === sortedCorrectAnswers.length &&
+                 sortedUserAnswers.every((answer, index) => 
+                   answer === sortedCorrectAnswers[index]
+                 );
+    }
 
     const prompt = `Evaluate this answer:
 
@@ -34,7 +53,7 @@ First, determine if the student's answer is completely correct.
 Then, provide a very brief explanation (1-2 sentences) if incorrect.
 
 Respond in this exact format:
-CORRECT: [true/false]
+CORRECT: ${isMultipleAnswer ? isCorrect.toString() : '[true/false]'}
 EXPLANATION: [only if incorrect, otherwise leave blank]`;
 
     console.log('Sending prompt to Gemini:', prompt);
@@ -67,16 +86,20 @@ EXPLANATION: [only if incorrect, otherwise leave blank]`;
 
     const aiResponse = data.candidates[0].content.parts[0].text.trim();
     
-    // Parse the AI response
-    const correctMatch = aiResponse.match(/CORRECT:\s*(true|false)/i);
+    // For multiple-answer questions, use our pre-computed isCorrect
+    const correctMatch = isMultipleAnswer 
+      ? { 1: isCorrect.toString() }
+      : aiResponse.match(/CORRECT:\s*(true|false)/i);
     const explanationMatch = aiResponse.match(/EXPLANATION:\s*(.+)/i);
     
-    const isCorrect = correctMatch ? correctMatch[1].toLowerCase() === 'true' : false;
+    const finalIsCorrect = isMultipleAnswer 
+      ? isCorrect 
+      : correctMatch ? correctMatch[1].toLowerCase() === 'true' : false;
     const explanation = explanationMatch ? explanationMatch[1].trim() : '';
 
     return new Response(
       JSON.stringify({ 
-        isCorrect,
+        isCorrect: finalIsCorrect,
         explanation,
         aiResponse,
       }),

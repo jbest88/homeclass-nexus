@@ -6,9 +6,16 @@ export const createLessonPrompt = (
   curriculumPeriod: string
 ): string => {
   const curriculumContext = getCurriculumContext(curriculumPeriod);
+  const gradeAdjustedDifficulty = getGradeAdjustedDifficulty(gradeLevelText, difficultyLevel);
 
-  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10).
+  return `Create an engaging, grade-appropriate lesson about ${subject} specifically for a ${gradeLevelText} student at a ${gradeAdjustedDifficulty} difficulty level (proficiency: ${proficiencyLevel}/10).
 
+    CRITICAL GRADE-LEVEL REQUIREMENTS:
+    - Content MUST be precisely calibrated for ${gradeLevelText} students
+    - Use vocabulary and concepts that are grade-appropriate
+    - Examples must reflect real-world scenarios that ${gradeLevelText} students can relate to
+    - Explanations should match the cognitive development level of ${gradeLevelText} students
+    
     IMPORTANT: 
     - The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
     - Based on the student's current learning progression:
@@ -48,10 +55,15 @@ export const createQuestionsPrompt = (
   difficultyLevel: string,
   proficiencyLevel: number
 ): string => {
-  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions to help a ${gradeLevelText} student check their understanding. The questions must align with a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10).
+  const gradeAdjustedDifficulty = getGradeAdjustedDifficulty(gradeLevelText, difficultyLevel);
+  
+  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions to help a ${gradeLevelText} student check their understanding. The questions must align with a ${gradeAdjustedDifficulty} difficulty level (proficiency: ${proficiencyLevel}/10).
 
     CRITICAL RULES:
-    1. The questions MUST be appropriate for ${gradeLevelText} students and match the lesson content.
+    1. Questions MUST be precisely calibrated for ${gradeLevelText} students:
+       - Use grade-appropriate vocabulary and concepts
+       - Match the cognitive development level of the grade
+       - Ensure examples are relatable to students of this age
     2. Generate EXACTLY 5 questions, covering these types:
        - Multiple choice (2 questions)
        - Multiple answer (1 question)
@@ -152,5 +164,29 @@ const getCurriculumContext = (curriculumPeriod: string) => {
         previousKnowledge: "prerequisite concepts for this grade level",
         upcomingTopics: "upcoming grade-level material"
       };
+  }
+};
+
+const getGradeAdjustedDifficulty = (gradeLevelText: string, baseDifficulty: string): string => {
+  // Extract grade number (or 0 for kindergarten)
+  const gradeNum = gradeLevelText.toLowerCase().includes('kindergarten') ? 0 : 
+    parseInt(gradeLevelText.match(/\d+/)?.[0] || '0');
+
+  // Adjust difficulty based on grade level
+  switch (baseDifficulty.toLowerCase()) {
+    case 'easy':
+      return gradeNum <= 3 ? 'foundational' : 
+             gradeNum <= 6 ? 'basic' : 
+             gradeNum <= 9 ? 'introductory' : 'standard';
+    case 'medium':
+      return gradeNum <= 3 ? 'basic' : 
+             gradeNum <= 6 ? 'standard' : 
+             gradeNum <= 9 ? 'intermediate' : 'advanced';
+    case 'hard':
+      return gradeNum <= 3 ? 'challenging' : 
+             gradeNum <= 6 ? 'advanced' : 
+             gradeNum <= 9 ? 'complex' : 'expert';
+    default:
+      return 'standard';
   }
 };

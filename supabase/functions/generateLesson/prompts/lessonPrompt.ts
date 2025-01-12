@@ -10,60 +10,60 @@ export const createLessonPrompt = (
   const piagetStage = getPiagetStage(gradeLevelText);
   const gradeExpectations = getGradeLevelExpectations(gradeLevelText);
 
-  return `Generate an academically rigorous lesson on ${subject} that strictly adheres to ${gradeLevelText} academic standards. The content must maintain sophisticated academic depth while being precisely calibrated for the target grade level.
+  return `Generate an engaging and academically sound lesson on ${subject} that aligns with ${gradeLevelText} curriculum standards. The content should maintain academic depth while being accessible to students at this level.
 
     ACADEMIC REQUIREMENTS:
-    - Content MUST be at the upper range of ${gradeLevelText} curriculum standards
-    - Target cognitive development: ${piagetStage}
+    - Content should target the upper-middle range of ${gradeLevelText} curriculum standards
+    - Cognitive development stage: ${piagetStage}
     - Academic expectations: ${gradeExpectations}
-    - Employ precise academic terminology and sophisticated vocabulary appropriate for ${gradeLevelText}
-    - Incorporate advanced theoretical frameworks and complex analytical approaches
-    - Emphasize interdisciplinary connections and higher-order thinking skills
-    - CRITICAL: Content must challenge students at the upper bounds of their grade level
+    - Use precise academic terminology appropriate for ${gradeLevelText}
+    - Balance theoretical understanding with practical applications
+    - Incorporate cross-disciplinary connections where relevant
+    - Challenge students while maintaining grade-level accessibility
 
     CONTENT STRUCTURE:
-    1. Core Theoretical Framework:
-       - Present advanced theoretical principles
-       - Define complex terminology with precision
-       - Establish mathematical/scientific foundations
+    1. Core Concepts:
+       - Present key theoretical principles clearly
+       - Define important terminology precisely
+       - Establish foundational understanding
     
-    2. Advanced Concept Analysis:
+    2. Concept Development:
        For each key concept:
        * Theoretical Foundation:
-         - Rigorous mathematical/scientific principles
-         - Formal definitions and proofs where applicable
-         - Underlying mechanisms and relationships
+         - Clear explanation of principles
+         - Logical progression of ideas
+         - Key relationships and patterns
        
-       * Complex Examples:
-         - Sophisticated real-world applications
-         - Multi-step problem-solving scenarios
-         - Advanced case studies
-         - Analytical frameworks
+       * Worked Examples:
+         - Step-by-step problem solving
+         - Real-world applications
+         - Clear analytical process
+         - Practice opportunities
        
-       * Critical Analysis:
-         - Theoretical implications
-         - Edge cases and limitations
-         - Advanced problem-solving strategies
+       * Understanding Check:
+         - Key points summary
+         - Common misconceptions addressed
+         - Application strategies
     
-    3. Integration Points:
-       - Connect to advanced topics in related fields
-       - Explore theoretical intersections
-       - Analyze real-world applications
+    3. Connections:
+       - Link to related topics
+       - Show practical relevance
+       - Connect to other subjects
     
-    4. Advanced Applications:
-       - Complex problem-solving scenarios
-       - Multi-variable analysis
-       - Real-world case studies
-       - Theoretical extensions
+    4. Applications:
+       - Practical problem-solving
+       - Real-world examples
+       - Hands-on activities
+       - Extension opportunities
 
     CRITICAL GUIDELINES:
-    - Maintain sophisticated academic language throughout
-    - Include rigorous mathematical/scientific notation where appropriate
-    - Present complex, multi-step examples
-    - Challenge students with advanced concepts while maintaining grade-level appropriateness
-    - Focus on theoretical understanding and analytical thinking
-    - Emphasize problem-solving strategies and critical analysis
-    - IMPORTANT: Content must be at the upper bounds of ${gradeLevelText} difficulty
+    - Use clear, precise language
+    - Include appropriate mathematical/scientific notation
+    - Present step-by-step examples
+    - Balance challenge with accessibility
+    - Focus on understanding and application
+    - Emphasize problem-solving strategies
+    - Maintain engagement through relevant examples
 
-    The content should maintain high academic rigor while being precisely calibrated for ${gradeLevelText}. Include a clear, academically appropriate title that reflects the sophisticated nature of the content.`;
+    The content should be academically sound while being appropriately challenging for ${gradeLevelText}. Include a clear, descriptive title that reflects the lesson content.`;
 };

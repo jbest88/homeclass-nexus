@@ -97,7 +97,7 @@ export const QuestionComponent = ({
       const userAnswer = String(answerState.answer).toLowerCase();
       const correctAnswer = String(question.answer).toLowerCase();
       
-      if (isNumberComparisonQuestion(question)) {
+      if (isNumberComparisonQuestion(question.question)) {
         const numbers = question.question.match(/[\d,]+/g)?.map(num => Number(num.replace(/,/g, '')));
         
         if (numbers && numbers.length >= 2) {

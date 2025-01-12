@@ -2,68 +2,65 @@ export const createQuestionsPrompt = (
   lessonContent: string,
   gradeLevelText: string,
 ): string => {
-  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions to help a ${gradeLevelText} student check their understanding.
+  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 challenging practice questions to test deep understanding for an advanced ${gradeLevelText} student.
 
     CRITICAL RULES:
-    1. Questions MUST be precisely calibrated for ${gradeLevelText} students:
-       - Use grade-appropriate vocabulary and concepts
-       - Match the cognitive development level of the grade
-       - Ensure examples are relatable to students of this age
+    1. Questions MUST be challenging yet appropriate for advanced ${gradeLevelText} students:
+       - Use sophisticated vocabulary and complex concepts
+       - Require multi-step problem solving
+       - Include application of multiple concepts
+       - Test deeper understanding rather than mere recall
     2. Generate EXACTLY 5 questions, covering these types:
-       - Multiple choice (2 questions)
-       - Multiple answer (1 question)
-       - True/False (1 question)
-       - Dropdown (1 question)
-    3. Each question MUST follow the specified JSON format EXACTLY, with no additional text, comments, or deviations.
-    4. IMPORTANT: Do NOT include ANY references to semesters, seasons, or time of year in the questions or answer options.
+       - Multiple choice (2 questions with challenging distractors)
+       - Multiple answer (1 question requiring careful analysis)
+       - True/False (1 question testing subtle understanding)
+       - Dropdown (1 question with complex options)
+    3. Each question MUST follow the specified JSON format EXACTLY
+    4. IMPORTANT: Avoid ANY references to semesters, seasons, or time of year
 
     FOR ALL QUESTIONS:
-    - Ensure every question is directly tied to the content in the lesson.
-    - Use clear, concise, and age-appropriate language.
-    - Avoid ambiguous, tricky, or overly complex phrasing.
-    - Verify that the correct answer(s) match exactly one or more provided options.
-    - Exclude references to visuals unless explicitly included in the lesson.
+    - Require application of multiple concepts from the lesson
+    - Include challenging edge cases and complex scenarios
+    - Test both procedural and conceptual understanding
+    - Incorporate real-world applications
+    - Ensure distractors are plausible and test common misconceptions
 
     SPECIFIC FORMATS:
     1. Multiple choice:
     {
-      "question": "What is...?",
+      "question": "Complex scenario requiring analysis...",
       "type": "multiple-choice",
-      "options": ["option1", "option2", "option3", "option4"],
-      "answer": "option1"
+      "options": ["4 challenging options with subtle differences"],
+      "answer": "correct option"
     }
-    - Provide 3-4 distinct options; one correct answer must match an option.
     
     2. Multiple answer:
     {
-      "question": "Select all that apply...",
+      "question": "Scenario requiring identification of multiple correct elements...",
       "type": "multiple-answer",
-      "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswers": ["option1", "option2"]
+      "options": ["options requiring careful consideration"],
+      "correctAnswers": ["correct options"]
     }
-    - Provide 2-3 correct answers and include "Select all that apply" in the question.
 
     3. True/False:
     {
-      "question": "Is this statement true...?",
+      "question": "Subtle statement testing deep understanding...",
       "type": "true-false",
-      "answer": "true"
+      "answer": "true/false"
     }
-    - Make the statement unambiguous and based on the lesson content.
 
     4. Dropdown:
     {
-      "question": "Choose the correct...?",
+      "question": "Complex scenario with multiple considerations...",
       "type": "dropdown",
-      "options": ["option1", "option2", "option3", "option4"],
-      "answer": "option1"
+      "options": ["carefully crafted options"],
+      "answer": "correct option"
     }
-    - Provide 3-4 options; one correct answer must match an option.
 
     OUTPUT INSTRUCTIONS:
-    - Return ONLY the raw JSON array with EXACTLY 5 questions.
-    - Do NOT include any additional text, explanations, or formatting.
-    - Verify completeness and correctness before output.
+    - Return ONLY the raw JSON array with EXACTLY 5 challenging questions
+    - Verify all questions are properly formatted and challenging
+    - Ensure each question tests deep understanding
 
     Your response should look like this:
     [

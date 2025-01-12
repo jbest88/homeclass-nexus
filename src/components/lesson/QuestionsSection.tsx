@@ -47,7 +47,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     performance,
     initializeAnswers,
     resetAnswers,
-    setIsSubmitted,  // Now properly destructured from the hook
+    setIsSubmitted,
   } = useQuestionResponses(lessonId, subject, false);
 
   const handleContinue = () => {
@@ -56,7 +56,26 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
 
   const handleTryAgain = () => {
     resetAnswers();
-    setIsSubmitted(false);  // Now this will work correctly
+    setIsSubmitted(false);
+  };
+
+  const validateAnswers = () => {
+    // Check if all questions have been answered
+    const unansweredQuestions = questions.filter((_, index) => {
+      const answer = answers[index]?.answer;
+      return !answer || (Array.isArray(answer) && answer.length === 0);
+    });
+
+    if (unansweredQuestions.length > 0) {
+      toast.error("Please answer all questions before submitting.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmitAnswers = async () => {
+    if (!validateAnswers()) return;
+    await handleSubmit(questions);
   };
 
   const handleGenerateNewLesson = async () => {
@@ -191,7 +210,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
         ))}
         {!isSubmitted ? (
           <Button 
-            onClick={() => handleSubmit(questions)} 
+            onClick={handleSubmitAnswers} 
             disabled={isSubmitting}
             className="mt-4"
           >

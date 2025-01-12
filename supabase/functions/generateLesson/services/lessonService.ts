@@ -44,21 +44,45 @@ export const generateLesson = async (
   const topics = extractTopics(lessonContent);
   console.log('Extracted topics:', topics);
 
-  // Search for relevant YouTube videos
-  const videoSearchResponse = await fetch(
-    'http://localhost:54321/functions/v1/searchYouTubeVideos',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-      },
-      body: JSON.stringify({ topics }),
-    }
-  );
+  // Search for relevant YouTube videos using the YouTube API directly
+  const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
+  if (!YOUTUBE_API_KEY) {
+    throw new Error("YouTube API key not configured");
+  }
 
-  const videos = await videoSearchResponse.json();
-  console.log('Found videos:', videos);
+  let videos = [];
+  try {
+    // Process topics in groups of three
+    for (let i = 0; i < topics.length; i += 3) {
+      const topicGroup = topics.slice(i, i + 3);
+      const searchQuery = topicGroup.join(" ");
+      
+      const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+      searchUrl.searchParams.append("part", "snippet");
+      searchUrl.searchParams.append("q", `${searchQuery} educational tutorial`);
+      searchUrl.searchParams.append("type", "video");
+      searchUrl.searchParams.append("maxResults", "1");
+      searchUrl.searchParams.append("videoEmbeddable", "true");
+      searchUrl.searchParams.append("key", YOUTUBE_API_KEY);
+
+      const response = await fetch(searchUrl.toString());
+      const data = await response.json();
+
+      if (data.items?.[0]) {
+        videos.push({
+          videoId: data.items[0].id.videoId,
+          title: data.items[0].snippet.title,
+          description: data.items[0].snippet.description,
+          topics: topicGroup,
+        });
+      }
+    }
+    console.log('Found videos:', videos);
+  } catch (error) {
+    console.error('Error searching YouTube videos:', error);
+    // Continue without videos if there's an error
+    videos = [];
+  }
 
   console.log('Generating questions');
   const questionsPrompt = createQuestionsPrompt(

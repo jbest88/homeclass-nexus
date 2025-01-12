@@ -7,13 +7,14 @@ export const createLessonPrompt = (
 ): string => {
   const curriculumContext = getCurriculumContext(curriculumPeriod);
 
-  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10) during their ${curriculumPeriod}.
+  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10).
 
     IMPORTANT: 
     - The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
-    - The lesson should focus on ${curriculumContext.currentTopics}
-    - Assume students have already learned ${curriculumContext.previousKnowledge}
-    - The content should build upon this foundation and prepare them for ${curriculumContext.upcomingTopics}
+    - Since we are in the ${curriculumPeriod}:
+      - Focus on teaching ${curriculumContext.currentTopics}
+      - Build upon ${curriculumContext.previousKnowledge}
+      - Prepare students for ${curriculumContext.upcomingTopics}
 
     Write as if you're directly speaking to the student. Use clear, conversational language and include:
     - A friendly introduction that gets them excited about the topic
@@ -111,33 +112,33 @@ const getCurriculumContext = (curriculumPeriod: string) => {
   switch (curriculumPeriod) {
     case "Fall Semester":
       return {
-        currentTopics: "foundational concepts and introductory material for this grade level",
-        previousKnowledge: "material from their previous grade level",
-        upcomingTopics: "more advanced concepts later in the year"
+        currentTopics: "foundational concepts and core principles that will be built upon throughout the year",
+        previousKnowledge: "concepts from the previous grade level",
+        upcomingTopics: "intermediate applications and expanding core concepts"
       };
     case "Winter Term":
       return {
-        currentTopics: "intermediate concepts that build upon Fall semester material",
-        previousKnowledge: "foundational concepts from the Fall semester",
-        upcomingTopics: "more complex applications in the Spring semester"
+        currentTopics: "intermediate concepts and deeper applications of Fall semester foundations",
+        previousKnowledge: "foundational concepts established in the Fall semester",
+        upcomingTopics: "advanced topics and complex problem-solving"
       };
     case "Spring Semester":
       return {
-        currentTopics: "advanced applications and synthesis of previous learning",
-        previousKnowledge: "both foundational and intermediate concepts from Fall and Winter terms",
-        upcomingTopics: "end-of-year comprehensive understanding"
+        currentTopics: "advanced applications and integration of previous concepts",
+        previousKnowledge: "foundational and intermediate concepts from Fall and Winter",
+        upcomingTopics: "comprehensive mastery and preparation for next grade level"
       };
     case "Summer Term":
       return {
-        currentTopics: "review and enrichment of the year's most important concepts",
-        previousKnowledge: "the full year's curriculum",
-        upcomingTopics: "preparation for the next grade level"
+        currentTopics: "synthesis of the year's key concepts and addressing any knowledge gaps",
+        previousKnowledge: "the full academic year's curriculum",
+        upcomingTopics: "next grade level's foundational concepts"
       };
     default:
       return {
         currentTopics: "grade-appropriate concepts",
         previousKnowledge: "prerequisite concepts for this grade level",
-        upcomingTopics: "future learning in this subject"
+        upcomingTopics: "upcoming grade-level material"
       };
   }
 };

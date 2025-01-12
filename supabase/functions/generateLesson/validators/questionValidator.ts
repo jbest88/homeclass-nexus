@@ -17,22 +17,22 @@ const validateQuestionWithAI = async (question: Question): Promise<boolean> => {
 
     Check for:
     1. Question clarity and completeness
-    2. Answer correctness (must be unambiguously correct)
+    2. Answer correctness and presence in options
     3. For multiple choice/answer questions:
-       - All options are relevant to the question
-       - Options are distinct and unambiguous
-       - Correct answer(s) are present in the options
+       - All options are relevant
+       - Options are distinct
+       - Correct answer(s) are present in options
     4. For true/false questions:
-       - Statement is clear and unambiguous
+       - Statement is clear
        - Answer is definitively true or false
-    5. For text questions:
-       - Question has a specific, clear answer
-       - Answer is appropriate for the grade level
+    5. For multiple-answer questions:
+       - All correct answers must be in the options list
+       - Correct answers should be a subset of options
 
     Return ONLY a JSON object like this:
     {
       "isValid": true/false,
-      "reason": "explanation of validity or issues found"
+      "reason": "explanation"
     }`;
 
     console.log('Sending validation prompt to Gemini:', prompt);
@@ -125,7 +125,7 @@ const validateMultipleChoice = (q: any, index: number) => {
     throw new Error(`Question ${index + 1} needs at least 2 options`);
   }
   if (!q.answer || !q.options.includes(q.answer)) {
-    throw new Error(`Question ${index + 1}'s answer (${q.answer}) must be one of the options: ${q.options.join(', ')}`);
+    throw new Error(`Question ${index + 1}'s answer must be one of the options`);
   }
 };
 
@@ -136,8 +136,15 @@ const validateMultipleAnswer = (q: any, index: number) => {
   if (!Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) {
     throw new Error(`Question ${index + 1} needs at least one correct answer`);
   }
+  
+  // Ensure all correct answers are in the options list
   const invalidAnswers = q.correctAnswers.filter((answer: string) => !q.options.includes(answer));
   if (invalidAnswers.length > 0) {
+    console.error(`Invalid answers for question ${index + 1}:`, {
+      correctAnswers: q.correctAnswers,
+      options: q.options,
+      invalidAnswers
+    });
     throw new Error(`Question ${index + 1}'s correct answers (${invalidAnswers.join(', ')}) must all be in the options: ${q.options.join(', ')}`);
   }
 };
@@ -159,12 +166,10 @@ const validateQuestionTypes = (questions: Question[]) => {
     return acc;
   }, {} as Record<string, number>);
 
-  // Check for exactly 2 multiple-choice questions
   if (typeCount['multiple-choice'] !== 2) {
     throw new Error('Must have exactly 2 multiple-choice questions');
   }
 
-  // Check for exactly 1 of each other type
   const requiredSingleTypes = ['multiple-answer', 'true-false', 'dropdown'];
   const missingTypes = requiredSingleTypes.filter(type => typeCount[type] !== 1);
   

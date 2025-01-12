@@ -8,7 +8,7 @@ export const createLessonPrompt = (
   const curriculumContext = getCurriculumContext(curriculumPeriod);
   const gradeAdjustedDifficulty = getGradeAdjustedDifficulty(gradeLevelText, difficultyLevel);
 
-  return `Create an engaging, grade-appropriate lesson about ${subject} specifically for a ${gradeLevelText} student at a ${gradeAdjustedDifficulty} difficulty level (proficiency: ${proficiencyLevel}/10).
+  return `Imagine you are a university level professor teaching ${gradeLevelText}. Create an engaging, grade-appropriate lesson about ${subject} specifically for a ${gradeLevelText} student at a ${gradeAdjustedDifficulty} difficulty level (proficiency: ${proficiencyLevel}/10).
 
     CRITICAL GRADE-LEVEL REQUIREMENTS:
     - Content MUST be precisely calibrated for ${gradeLevelText} students

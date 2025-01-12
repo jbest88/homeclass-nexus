@@ -5,17 +5,17 @@ import { corsHeaders } from "./utils.ts";
 console.log("Generate lesson function started");
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        ...corsHeaders,
-        "Access-Control-Max-Age": "86400",
-      },
-    });
-  }
-
   try {
+    // Handle CORS preflight requests
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          ...corsHeaders,
+          "Access-Control-Max-Age": "86400",
+        },
+      });
+    }
+
     const { subject, userId, isRetry } = await req.json();
     console.log(`Generating lesson for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}`);
 
@@ -33,7 +33,7 @@ serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Error generating lesson:", error);
+    console.error("Error in generateLesson function:", error);
     
     return new Response(
       JSON.stringify({

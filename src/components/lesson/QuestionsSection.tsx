@@ -4,11 +4,11 @@ import { QuestionComponent } from "./QuestionComponent";
 import { useQuestionResponses } from "@/hooks/useQuestionResponses";
 import { Question } from "@/types/questions";
 import { useNavigate } from "react-router-dom";
-import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface QuestionsSectionProps {
   questions: Question[];
@@ -16,29 +16,72 @@ interface QuestionsSectionProps {
   subject: string;
 }
 
-export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSectionProps) => {
+export const QuestionsSection = ({ questions: initialQuestions, lessonId, subject }: QuestionsSectionProps) => {
   const navigate = useNavigate();
   const user = useUser();
-  const { handleGenerateLesson, isGenerating } = useGenerateLesson();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [questions, setQuestions] = useState(initialQuestions);
 
-  // Fetch previous responses for this lesson
-  const { data: previousResponses } = useQuery({
-    queryKey: ["question-responses", lessonId],
+  // Fetch user profile for grade level
+  const { data: profile } = useQuery({
+    queryKey: ["profile"],
     queryFn: async () => {
       if (!user) return null;
       const { data, error } = await supabase
-        .from("question_responses")
-        .select("*")
-        .eq("lesson_id", lessonId)
-        .eq("user_id", user.id);
+        .from("profiles")
+        .select("grade_level")
+        .eq("id", user.id)
+        .single();
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !!lessonId,
+    enabled: !!user,
   });
 
-  const hasAnsweredBefore = previousResponses && previousResponses.length > 0;
+  const getGradeLevelText = (gradeLevel: number | null) => {
+    if (gradeLevel === null) return "Grade 5"; // Default fallback
+    return gradeLevel === 0 ? "Kindergarten" : `Grade ${gradeLevel}`;
+  };
+
+  const handleGenerateNewQuestions = async () => {
+    if (!user || !profile) return;
+    
+    try {
+      setIsGenerating(true);
+      
+      const { data: proficiencyData } = await supabase
+        .from("subject_proficiency")
+        .select("proficiency_level")
+        .eq("user_id", user.id)
+        .eq("subject", subject)
+        .single();
+
+      const proficiencyLevel = proficiencyData?.proficiency_level || 1;
+      const gradeLevelText = getGradeLevelText(profile.grade_level);
+
+      const { data, error } = await supabase.functions.invoke("generateQuestions", {
+        body: {
+          lessonId,
+          userId: user.id,
+          gradeLevelText,
+          difficultyLevel: proficiencyLevel,
+          proficiencyLevel,
+        },
+      });
+
+      if (error) throw error;
+
+      setQuestions(data.questions);
+      toast.success("New practice questions generated!");
+      
+    } catch (error) {
+      console.error("Error generating new questions:", error);
+      toast.error("Failed to generate new questions");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const {
     answers,
@@ -48,152 +91,16 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     handleSubmit,
     performance,
     initializeAnswers,
-  } = useQuestionResponses(lessonId, subject, hasAnsweredBefore);
+  } = useQuestionResponses(lessonId, subject);
 
   React.useEffect(() => {
-    if (previousResponses && previousResponses.length > 0) {
-      const initialAnswers = questions.map((question, index) => {
-        const response = previousResponses.find(r => r.question_index === index);
-        
-        if (response) {
-          return {
-            answer: question.type === 'multiple-answer' ? 
-              (question.correctAnswers || []) : 
-              question.answer,
-            isSubmitted: true,
-            isCorrect: response?.is_correct || false,
-          };
-        }
-
-        return {
-          answer: question.type === 'multiple-answer' ? [] : "",
-          isSubmitted: true,
-          isCorrect: false,
-        };
-      });
-      
-      initializeAnswers(initialAnswers);
+    if (questions) {
+      initializeAnswers(questions.map(() => ({
+        answer: "",
+        isSubmitted: false,
+      })));
     }
-  }, [previousResponses, questions, initializeAnswers]);
-
-  const handleContinue = () => {
-    navigate("/dashboard");
-  };
-
-  const handleGenerateNewLesson = async () => {
-    if (!user) return;
-
-    try {
-      let pathId;
-      let newLesson;
-
-      // Check if this lesson is already part of a learning path
-      const { data: existingPathLesson, error: checkError } = await supabase
-        .from('learning_path_lessons')
-        .select('path_id')
-        .eq('lesson_id', lessonId)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      // Get existing paths for this subject
-      const { data: existingPaths, error: pathError } = await supabase
-        .from('learning_paths')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('subject', subject)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (pathError) throw pathError;
-
-      // Create new path if none exists
-      if (!existingPaths?.length) {
-        const { data: newPath, error: createPathError } = await supabase
-          .from('learning_paths')
-          .insert({
-            user_id: user.id,
-            subject: subject,
-          })
-          .select()
-          .single();
-
-        if (createPathError) throw createPathError;
-        pathId = newPath.id;
-
-        // Add current lesson to the new path
-        const { error: lessonError } = await supabase
-          .from('learning_path_lessons')
-          .insert({
-            path_id: pathId,
-            lesson_id: lessonId,
-            order_index: 0,
-          });
-
-        if (lessonError) throw lessonError;
-      } else {
-        pathId = existingPathLesson?.path_id || existingPaths[0].id;
-
-        // Add current lesson to existing path if not already added
-        if (!existingPathLesson) {
-          const { data: lastLesson, error: orderError } = await supabase
-            .from('learning_path_lessons')
-            .select('order_index')
-            .eq('path_id', pathId)
-            .order('order_index', { ascending: false })
-            .limit(1);
-
-          if (orderError) throw orderError;
-
-          const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
-
-          const { error: addLessonError } = await supabase
-            .from('learning_path_lessons')
-            .insert({
-              path_id: pathId,
-              lesson_id: lessonId,
-              order_index: nextOrderIndex,
-            });
-
-          if (addLessonError) throw addLessonError;
-        }
-      }
-
-      if (performance && pathId) {
-        // Generate a new lesson with increased difficulty if performance is good
-        newLesson = await handleGenerateLesson(
-          subject,
-          performance.correctPercentage < 70
-        );
-
-        if (newLesson) {
-          // Get the latest order_index
-          const { data: lastLesson, error: orderError } = await supabase
-            .from('learning_path_lessons')
-            .select('order_index')
-            .eq('path_id', pathId)
-            .order('order_index', { ascending: false })
-            .limit(1);
-
-          if (orderError) throw orderError;
-
-          const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
-
-          // Add new lesson to learning path
-          await supabase
-            .from('learning_path_lessons')
-            .insert({
-              path_id: pathId,
-              lesson_id: newLesson.id,
-              order_index: nextOrderIndex,
-            });
-        }
-      }
-    } catch (error) {
-      console.error('Error managing learning path:', error);
-      toast.error('Failed to update learning path');
-    }
-  };
+  }, [questions, initializeAnswers]);
 
   if (!questions.length) return null;
 
@@ -207,10 +114,9 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             question={question}
             answerState={answers[index] || { answer: "", isSubmitted: false }}
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
-            isLocked={hasAnsweredBefore}
           />
         ))}
-        {!hasAnsweredBefore && !isSubmitted ? (
+        {!isSubmitted ? (
           <Button 
             onClick={() => handleSubmit(questions)} 
             disabled={isSubmitting}
@@ -221,16 +127,16 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
         ) : (
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <Button 
-              onClick={handleGenerateNewLesson}
+              onClick={handleGenerateNewQuestions}
               disabled={isGenerating}
               className="flex-1"
             >
               {isGenerating ? "Generating..." : performance && performance.correctPercentage < 70 
-                ? "Try a Different Approach" 
-                : "Continue Learning"}
+                ? "Try More Questions" 
+                : "Practice More"}
             </Button>
             <Button 
-              onClick={handleContinue}
+              onClick={() => navigate("/dashboard")}
               variant="outline"
               className="flex-1"
             >
@@ -242,3 +148,5 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     </div>
   );
 };
+
+export default QuestionsSection;

@@ -1,44 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
-    const { question, userAnswers, correctAnswers, type } = await req.json();
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    const { question, userAnswers, type } = await req.json();
 
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY is not configured');
-    }
-
-    // Format answers for the prompt
+    // Format user answers for display
     const userAnswersStr = Array.isArray(userAnswers) 
-      ? userAnswers.join(', ') 
+      ? userAnswers.join(", ") 
       : userAnswers;
-
-    // Special handling for multiple-answer questions
-    const isMultipleAnswer = type === 'multiple-answer';
-    let isCorrect = false;
-
-    if (isMultipleAnswer && Array.isArray(userAnswers) && Array.isArray(correctAnswers)) {
-      // Sort both arrays for consistent comparison
-      const sortedUserAnswers = [...userAnswers].sort();
-      const sortedCorrectAnswers = [...correctAnswers].sort();
-      
-      // Check if arrays have same length and same elements
-      isCorrect = sortedUserAnswers.length === sortedCorrectAnswers.length &&
-                 sortedUserAnswers.every((answer, index) => 
-                   answer === sortedCorrectAnswers[index]
-                 );
-    }
 
     const prompt = `You are an expert teacher evaluating a student's answer.
 
@@ -50,67 +22,42 @@ Based on your expertise and understanding of the subject matter:
 2. If incorrect, provide a very brief explanation (1-2 sentences) to help the student understand why
 
 Respond in this exact format:
-CORRECT: ${isMultipleAnswer ? isCorrect.toString() : '[true/false]'}
+CORRECT: [true/false]
 EXPLANATION: [only if incorrect, otherwise leave blank]`;
 
-    console.log('Sending prompt to Gemini:', prompt);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            topK: 1,
-            topP: 1,
-            maxOutputTokens: 100,
-          },
-        }),
-      }
-    );
+    // Parse the AI response
+    const correctMatch = text.match(/CORRECT:\s*(true|false)/i);
+    const explanationMatch = text.match(/EXPLANATION:\s*(.+)/i);
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+    if (!correctMatch) {
+      throw new Error("Could not parse AI response for correctness");
     }
 
-    const data = await response.json();
-    console.log('Gemini API response:', data);
-
-    const aiResponse = data.candidates[0].content.parts[0].text.trim();
-    
-    // For multiple-answer questions, use our pre-computed isCorrect
-    const correctMatch = isMultipleAnswer 
-      ? { 1: isCorrect.toString() }
-      : aiResponse.match(/CORRECT:\s*(true|false)/i);
-    const explanationMatch = aiResponse.match(/EXPLANATION:\s*(.+)/i);
-    
-    const finalIsCorrect = isMultipleAnswer 
-      ? isCorrect 
-      : correctMatch ? correctMatch[1].toLowerCase() === 'true' : false;
+    const isCorrect = correctMatch[1].toLowerCase() === 'true';
     const explanation = explanationMatch ? explanationMatch[1].trim() : '';
 
+    // Return structured response
     return new Response(
-      JSON.stringify({ 
-        isCorrect: finalIsCorrect,
-        explanation,
-        aiResponse,
+      JSON.stringify({
+        isCorrect,
+        explanation: isCorrect ? '' : explanation
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       }
     );
   } catch (error) {
-    console.error('Error in validateAnswerWithAI function:', error);
+    console.error("Error in validateAnswerWithAI:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Failed to validate answer" }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       }
     );
   }

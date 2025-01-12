@@ -22,53 +22,67 @@ export const validateMultipleAnswer = ({
     };
   }
 
-  // Special handling for questions about countable items
-  if (question?.toLowerCase().includes('can count') || 
-      question?.toLowerCase().includes('are countable') ||
-      question?.toLowerCase().includes('things we can count')) {
-    const normalizedUserAnswers = userAnswers.map(normalizeText);
-    const isCorrect = normalizedUserAnswers.length === userAnswers.length;
-    
-    return {
-      isCorrect,
-      explanation: isCorrect 
-        ? 'Correct! All of these items can be counted.'
-        : `You missed some countable items. All of these options can be counted because they represent discrete, individual units that can be numbered.`
-    };
-  }
-
   // Handle number comparison questions
   if (question && isNumberComparisonQuestion(question)) {
     const comparisonText = question.toLowerCase();
-    const comparisonNumber = comparisonText.includes('less than') ? 
-      wordToNumber(comparisonText.split('less than')[1].trim()) :
-      comparisonText.includes('greater than') ? 
-        wordToNumber(comparisonText.split('greater than')[1].trim()) : 
-        null;
-    
-    if (comparisonNumber !== null) {
-      const userNumbers = userAnswers.map(ans => wordToNumber(ans)).filter((n): n is number => n !== null);
-      
-      const allPossibleAnswers = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten']
-        .map(word => ({ word, number: wordToNumber(word) }))
-        .filter(({ number }) => number !== null && (
-          comparisonText.includes('less than') ? number < comparisonNumber :
-          comparisonText.includes('greater than') ? number > comparisonNumber :
-          false
-        ))
-        .map(({ word }) => word);
-      
-      const isCorrect = userNumbers.length === allPossibleAnswers.length &&
-                       userNumbers.every(num => 
-                         comparisonText.includes('less than') ? 
-                           num < comparisonNumber : num > comparisonNumber
-                       );
+    let targetNumber: number | null = null;
+    let comparisonOperator: 'less' | 'greater' | null = null;
+
+    // Extract comparison details
+    if (comparisonText.includes('less than')) {
+      const match = comparisonText.match(/less than (\d+)/i);
+      if (match) {
+        targetNumber = parseInt(match[1]);
+        comparisonOperator = 'less';
+      }
+    } else if (comparisonText.includes('greater than')) {
+      const match = comparisonText.match(/greater than (\d+)/i);
+      if (match) {
+        targetNumber = parseInt(match[1]);
+        comparisonOperator = 'greater';
+      }
+    }
+
+    if (targetNumber !== null && comparisonOperator) {
+      // Convert user answers to numbers
+      const userNumbers = userAnswers.map(ans => {
+        const num = parseInt(ans);
+        return isNaN(num) ? null : num;
+      }).filter((n): n is number => n !== null);
+
+      // Validate each number against the comparison
+      const areAllAnswersValid = userNumbers.every(num => 
+        comparisonOperator === 'less' ? num < targetNumber! : num > targetNumber!
+      );
+
+      // Get all valid options from the question
+      const allOptions = question.split('\n')
+        .map(line => line.trim())
+        .filter(line => /^\d+$/.test(line))
+        .map(Number);
+
+      // Find all correct answers based on the comparison
+      const validAnswers = allOptions.filter(num =>
+        comparisonOperator === 'less' ? num < targetNumber! : num > targetNumber!
+      );
+
+      // Check if user selected all and only the valid answers
+      const hasAllValidAnswers = validAnswers.every(valid => 
+        userNumbers.includes(valid)
+      );
+      const hasOnlyValidAnswers = userNumbers.every(userNum => 
+        validAnswers.includes(userNum)
+      );
+
+      const isCorrect = areAllAnswersValid && hasAllValidAnswers && hasOnlyValidAnswers;
 
       return {
         isCorrect,
         explanation: isCorrect 
-          ? 'All correct answers selected!' 
-          : `You ${userNumbers.length > allPossibleAnswers.length ? 'selected too many options' : 'missed some options'}. The correct answers are: ${allPossibleAnswers.join(', ')}. These numbers are ${comparisonText.includes('less than') ? 'less than' : 'greater than'} ${comparisonNumber}.`
+          ? 'Correct! You selected all the valid numbers.' 
+          : `The correct answers are: ${validAnswers.join(', ')}. These are all the numbers that are ${
+              comparisonOperator === 'less' ? 'less than' : 'greater than'
+            } ${targetNumber}.`
       };
     }
   }

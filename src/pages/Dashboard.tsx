@@ -29,6 +29,7 @@ import { useQuery } from "@tanstack/react-query";
 import ProfileSettings from "@/components/profile/ProfileSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import FeatureGate from "@/components/subscription/FeatureGate";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Dashboard = () => {
   const navigate = useNavigate();

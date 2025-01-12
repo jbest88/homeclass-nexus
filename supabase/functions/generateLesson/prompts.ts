@@ -18,11 +18,22 @@ export const createLessonPrompt = (
 
     Write as if you're directly speaking to the student. Use clear, conversational language and include:
     - A friendly introduction that gets them excited about the topic
-    - Real-world examples and relatable scenarios that a ${gradeLevelText} student would understand
-    - Clear explanations of key concepts using age-appropriate language
-    - "Did you know?" facts that would interest a student at this grade level
-    - Brief, bullet-point recaps of key ideas throughout the lesson
-    - Descriptions of visuals or diagrams that could enhance understanding
+    - For EACH concept or topic covered:
+      * Start with a clear, simple explanation
+      * Follow with 2-3 real-world examples that a ${gradeLevelText} student would understand
+      * Include a detailed breakdown of how the concept works
+      * Add practical applications or scenarios where they might encounter this
+      * Provide step-by-step explanations when introducing new ideas
+    - Multiple "Did you know?" facts for each major topic to deepen understanding
+    - Comprehensive bullet-point recaps after each section, including:
+      * Main concept summary
+      * Key points to remember
+      * Common misconceptions to avoid
+      * Connections to previous learning
+    - For each example:
+      * Break down the reasoning behind it
+      * Explain why it works
+      * Show how it connects to other concepts they've learned
 
     End with a positive closing statement or question to encourage curiosity about the subject.
 
@@ -107,7 +118,6 @@ export const createQuestionsPrompt = (
     ]`;
 };
 
-// Helper function to provide curriculum context based on the period
 const getCurriculumContext = (curriculumPeriod: string) => {
   switch (curriculumPeriod) {
     case "Fall Semester":

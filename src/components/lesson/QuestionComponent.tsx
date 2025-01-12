@@ -130,6 +130,37 @@ export const QuestionComponent = ({
         `The correct answer is "${correctAnswer}".`}`;
     }
 
+    // Handle discriminant questions
+    if (question.question.toLowerCase().includes('discriminant')) {
+      const equation = question.question.match(/\$.*\$/)?.[0].replace(/\$/g, '') || '';
+      const matches = equation.match(/(-?\d*)?x\^2\s*([+-]\s*\d*)?x\s*([+-]\s*\d+)?/);
+      
+      if (matches) {
+        const a = matches[1] ? parseInt(matches[1]) : 1;
+        const b = matches[2] ? parseInt(matches[2].replace(/\s/g, '')) : 0;
+        const c = matches[3] ? parseInt(matches[3].replace(/\s/g, '')) : 0;
+        
+        const discriminant = b * b - 4 * a * c;
+        const userAnswerNum = parseInt(String(answerState.answer));
+        const isCorrect = !isNaN(userAnswerNum) && userAnswerNum === discriminant;
+        
+        let explanation = isCorrect
+          ? `Correct! Let's break down why the discriminant is ${discriminant}:\n\n`
+          : `The discriminant is ${discriminant}. Here's how we calculate it:\n\n`;
+        
+        explanation += `1. For a quadratic equation ax² + bx + c, the discriminant is b² - 4ac\n`;
+        explanation += `2. In this equation:\n`;
+        explanation += `   - a = ${a}\n`;
+        explanation += `   - b = ${b}\n`;
+        explanation += `   - c = ${c}\n`;
+        explanation += `3. Discriminant = (${b})² - 4(${a})(${c})\n`;
+        explanation += `4. = ${b * b} - ${4 * a * c}\n`;
+        explanation += `5. = ${discriminant}`;
+        
+        return explanation;
+      }
+    }
+
     if (question.type === 'multiple-answer' && 'correctAnswers' in question) {
       const userAnswers = (answerState.answer as string[]) || [];
       const correctAnswers = question.correctAnswers || [];
@@ -219,36 +250,6 @@ export const QuestionComponent = ({
       return explanation;
     }
 
-    // For mathematical questions
-    if (question.question.toLowerCase().includes('discriminant')) {
-      const equation = question.question.match(/\$.*\$/)?.[0].replace(/\$/g, '') || '';
-      const matches = equation.match(/(-?\d*)?x\^2\s*([+-]\s*\d*)?x\s*([+-]\s*\d+)?/);
-      
-      if (matches) {
-        const a = matches[1] ? parseInt(matches[1]) : 1;
-        const b = matches[2] ? parseInt(matches[2].replace(/\s/g, '')) : 0;
-        const c = matches[3] ? parseInt(matches[3].replace(/\s/g, '')) : 0;
-        
-        const discriminant = b * b - 4 * a * c;
-        
-        let explanation = answerState.isCorrect
-          ? `Correct! Let's break down why the discriminant is ${discriminant}:\n\n`
-          : `The discriminant is ${discriminant}. Here's how we calculate it:\n\n`;
-        
-        explanation += `1. For a quadratic equation ax² + bx + c, the discriminant is b² - 4ac\n`;
-        explanation += `2. In this equation:\n`;
-        explanation += `   - a = ${a}\n`;
-        explanation += `   - b = ${b}\n`;
-        explanation += `   - c = ${c}\n`;
-        explanation += `3. Discriminant = (${b})² - 4(${a})(${c})\n`;
-        explanation += `4. = ${b * b} - ${4 * a * c}\n`;
-        explanation += `5. = ${discriminant}`;
-        
-        return explanation;
-      }
-    }
-
-    // For other multiple choice questions
     return answerState.isCorrect
       ? `Correct! "${question.answer}" is the right answer because it best matches the concept being tested.`
       : `The correct answer is "${question.answer}".`;

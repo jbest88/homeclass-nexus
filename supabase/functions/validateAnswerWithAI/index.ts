@@ -23,9 +23,6 @@ serve(async (req) => {
     const userAnswersStr = Array.isArray(userAnswers) 
       ? userAnswers.join(', ') 
       : userAnswers;
-    const correctAnswersStr = Array.isArray(correctAnswers) 
-      ? correctAnswers.join(', ') 
-      : correctAnswers;
 
     // Special handling for multiple-answer questions
     const isMultipleAnswer = type === 'multiple-answer';
@@ -43,14 +40,14 @@ serve(async (req) => {
                  );
     }
 
-    const prompt = `Evaluate this answer:
+    const prompt = `You are an expert teacher evaluating a student's answer.
 
 Question: "${question}"
 Student's answer(s): ${userAnswersStr}
-Correct answer(s): ${correctAnswersStr}
 
-First, determine if the student's answer is completely correct.
-Then, provide a very brief explanation (1-2 sentences) if incorrect.
+Based on your expertise and understanding of the subject matter:
+1. Determine if the student's answer is completely correct
+2. If incorrect, provide a very brief explanation (1-2 sentences) to help the student understand why
 
 Respond in this exact format:
 CORRECT: ${isMultipleAnswer ? isCorrect.toString() : '[true/false]'}

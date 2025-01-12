@@ -2,13 +2,15 @@ export const createLessonPrompt = (
   subject: string,
   gradeLevelText: string,
   difficultyLevel: string,
-  proficiencyLevel: number
+  proficiencyLevel: number,
+  curriculumPeriod: string
 ): string => {
-  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10).
+  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10) during their ${curriculumPeriod}.
 
     IMPORTANT: 
     - The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
-    - The lesson should help the student understand [specific concepts].
+    - The lesson should help the student understand concepts appropriate for this point in their ${curriculumPeriod}.
+    - Consider that students in ${curriculumPeriod} should have already covered earlier material from previous terms.
 
     Write as if you're directly speaking to the student. Use clear, conversational language and include:
     - A friendly introduction that gets them excited about the topic

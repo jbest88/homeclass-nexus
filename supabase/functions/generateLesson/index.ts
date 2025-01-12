@@ -68,7 +68,7 @@ serve(async (req) => {
       });
 
       const adjustedDifficultyLevel = isRetry ? 
-        getDifficultyLevel(Math.max(1, proficiencyLevel - 2)) : 
+        getDifficultyLevel(Math.max(1, proficiencyLevel - 1)) : // Changed from -2 to -1
         difficultyLevel;
 
       const response = await generateLesson(

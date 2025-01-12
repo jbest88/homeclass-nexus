@@ -20,7 +20,7 @@ export const createLessonPrompt = (
     - A friendly introduction that gets them excited about the topic
     - For EACH concept or topic covered:
       * Start with a clear, simple explanation
-      * Follow with 2-3 real-world examples that a ${gradeLevelText} student would understand
+      * Provide 2-5 diverse real-world examples that a ${gradeLevelText} student would understand (vary the number for each topic)
       * Include a detailed breakdown of how the concept works
       * Add practical applications or scenarios where they might encounter this
       * Provide step-by-step explanations when introducing new ideas

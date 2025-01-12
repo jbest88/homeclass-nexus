@@ -1,5 +1,5 @@
 import { generateWithGemini } from '../utils.ts';
-import { createLessonPrompt, createQuestionsPrompt } from '../prompts.ts';
+import { createLessonPrompt, createQuestionsPrompt } from '../prompts';
 import { validateQuestions } from '../validators/questionValidator.ts';
 import { GeneratedLesson } from '../types.ts';
 import { getCurriculumPeriod } from '../utils.ts';

@@ -9,62 +9,77 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
+    const { question, userAnswers, correctAnswers, type } = await req.json();
+    console.log('Validating answer:', { question, userAnswers, type });
 
-    const { question, userAnswers, type } = await req.json();
-
-    // Format user answers for display
+    // Format answers for display
     const userAnswersStr = Array.isArray(userAnswers) 
       ? userAnswers.join(", ") 
       : userAnswers;
 
-    console.log('Validating answer:', { question, userAnswers, type });
-
     const prompt = `You are an expert teacher evaluating a student's answer.
 
 Question: "${question}"
-Student's answer(s): ${userAnswersStr}
+Student's answer: "${userAnswersStr}"
 
-Based on your expertise and understanding of the subject matter:
-1. Determine if the student's answer is completely correct
-2. If incorrect, provide a very brief explanation (1-2 sentences) to help the student understand why
+Your task:
+1. Determine if the student's answer is EXACTLY correct (case-insensitive)
+2. If incorrect, provide a brief, encouraging explanation
+
+Important: The answer must match EXACTLY to be considered correct (ignoring case).
 
 Respond in this exact format:
 CORRECT: [true/false]
 EXPLANATION: [only if incorrect, otherwise leave blank]`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    console.log('Sending prompt to Gemini:', prompt);
+    
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
-
-    console.log('AI Response:', text);
+    
+    console.log('Gemini response:', text);
 
     // Parse the AI response
     const correctMatch = text.match(/CORRECT:\s*(true|false)/i);
     const explanationMatch = text.match(/EXPLANATION:\s*(.+)/i);
 
     if (!correctMatch) {
+      console.error('Could not parse AI response for correctness');
       throw new Error("Could not parse AI response for correctness");
     }
 
-    const isCorrect = correctMatch[1].toLowerCase() === 'true';
-    const explanation = explanationMatch ? explanationMatch[1].trim() : '';
+    // Compare the answers directly (case-insensitive)
+    const normalizedUserAnswer = String(userAnswersStr).toLowerCase().trim();
+    const normalizedCorrectAnswer = Array.isArray(correctAnswers) 
+      ? correctAnswers.map(a => String(a).toLowerCase().trim())
+      : String(correctAnswers).toLowerCase().trim();
 
-    // Return structured response
-    const validationResponse = {
-      isCorrect,
-      explanation: isCorrect ? '' : explanation
-    };
+    // Direct comparison
+    const isExactMatch = Array.isArray(normalizedCorrectAnswer)
+      ? normalizedCorrectAnswer.length === (Array.isArray(userAnswers) ? userAnswers.length : 1) &&
+        normalizedCorrectAnswer.every(correct => 
+          Array.isArray(userAnswers) 
+            ? userAnswers.map(a => String(a).toLowerCase().trim()).includes(correct)
+            : normalizedUserAnswer === correct
+        )
+      : normalizedUserAnswer === normalizedCorrectAnswer;
 
-    console.log('Validation response:', validationResponse);
+    // Use exact match for final validation
+    const isCorrect = isExactMatch;
+    const explanation = !isCorrect && explanationMatch ? explanationMatch[1].trim() : '';
+
+    console.log('Validation result:', { isCorrect, explanation });
 
     return new Response(
-      JSON.stringify(validationResponse),
+      JSON.stringify({ isCorrect, explanation }),
       {
         headers: { 
           ...corsHeaders,

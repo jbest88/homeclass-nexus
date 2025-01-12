@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SectionNavigationProps {
   currentSection: number;
@@ -25,7 +26,9 @@ export const SectionNavigation = ({
           variant="outline"
           onClick={onPrevious}
           disabled={currentSection === 0}
+          className="flex items-center gap-2"
         >
+          <ChevronLeft className="h-4 w-4" />
           Previous
         </Button>
         <span className="text-sm text-muted-foreground">
@@ -34,11 +37,19 @@ export const SectionNavigation = ({
         <Button
           onClick={onNext}
           disabled={currentSection === totalSections - 1}
+          className="flex items-center gap-2"
         >
           Next
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <Progress value={progress} className="w-full" />
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>Progress</span>
+          <span>{Math.round(progress)}%</span>
+        </div>
+        <Progress value={progress} className="w-full" />
+      </div>
     </div>
   );
 };

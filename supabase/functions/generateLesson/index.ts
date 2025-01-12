@@ -16,14 +16,24 @@ serve(async (req) => {
       });
     }
 
+    // Validate request method
+    if (req.method !== "POST") {
+      throw new Error(`Method ${req.method} not allowed`);
+    }
+
     const { subject, userId, isRetry } = await req.json();
     console.log(`Generating lesson for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}`);
 
     if (!subject || !userId) {
-      throw new Error("Missing required parameters");
+      throw new Error("Missing required parameters: subject and userId are required");
     }
 
-    const lesson = await generateLesson(subject, isRetry);
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+
+    const lesson = await generateLesson(geminiApiKey, subject, "Grade 5", "intermediate", 3, isRetry || false);
     console.log("Lesson generated successfully");
 
     return new Response(JSON.stringify(lesson), {
@@ -35,18 +45,17 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in generateLesson function:", error);
     
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-        details: error.stack,
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const errorResponse = {
+      error: error.message,
+      details: error.stack,
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    });
   }
 });

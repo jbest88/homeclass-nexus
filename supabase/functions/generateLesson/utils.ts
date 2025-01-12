@@ -2,8 +2,9 @@ import { GeminiResponse } from "./types.ts";
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Request-Headers': '*',
 };
 
 export const generateWithGemini = async (
@@ -14,7 +15,7 @@ export const generateWithGemini = async (
   
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
     const response = await fetch(
       'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
@@ -59,8 +60,9 @@ export const generateWithGemini = async (
     return generatedText;
   } catch (error) {
     if (error.name === 'AbortError') {
-      throw new Error('Request timed out after 30 seconds');
+      throw new Error('Request timed out after 60 seconds');
     }
+    console.error('Error in generateWithGemini:', error);
     throw error;
   }
 };

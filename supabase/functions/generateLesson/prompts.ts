@@ -175,21 +175,26 @@ const getGradeAdjustedDifficulty = (gradeLevelText: string, baseDifficulty: stri
   const gradeNum = gradeLevelText.toLowerCase().includes('kindergarten') ? 0 : 
     parseInt(gradeLevelText.match(/\d+/)?.[0] || '0');
 
-  // Adjust difficulty based on grade level
+  // Adjust difficulty based on grade level with increased challenge
   switch (baseDifficulty.toLowerCase()) {
     case 'easy':
-      return gradeNum <= 3 ? 'foundational' : 
-             gradeNum <= 6 ? 'basic' : 
-             gradeNum <= 9 ? 'introductory' : 'standard';
+      return gradeNum <= 3 ? 'basic' :           // Increased from 'foundational'
+             gradeNum <= 6 ? 'standard' :        // Increased from 'basic'
+             gradeNum <= 9 ? 'intermediate' :    // Increased from 'introductory'
+             'advanced';                         // Increased from 'standard'
     case 'medium':
-      return gradeNum <= 3 ? 'basic' : 
-             gradeNum <= 6 ? 'standard' : 
-             gradeNum <= 9 ? 'intermediate' : 'advanced';
+      return gradeNum <= 3 ? 'intermediate' :    // Increased from 'basic'
+             gradeNum <= 6 ? 'advanced' :        // Increased from 'standard'
+             gradeNum <= 9 ? 'complex' :         // Increased from 'intermediate'
+             'expert';                           // Increased from 'advanced'
     case 'hard':
-      return gradeNum <= 3 ? 'challenging' : 
-             gradeNum <= 6 ? 'advanced' : 
-             gradeNum <= 9 ? 'complex' : 'expert';
+      return gradeNum <= 3 ? 'advanced' :        // Increased from 'challenging'
+             gradeNum <= 6 ? 'complex' :         // Increased from 'advanced'
+             gradeNum <= 9 ? 'expert' :          // Increased from 'complex'
+             'mastery';                          // New highest level
     default:
-      return 'standard';
+      return 'advanced';                         // Increased from 'standard'
   }
 };
+
+// ... keep existing code (other functions and exports)

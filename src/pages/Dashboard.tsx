@@ -8,6 +8,8 @@ import StudyStats from "@/components/dashboard/StudyStats";
 import UpcomingAssignments from "@/components/dashboard/UpcomingAssignments";
 import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { getSubjectsForGrade } from "@/utils/gradeSubjects";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +28,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ProfileSettings from "@/components/profile/ProfileSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
+import FeatureGate from "@/components/subscription/FeatureGate";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -34,6 +37,7 @@ const Dashboard = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { subscription, isLoading: isSubscriptionLoading } = useSubscription();
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["profile"],
@@ -52,7 +56,6 @@ const Dashboard = () => {
     },
   });
 
-  // Reset selected subject when grade level changes
   useEffect(() => {
     setSelectedSubject("");
   }, [profile?.grade_level]);
@@ -85,14 +88,24 @@ const Dashboard = () => {
     { id: 3, title: "Chemistry Homework", due: "2024-03-25", subject: "Chemistry" },
   ];
 
-  if (isProfileLoading) {
+  if (isProfileLoading || isSubscriptionLoading) {
     return <div>Loading...</div>;
   }
 
   return (
     <div className="container mx-auto p-4 space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">My Learning Dashboard</h1>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">My Learning Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <Badge variant={subscription?.tier === 'free' ? 'secondary' : 'default'}>
+              {subscription?.tier.charAt(0).toUpperCase() + subscription?.tier.slice(1)} Plan
+            </Badge>
+            {!subscription?.is_active && (
+              <Badge variant="destructive">Inactive</Badge>
+            )}
+          </div>
+        </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -169,10 +182,32 @@ const Dashboard = () => {
       
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <LearningProgress isGenerating={isGenerating} />
+          <FeatureGate 
+            featureCode="learning_paths"
+            fallback={
+              <Alert>
+                <AlertDescription>
+                  Learning paths are available with a subscription. Upgrade to access this feature!
+                </AlertDescription>
+              </Alert>
+            }
+          >
+            <LearningProgress isGenerating={isGenerating} />
+          </FeatureGate>
         </div>
         <div className="space-y-4">
-          <StudyStats />
+          <FeatureGate 
+            featureCode="progress_analytics"
+            fallback={
+              <Alert>
+                <AlertDescription>
+                  Detailed analytics are available with a Basic or higher subscription.
+                </AlertDescription>
+              </Alert>
+            }
+          >
+            <StudyStats />
+          </FeatureGate>
           <UpcomingAssignments assignments={upcomingAssignments} />
         </div>
       </div>

@@ -65,3 +65,12 @@ export const generateWithGemini = async (
     throw error;
   }
 };
+
+export const getCurriculumPeriod = (date: string): string => {
+  const month = new Date(date).getMonth() + 1; // getMonth() returns 0-11
+  
+  if (month >= 9 && month <= 12) return "Fall Semester";
+  if (month >= 1 && month <= 3) return "Winter Term";
+  if (month >= 4 && month <= 5) return "Spring Semester";
+  return "Summer Term";
+};

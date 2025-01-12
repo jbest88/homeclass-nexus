@@ -53,10 +53,19 @@ const validateQuestionType = (q: any, index: number) => {
 };
 
 const validateMultipleChoice = (q: any, index: number) => {
-  if (!Array.isArray(q.options) || q.options.length < 2) {
-    throw new Error(`Question ${index + 1} needs at least 2 options`);
+  if (!Array.isArray(q.options) || q.options.length !== 4) {
+    throw new Error(`Question ${index + 1} needs exactly 4 options`);
   }
-  if (!q.answer || !q.options.includes(q.answer)) {
+
+  // Ensure all options are strings and unique
+  const uniqueOptions = new Set(q.options.map(String));
+  if (uniqueOptions.size !== q.options.length) {
+    throw new Error(`Question ${index + 1} has duplicate options`);
+  }
+
+  // Convert answer to string for comparison
+  const stringAnswer = String(q.answer);
+  if (!q.answer || !q.options.map(String).includes(stringAnswer)) {
     throw new Error(`Question ${index + 1}'s answer (${q.answer}) must be one of the options: ${q.options.join(', ')}`);
   }
 };
@@ -65,10 +74,22 @@ const validateMultipleAnswer = (q: any, index: number) => {
   if (!Array.isArray(q.options) || q.options.length < 2) {
     throw new Error(`Question ${index + 1} needs at least 2 options`);
   }
+
+  // Ensure all options are strings and unique
+  const uniqueOptions = new Set(q.options.map(String));
+  if (uniqueOptions.size !== q.options.length) {
+    throw new Error(`Question ${index + 1} has duplicate options`);
+  }
+
   if (!Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) {
     throw new Error(`Question ${index + 1} needs at least one correct answer`);
   }
-  const invalidAnswers = q.correctAnswers.filter((answer: string) => !q.options.includes(answer));
+
+  // Convert all answers to strings for comparison
+  const stringAnswers = q.correctAnswers.map(String);
+  const stringOptions = q.options.map(String);
+  const invalidAnswers = stringAnswers.filter(answer => !stringOptions.includes(answer));
+
   if (invalidAnswers.length > 0) {
     throw new Error(`Question ${index + 1}'s correct answers (${invalidAnswers.join(', ')}) must all be in the options: ${q.options.join(', ')}`);
   }

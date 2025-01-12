@@ -68,9 +68,17 @@ const SubjectProgress = ({
   };
 
   const cleanTitle = (title: string) => {
-    const baseTitle = title.replace(/[*#]/g, '').trim();
+    // Remove any existing grade information in parentheses
+    let baseTitle = title.replace(/\s*\([^)]*\)/g, '');
+    // Remove any grade information from the beginning of the title
+    baseTitle = baseTitle.replace(/^(Grade|K|Kindergarten)\s*\d*\s*:?\s*/i, '');
+    // Remove special characters
+    baseTitle = baseTitle.replace(/[*#]/g, '').trim();
+    
     const gradeLevel = profile?.grade_level;
     if (gradeLevel === null || gradeLevel === undefined) return baseTitle;
+    
+    // Add the grade level in a consistent format
     return `${baseTitle} (Grade ${gradeLevel === 0 ? 'K' : gradeLevel})`;
   };
 

@@ -23,26 +23,27 @@ serve(async (req) => {
       ? userAnswers.join(", ") 
       : userAnswers;
 
-    const prompt = `You are an expert teacher evaluating a student's answer.
+    const prompt = `You are an expert teacher evaluating a student's answer. I will provide you with a question and the student's answer in JSON format. Please analyze if the answer is correct and provide an explanation.
 
-Question: "${question}"
-Student's answer: "${userAnswersStr}"
-Type: ${type}
-Correct answer(s): ${Array.isArray(correctAnswers) ? correctAnswers.join(", ") : correctAnswers}
+Input JSON:
+{
+  "question": "${question}",
+  "studentAnswer": "${userAnswersStr}",
+  "questionType": "${type}",
+  "correctAnswer": "${Array.isArray(correctAnswers) ? correctAnswers.join(", ") : correctAnswers}"
+}
 
-Your task:
-1. For multiple-answer questions, the student's answer is correct if ALL selected answers are valid for the question, regardless of whether they selected all possible correct answers.
-2. For other question types, determine if the student's answer matches exactly (case-insensitive).
-3. If incorrect, provide a brief, encouraging explanation.
-4. For mathematical questions, especially those involving calculations:
-   - Parse and evaluate numerical expressions
-   - Consider equivalent forms (e.g., -8 and -8.0 are the same)
-   - Show the step-by-step solution in the explanation
-   - Be particularly careful with negative numbers and decimals
+For mathematical questions:
+1. Parse numerical expressions carefully
+2. Consider equivalent forms (e.g., -8 and -8.0 are the same)
+3. Handle negative numbers and decimals properly
+4. Show step-by-step solution in explanation
 
-Respond in this exact format:
-CORRECT: [true/false]
-EXPLANATION: [only if incorrect, otherwise leave blank]`;
+Respond with a JSON object in this exact format:
+{
+  "isCorrect": true/false,
+  "explanation": "Your explanation here"
+}`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     console.log('Sending prompt to Gemini:', prompt);
@@ -53,29 +54,24 @@ EXPLANATION: [only if incorrect, otherwise leave blank]`;
     
     console.log('Gemini response:', text);
 
-    // Parse the AI response
-    const correctMatch = text.match(/CORRECT:\s*(true|false)/i);
-    const explanationMatch = text.match(/EXPLANATION:\s*(.+)/i);
+    // Parse the JSON response
+    try {
+      const jsonResponse = JSON.parse(text);
+      console.log('Parsed response:', jsonResponse);
 
-    if (!correctMatch) {
-      console.error('Could not parse AI response for correctness');
-      throw new Error("Could not parse AI response for correctness");
+      return new Response(
+        JSON.stringify(jsonResponse),
+        {
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          },
+        }
+      );
+    } catch (parseError) {
+      console.error('Error parsing AI response as JSON:', parseError);
+      throw new Error("Invalid response format from AI");
     }
-
-    const isCorrect = correctMatch[1].toLowerCase() === 'true';
-    const explanation = explanationMatch ? explanationMatch[1].trim() : '';
-
-    console.log('Validation result:', { isCorrect, explanation });
-
-    return new Response(
-      JSON.stringify({ isCorrect, explanation }),
-      {
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        },
-      }
-    );
   } catch (error) {
     console.error('Error in validateAnswerWithAI function:', error);
     return new Response(

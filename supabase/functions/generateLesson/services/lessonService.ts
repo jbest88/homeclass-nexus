@@ -2,6 +2,7 @@ import { generateWithGemini } from '../utils.ts';
 import { createLessonPrompt, createQuestionsPrompt } from '../prompts.ts';
 import { validateQuestions } from '../validators/questionValidator.ts';
 import { GeneratedLesson } from '../types.ts';
+import { getCurriculumPeriod } from '../utils.ts';
 
 export const generateLesson = async (
   geminiApiKey: string,
@@ -13,11 +14,15 @@ export const generateLesson = async (
 ): Promise<GeneratedLesson> => {
   console.log('Generating lesson content with difficulty:', difficultyLevel);
   
+  const currentDate = new Date().toISOString();
+  const curriculumPeriod = getCurriculumPeriod(currentDate);
+  
   const lessonPrompt = createLessonPrompt(
     subject, 
     gradeLevelText, 
     difficultyLevel, 
     isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel,
+    curriculumPeriod
   );
   const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
 

@@ -10,52 +10,47 @@ export const createLessonPrompt = (
   const piagetStage = getPiagetStage(gradeLevelText);
   const gradeExpectations = getGradeLevelExpectations(gradeLevelText);
 
-  return `Imagine you are an experienced and challenging teacher for ${gradeLevelText}. Create an advanced, thought-provoking lesson about ${subject} specifically for a ${gradeLevelText} student who is ready for more challenging material. This lesson should align with and extend beyond the standard ${gradeLevelText} curriculum. 
+  return `Imagine you are an experienced teacher for ${gradeLevelText}. Create an engaging, grade-appropriate lesson about ${subject} specifically for a ${gradeLevelText} student. This lesson must be STRICTLY aligned with ${gradeLevelText} curriculum standards.
 
     CRITICAL GRADE-LEVEL REQUIREMENTS:
-    - Students are in ${piagetStage}. Push their cognitive abilities while staying within their developmental stage.
-    - Expected comprehension level: ${gradeExpectations}.
-    - Use advanced vocabulary and complex concepts appropriate for high-achieving ${gradeLevelText} students.
-    - Examples must include challenging real-world scenarios that require deeper analytical thinking.
-    - Explanations should encourage critical thinking and problem-solving skills.
-    - Incorporate advanced learning techniques for different learning styles.
+    - IMPORTANT: Content MUST be precisely calibrated for ${gradeLevelText}. DO NOT include concepts from higher grades.
+    - Students are in ${piagetStage}. Stay within their developmental capabilities.
+    - Expected comprehension level: ${gradeExpectations}
+    - Use vocabulary that ${gradeLevelText} students would understand
+    - Examples must reflect real-world scenarios that ${gradeLevelText} students encounter daily
+    - Break down complex ideas into simpler, digestible parts
+    - Include frequent comprehension checks
 
     IMPORTANT: 
-    - While challenging, content must remain conceptually appropriate for ${gradeLevelText}.
-    - Based on the student's accelerated learning progression:
-      - Focus on teaching: Advanced applications of ${curriculumContext.currentTopics} (Include complex problem-solving scenarios)
-      - Build upon: Deep understanding of ${curriculumContext.previousKnowledge} (Challenge assumptions and explore edge cases)
-      - Prepare for: Early introduction to ${curriculumContext.upcomingTopics} (Preview advanced concepts)
+    - The content MUST be appropriate for ${gradeLevelText} students. If you're unsure if a concept is too advanced, err on the side of simplicity.
+    - Based on the student's current learning progression:
+      - Focus on teaching: Basic foundations of ${curriculumContext.currentTopics}
+      - Build upon: Core understanding of ${curriculumContext.previousKnowledge}
+      - Prepare for: Introduction to ${curriculumContext.upcomingTopics}
     - CRITICAL: Do NOT include ANY references to semesters, seasons, or time of year.
 
-    Write in an engaging but intellectually stimulating style. Include:
-    - A thought-provoking introduction that presents a complex problem or paradox.
+    Write in a friendly, encouraging tone appropriate for ${gradeLevelText} students. Include:
+    - A welcoming introduction that connects to their daily life
     - For EACH concept:
-      * Begin with an advanced explanation that includes theoretical foundations.
-      * Provide 3-5 challenging real-world examples:
-          * **Scenario:** [Complex real-world situation]
-          * **Problem:** [Multi-step challenge requiring deep analysis]
-          * **Solution:** [Detailed explanation with multiple approaches]
-          * **Extension:** [How this connects to more advanced concepts]
-      * Include rigorous proofs or derivations where applicable.
-      * Present edge cases and exceptions to rules.
-      * Encourage exploration of alternative solution methods.
-    - Advanced "Did you know?" sections linking to higher-level concepts.
-    - Comprehensive section summaries:
-      * Core concept analysis
-      * Advanced theoretical frameworks
-      * Common advanced misconceptions
-      * Connections to higher-level mathematics
-    - Challenging assessment opportunities:
-      * Complex problem sets
-      * Open-ended investigations
-      * Real-world application projects
-    - Differentiation strategies for advanced learners
-    - Encourage mathematical proof writing and formal argumentation
-    - Provide opportunities for independent research
+      * Start with the most basic explanation possible
+      * Provide 2-3 simple, relatable examples:
+          * **Scenario:** [Simple, age-appropriate situation]
+          * **Problem:** [Clear, straightforward challenge]
+          * **Solution:** [Step-by-step explanation]
+          * **Connection:** [How it relates to their life]
+      * Use visual analogies when possible
+      * Include practice opportunities
+    - Fun "Did you know?" facts that reinforce basic concepts
+    - Regular summary points:
+      * Main idea in simple terms
+      * Key points to remember
+      * Common mistakes to avoid
+      * Links to previous learning
+    - Simple self-check questions
+    - Activities that support different learning styles
 
-    End with a challenging question that connects to advanced applications in the field.
+    End with an encouraging message and a preview of how this knowledge will help them in their daily life.
 
-    The content should be rigorous while remaining accessible to advanced ${gradeLevelText} students.
-    Include an engaging title that reflects the advanced nature of the lesson.`;
+    The content should be easy to read and understand, using simple language appropriate for ${gradeLevelText}.
+    Include a clear, student-friendly title that includes the grade level (${gradeLevelText}).`;
 };

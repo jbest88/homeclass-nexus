@@ -39,47 +39,50 @@ export const createLessonPrompt = (
   const piagetStage = getPiagetStage(gradeLevelText);
   const gradeExpectations = getGradeLevelExpectations(gradeLevelText);
 
-  return `Imagine you are an experienced and friendly teacher for ${gradeLevelText}. Create an engaging lesson about ${subject} specifically for a ${gradeLevelText} student. This lesson should align with standard ${gradeLevelText} curriculum requirements.
+  return `Imagine you are an experienced and friendly teacher for ${gradeLevelText}. Create an engaging lesson about ${subject} specifically for a ${gradeLevelText} student. This lesson should align with the ${gradeLevelText} mathematics curriculum. 
 
     CRITICAL GRADE-LEVEL REQUIREMENTS:
-    - Students are in ${piagetStage}
-    - Expected comprehension level: ${gradeExpectations}
-    - Use vocabulary and concepts that are STRICTLY appropriate for ${gradeLevelText} students
-    - Examples must reflect real-world scenarios that ${gradeLevelText} students encounter in their daily lives
-    - Explanations must match the cognitive development level of ${gradeLevelText} students
-    - Incorporate elements that cater to diverse learning styles (visual, auditory, kinesthetic)
+    - Students are in ${piagetStage}. Provide specific characteristics of this stage relevant to their mathematical learning. 
+    - Expected comprehension level: ${gradeExpectations}.
+    - Use vocabulary and concepts STRICTLY appropriate for ${gradeLevelText}.
+    - Examples must reflect real-world scenarios relevant to ${gradeLevelText} students.
+    - Explanations must match the cognitive development level of ${gradeLevelText} students.
+    - Incorporate elements that cater to diverse learning styles (visual, auditory, kinesthetic).
 
     IMPORTANT: 
-    - The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
+    - The content MUST be appropriate for ${gradeLevelText}. Do not include concepts that are too advanced.
     - Based on the student's current learning progression:
-      - Focus on teaching: ${curriculumContext.currentTopics}
-      - Build upon: ${curriculumContext.previousKnowledge}
-      - Prepare students for: ${curriculumContext.upcomingTopics}
+      - Focus on teaching: ${curriculumContext.currentTopics} (Provide concrete examples of concepts relevant to ${gradeLevelText} math)
+      - Build upon: ${curriculumContext.previousKnowledge} (Provide concrete examples of prior knowledge for ${gradeLevelText})
+      - Prepare students for: ${curriculumContext.upcomingTopics} (Provide concrete examples of future topics for ${gradeLevelText})
     - CRITICAL: Do NOT include ANY references to semesters, seasons, or time of year in the lesson content or examples.
 
-    Write as if you're directly speaking to the student. Use clear, conversational language, and employ scaffolding techniques (building on prior knowledge, gradually increasing complexity). Include:
-    - A friendly introduction that gets them excited about the topic
+    Write as if you're directly speaking to the student. Use clear, conversational language, and employ scaffolding techniques. Include:
+    - A friendly introduction that gets them excited about the topic.
     - For EACH concept or topic covered:
-      * Start with a clear, simple explanation
-      * Provide 2-5 diverse real-world examples that a ${gradeLevelText} student would understand (vary the number for each topic), following this format for each example:
-          * **Scenario:** [Real-world situation relevant to ${gradeLevelText} students]
-          * **Problem:** [Age-appropriate question or challenge]
-          * **Solution:** [Step-by-step explanation at ${gradeLevelText} level]
+      * Start with a clear, simple explanation.
+      * Provide 2-5 diverse real-world examples (vary the number for each topic), following this format:
+          * **Scenario:** [Real-world situation]
+          * **Problem:** [Age-appropriate question/challenge]
+          * **Solution:** [Step-by-step explanation]
           * **Connection:** [How it relates to their daily life]
-      * Include a detailed breakdown of how the concept works
-      * Add practical applications they might encounter
-      * Provide step-by-step explanations when introducing new ideas
-    - Multiple "Did you know?" facts for each major topic to deepen understanding
-    - Comprehensive bullet-point recaps after each section, including:
-      * Main concept summary in ${gradeLevelText}-appropriate language
-      * Key points to remember
-      * Common misconceptions to avoid
-      * Connections to previous learning
-    - Suggestions for checking understanding through simple activities
-    - Ideas for different learning speeds and styles
+      * Include a detailed breakdown of how the concept works.
+      * Add practical applications they might encounter. 
+      * Provide step-by-step explanations for new ideas.
+    - Multiple "Did you know?" facts for each major topic.
+    - Comprehensive bullet-point recaps after each section:
+      * Main concept summary.
+      * Key points to remember.
+      * Common misconceptions.
+      * Connections to previous learning.
+    - Suggestions for checking understanding:
+      * Include simple activities AND open-ended problems that require application of concepts in novel situations.
+    - Ideas for differentiation to cater to different learning speeds and styles.
+    - Encourage students to develop and justify their own mathematical arguments.
+    - Allow opportunities for independent exploration and deeper inquiry.
 
-    End with an encouraging closing statement that connects to their interests.
+    End with an encouraging closing statement that connects to their interests and potential future paths.
 
     The content should be easy to read and understand, using grade-appropriate vocabulary.
-    Include a clear, student-friendly title for the lesson that includes the grade level (${gradeLevelText}).`;
+    Include a clear, student-friendly title that includes the grade level (${gradeLevelText}).`;
 };

@@ -14,7 +14,6 @@ export const MultipleChoiceQuestion = ({
       value={value as string || ""}
       onValueChange={onChange}
       className="space-y-2"
-      disabled={disabled}
     >
       {options?.map((option, optionIndex) => (
         <div key={optionIndex} className="flex items-center space-x-2">
@@ -25,7 +24,7 @@ export const MultipleChoiceQuestion = ({
           />
           <Label 
             htmlFor={`option-${optionIndex}`}
-            className={disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+            className={disabled ? "opacity-50" : "cursor-pointer"}
           >
             {option}
           </Label>

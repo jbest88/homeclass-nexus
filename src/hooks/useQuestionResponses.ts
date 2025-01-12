@@ -32,6 +32,12 @@ export const useQuestionResponses = (lessonId: string, subject: string, isPreAns
     setIsSubmitted(true);
   };
 
+  const resetAnswers = () => {
+    setAnswers({});
+    setIsSubmitted(false);
+    setPerformance(null);
+  };
+
   const handleAnswerChange = (index: number, value: string | string[]) => {
     if (isSubmitted) return;
     setAnswers(prev => ({
@@ -183,5 +189,7 @@ export const useQuestionResponses = (lessonId: string, subject: string, isPreAns
     handleAnswerChange,
     handleSubmit,
     initializeAnswers,
+    resetAnswers,
+    setIsSubmitted,
   };
 };

@@ -38,8 +38,6 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     enabled: !!user && !!lessonId,
   });
 
-  const hasAnsweredBefore = previousResponses && previousResponses.length > 0;
-
   const {
     answers,
     isSubmitting,
@@ -48,36 +46,16 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     handleSubmit,
     performance,
     initializeAnswers,
-  } = useQuestionResponses(lessonId, subject, hasAnsweredBefore);
-
-  React.useEffect(() => {
-    if (previousResponses && previousResponses.length > 0) {
-      const initialAnswers = questions.map((question, index) => {
-        const response = previousResponses.find(r => r.question_index === index);
-        
-        if (response) {
-          return {
-            answer: question.type === 'multiple-answer' ? 
-              (question.correctAnswers || []) : 
-              question.answer,
-            isSubmitted: true,
-            isCorrect: response?.is_correct || false,
-          };
-        }
-
-        return {
-          answer: question.type === 'multiple-answer' ? [] : "",
-          isSubmitted: true,
-          isCorrect: false,
-        };
-      });
-      
-      initializeAnswers(initialAnswers);
-    }
-  }, [previousResponses, questions, initializeAnswers]);
+    resetAnswers,
+  } = useQuestionResponses(lessonId, subject, false); // Changed hasAnsweredBefore to false
 
   const handleContinue = () => {
     navigate("/dashboard");
+  };
+
+  const handleTryAgain = () => {
+    resetAnswers();
+    setIsSubmitted(false);
   };
 
   const handleGenerateNewLesson = async () => {
@@ -207,10 +185,10 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             question={question}
             answerState={answers[index] || { answer: "", isSubmitted: false }}
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
-            isLocked={hasAnsweredBefore}
+            isLocked={false} // Removed hasAnsweredBefore check
           />
         ))}
-        {!hasAnsweredBefore && !isSubmitted ? (
+        {!isSubmitted ? (
           <Button 
             onClick={() => handleSubmit(questions)} 
             disabled={isSubmitting}
@@ -220,6 +198,13 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
           </Button>
         ) : (
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <Button
+              onClick={handleTryAgain}
+              variant="secondary"
+              className="flex-1"
+            >
+              Try Again
+            </Button>
             <Button 
               onClick={handleGenerateNewLesson}
               disabled={isGenerating}

@@ -1,9 +1,8 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { generateWithGemini } from '../generateLesson/utils.ts';
 import { createQuestionsPrompt } from '../generateLesson/prompts.ts';
-import { validateQuestions } from '../generateLesson/validators/questionValidator.ts';
+import { validateQuestions } from './validators/questionValidator.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,17 +34,25 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch the lesson content
-    const { data: lesson, error: lessonError } = await supabase
-      .from('generated_lessons')
-      .select('content')
-      .eq('id', lessonId)
-      .single();
+    // Fetch the lesson content and user's grade level
+    const [lessonResult, profileResult] = await Promise.all([
+      supabase
+        .from('generated_lessons')
+        .select('content')
+        .eq('id', lessonId)
+        .single(),
+      supabase
+        .from('profiles')
+        .select('grade_level')
+        .eq('id', userId)
+        .single()
+    ]);
 
-    if (lessonError) throw lessonError;
+    if (lessonResult.error) throw lessonResult.error;
+    if (profileResult.error) throw profileResult.error;
 
     const questionsPrompt = createQuestionsPrompt(
-      lesson.content,
+      lessonResult.data.content,
       gradeLevelText,
       difficultyLevel,
       proficiencyLevel
@@ -62,13 +69,20 @@ serve(async (req) => {
         .trim();
       
       questions = JSON.parse(cleanedQuestionsText);
-      validateQuestions(questions);
+      
+      // Validate and adjust questions based on difficulty
+      questions = validateQuestions(
+        questions,
+        profileResult.data.grade_level,
+        proficiencyLevel
+      );
+      
     } catch (error) {
-      console.error('Error parsing questions:', error);
+      console.error('Error parsing or validating questions:', error);
       throw new Error(`Question validation failed: ${error.message}`);
     }
 
-    // Update the lesson with new questions
+    // Update the lesson with validated questions
     const { error: updateError } = await supabase
       .from('generated_lessons')
       .update({ questions })

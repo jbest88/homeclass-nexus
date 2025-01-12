@@ -4,6 +4,20 @@ import { validateQuestions } from '../validators/questionValidator.ts';
 import { GeneratedLesson } from '../types.ts';
 import { getCurriculumPeriod } from '../utils.ts';
 
+const extractTopics = (content: string): string[] => {
+  const topics: string[] = [];
+  const lines = content.split('\n');
+  
+  for (const line of lines) {
+    // Look for headings that might indicate topics
+    if (line.startsWith('##') || line.startsWith('###')) {
+      topics.push(line.replace(/^#+\s+/, '').trim());
+    }
+  }
+  
+  return topics;
+};
+
 export const generateLesson = async (
   geminiApiKey: string,
   subject: string,
@@ -25,6 +39,26 @@ export const generateLesson = async (
     curriculumPeriod
   );
   const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
+
+  // Extract topics from the lesson content
+  const topics = extractTopics(lessonContent);
+  console.log('Extracted topics:', topics);
+
+  // Search for relevant YouTube videos
+  const videoSearchResponse = await fetch(
+    'http://localhost:54321/functions/v1/searchYouTubeVideos',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+      },
+      body: JSON.stringify({ topics }),
+    }
+  );
+
+  const videos = await videoSearchResponse.json();
+  console.log('Found videos:', videos);
 
   console.log('Generating questions');
   const questionsPrompt = createQuestionsPrompt(
@@ -71,5 +105,6 @@ export const generateLesson = async (
     title,
     content,
     questions,
+    videos,
   };
 };

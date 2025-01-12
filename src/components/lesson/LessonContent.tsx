@@ -1,14 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
+import { Video } from "@/types/video";
 
 interface LessonContentProps {
   title: string;
   subject: string;
   content: string;
+  videos?: Video[];
 }
 
-export const LessonContent = ({ title, subject, content }: LessonContentProps) => {
+export const LessonContent = ({ title, subject, content, videos }: LessonContentProps) => {
   // Remove markdown formatting from title (e.g., stars)
   const cleanTitle = title.replace(/[*#]/g, '').trim();
   
@@ -42,6 +44,51 @@ export const LessonContent = ({ title, subject, content }: LessonContentProps) =
                   return <div className="did-you-know" {...props} />;
                 }
                 return <p {...props} />;
+              },
+              // Add video embeds after each third topic (h2 or h3)
+              h2: ({ node, ...props }) => {
+                const headingContent = String(props.children);
+                const video = videos?.find(v => v.topics.includes(headingContent));
+                return (
+                  <>
+                    <h2 {...props} />
+                    {video && (
+                      <div className="my-6">
+                        <div className="aspect-w-16 aspect-h-9">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${video.videoId}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="w-full h-full rounded-lg"
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">{video.title}</p>
+                      </div>
+                    )}
+                  </>
+                );
+              },
+              h3: ({ node, ...props }) => {
+                const headingContent = String(props.children);
+                const video = videos?.find(v => v.topics.includes(headingContent));
+                return (
+                  <>
+                    <h3 {...props} />
+                    {video && (
+                      <div className="my-6">
+                        <div className="aspect-w-16 aspect-h-9">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${video.videoId}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="w-full h-full rounded-lg"
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">{video.title}</p>
+                      </div>
+                    )}
+                  </>
+                );
               },
             }}
           >

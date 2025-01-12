@@ -30,8 +30,16 @@ export interface Question {
   correctAnswers?: string[];
 }
 
+export interface Video {
+  videoId: string;
+  title: string;
+  description: string;
+  topics: string[];
+}
+
 export interface GeneratedLesson {
   title: string;
   content: string;
   questions: Question[];
+  videos?: Video[];
 }

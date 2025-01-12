@@ -1,16 +1,94 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
+import { SectionNavigation } from "./SectionNavigation";
+import { supabase } from "@/integrations/supabase/client";
+import { useUser } from "@supabase/auth-helpers-react";
+import { toast } from "sonner";
 
 interface LessonContentProps {
   title: string;
   subject: string;
   content: string;
+  lessonId: string;
 }
 
-export const LessonContent = ({ title, subject, content }: LessonContentProps) => {
-  // Remove markdown formatting from title (e.g., stars)
+export const LessonContent = ({ title, subject, content, lessonId }: LessonContentProps) => {
+  const [currentSection, setCurrentSection] = useState(0);
+  const [completedSections, setCompletedSections] = useState<number[]>([]);
+  const user = useUser();
+
+  // Split content into sections based on h2 headers
+  const sections = content.split(/(?=## )/g).filter(Boolean);
   const cleanTitle = title.replace(/[*#]/g, '').trim();
+
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('lesson_section_progress')
+        .select('*')
+        .eq('lesson_id', lessonId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading progress:', error);
+        return;
+      }
+
+      if (data) {
+        setCurrentSection(data.current_section);
+        setCompletedSections(data.completed_sections);
+      }
+    };
+
+    loadProgress();
+  }, [lessonId, user]);
+
+  const saveProgress = async (section: number, completed: number[]) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('lesson_section_progress')
+      .upsert({
+        user_id: user.id,
+        lesson_id: lessonId,
+        current_section: section,
+        completed_sections: completed,
+        last_accessed_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error('Error saving progress:', error);
+      toast.error('Failed to save progress');
+    }
+  };
+
+  const handleNext = () => {
+    if (currentSection < sections.length - 1) {
+      const newSection = currentSection + 1;
+      setCurrentSection(newSection);
+      
+      if (!completedSections.includes(currentSection)) {
+        const newCompleted = [...completedSections, currentSection];
+        setCompletedSections(newCompleted);
+        saveProgress(newSection, newCompleted);
+      } else {
+        saveProgress(newSection, completedSections);
+      }
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentSection > 0) {
+      const newSection = currentSection - 1;
+      setCurrentSection(newSection);
+      saveProgress(newSection, completedSections);
+    }
+  };
   
   return (
     <Card className="mb-8">
@@ -35,7 +113,6 @@ export const LessonContent = ({ title, subject, content }: LessonContentProps) =
           [&_hr]:my-8 [&_hr]:border-muted">
           <ReactMarkdown
             components={{
-              // Custom component for "Did you know?" sections
               p: ({ node, ...props }) => {
                 const content = String(props.children);
                 if (content.startsWith('Did you know?')) {
@@ -45,8 +122,17 @@ export const LessonContent = ({ title, subject, content }: LessonContentProps) =
               },
             }}
           >
-            {content}
+            {sections[currentSection]}
           </ReactMarkdown>
+        </div>
+        <div className="mt-8">
+          <SectionNavigation
+            currentSection={currentSection}
+            totalSections={sections.length}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+            completedSections={completedSections}
+          />
         </div>
       </CardContent>
       <CardFooter className="text-sm text-muted-foreground">

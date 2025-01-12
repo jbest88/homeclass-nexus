@@ -70,6 +70,7 @@ const GeneratedLesson = () => {
         title={lesson.title}
         subject={lesson.subject}
         content={lesson.content}
+        lessonId={lesson.id}
       />
       {hasQuestions && (
         <QuestionsSection

@@ -34,11 +34,13 @@ export const useGenerateLesson = () => {
 
     try {
       setIsGenerating(true);
+      console.log("Starting lesson generation...");
       
       const maxOrderIndex = generatedLessons?.reduce((max, lesson) => 
         lesson.subject === subject ? Math.max(max, lesson.order_index) : max, -1
       ) ?? -1;
       
+      console.log("Calling generateLesson function...");
       const { data: lessonData, error: generateError } = await supabase.functions.invoke("generateLesson", {
         body: { 
           subject, 
@@ -47,8 +49,12 @@ export const useGenerateLesson = () => {
         },
       });
 
-      if (generateError) throw generateError;
+      if (generateError) {
+        console.error("Error from generateLesson function:", generateError);
+        throw generateError;
+      }
 
+      console.log("Lesson generated, inserting into database...");
       const { data: insertData, error: insertError } = await supabase
         .from("generated_lessons")
         .insert({
@@ -62,7 +68,10 @@ export const useGenerateLesson = () => {
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Error inserting lesson:", insertError);
+        throw insertError;
+      }
 
       toast.success(isRetry 
         ? "New approach generated! Let's try this topic again." 
@@ -70,9 +79,9 @@ export const useGenerateLesson = () => {
       navigate(`/generated-lesson/${insertData.id}`);
       
       return insertData;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating lesson:", error);
-      toast.error("Failed to generate lesson");
+      toast.error(error.message || "Failed to generate lesson");
       return null;
     } finally {
       setIsGenerating(false);

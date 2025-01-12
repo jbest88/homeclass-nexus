@@ -10,6 +10,7 @@ serve(async (req) => {
     return new Response(null, {
       headers: {
         ...corsHeaders,
+        "Access-Control-Max-Age": "86400",
       },
     });
   }

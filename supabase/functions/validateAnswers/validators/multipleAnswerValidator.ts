@@ -97,9 +97,13 @@ export const validateMultipleAnswer = ({
         : `You need to either select 'All of the above' or select each correct option individually: ${individualOptions.join(', ')}.`;
     }
   } else {
+    // Updated validation logic to handle order-independent comparison
     isCorrect = normalizedUserAnswers.length === normalizedCorrectAnswers.length &&
                 normalizedUserAnswers.every(answer => 
-                  answer && normalizedCorrectAnswers.includes(answer)
+                  normalizedCorrectAnswers.includes(answer)
+                ) &&
+                normalizedCorrectAnswers.every(answer =>
+                  normalizedUserAnswers.includes(answer)
                 );
     
     if (!isCorrect) {

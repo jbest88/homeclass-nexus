@@ -3,7 +3,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { QuestionInputProps } from "@/types/questions";
 
 export const MultipleChoiceQuestion = ({ 
-  options, 
+  options = [], 
   value, 
   onChange, 
   disabled 
@@ -15,7 +15,7 @@ export const MultipleChoiceQuestion = ({
       className="space-y-2"
       disabled={disabled}
     >
-      {options?.map((option, optionIndex) => (
+      {options.map((option, optionIndex) => (
         <div key={optionIndex} className="flex items-center space-x-2">
           <RadioGroupItem 
             value={option} 

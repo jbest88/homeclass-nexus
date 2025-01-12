@@ -3,14 +3,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { QuestionInputProps } from "@/types/questions";
 
 export const MultipleAnswerQuestion = ({ 
-  options, 
+  options = [], 
   value, 
   onChange, 
   disabled 
 }: QuestionInputProps) => {
   const handleChange = (option: string, checked: boolean) => {
-    if (disabled) return;
-    
     const currentAnswers = (value as string[]) || [];
     let newAnswers: string[];
     

@@ -128,7 +128,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             question={question}
             answerState={answers[index] || { answer: "", isSubmitted: false }}
             onAnswerChange={(answer) => handleAnswerChange(index, answer)}
-            isLocked={false}
+            isLocked={isSubmitted}
           />
         ))}
         <QuestionActionButtons
@@ -136,7 +136,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
           isSubmitting={isSubmitting}
           isGenerating={isGenerating}
           performance={performance}
-          onTryAgain={handleSubmitAnswers}
+          onTryAgain={handleTryAgain}
           onGenerateNewLesson={handleGenerateNewLesson}
           onContinue={handleContinue}
         />

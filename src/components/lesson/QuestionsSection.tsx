@@ -1,14 +1,15 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { QuestionComponent } from "./QuestionComponent";
-import { useQuestionResponses } from "@/hooks/useQuestionResponses";
-import { Question } from "@/types/questions";
 import { useNavigate } from "react-router-dom";
-import { useGenerateLesson } from "@/hooks/useGenerateLesson";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { QuestionComponent } from "./QuestionComponent";
+import { QuestionActionButtons } from "./QuestionActionButtons";
+import { useQuestionResponses } from "@/hooks/useQuestionResponses";
+import { useGenerateLesson } from "@/hooks/useGenerateLesson";
+import { useLearningPath } from "@/hooks/useLearningPath";
+import { supabase } from "@/integrations/supabase/client";
+import { Question } from "@/types/questions";
 
 interface QuestionsSectionProps {
   questions: Question[];
@@ -20,8 +21,8 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
   const navigate = useNavigate();
   const user = useUser();
   const { handleGenerateLesson, isGenerating } = useGenerateLesson();
+  const { addToLearningPath } = useLearningPath();
 
-  // Fetch previous responses for this lesson
   const { data: previousResponses } = useQuery({
     queryKey: ["question-responses", lessonId],
     queryFn: async () => {
@@ -42,10 +43,9 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     answers,
     isSubmitting,
     isSubmitted,
+    performance,
     handleAnswerChange,
     handleSubmit,
-    performance,
-    initializeAnswers,
     resetAnswers,
     setIsSubmitted,
   } = useQuestionResponses(lessonId, subject, false);
@@ -60,7 +60,6 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
   };
 
   const validateAnswers = () => {
-    // Check if all questions have been answered
     const unansweredQuestions = questions.filter((_, index) => {
       const answer = answers[index]?.answer;
       return !answer || (Array.isArray(answer) && answer.length === 0);
@@ -82,94 +81,19 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     if (!user) return;
 
     try {
-      let pathId;
-      let newLesson;
-
-      // Check if this lesson is already part of a learning path
-      const { data: existingPathLesson, error: checkError } = await supabase
-        .from('learning_path_lessons')
-        .select('path_id')
-        .eq('lesson_id', lessonId)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-
-      // Get existing paths for this subject
-      const { data: existingPaths, error: pathError } = await supabase
-        .from('learning_paths')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('subject', subject)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (pathError) throw pathError;
-
-      // Create new path if none exists
-      if (!existingPaths?.length) {
-        const { data: newPath, error: createPathError } = await supabase
-          .from('learning_paths')
-          .insert({
-            user_id: user.id,
-            subject: subject,
-          })
-          .select()
-          .single();
-
-        if (createPathError) throw createPathError;
-        pathId = newPath.id;
-
-        // Add current lesson to the new path
-        const { error: lessonError } = await supabase
-          .from('learning_path_lessons')
-          .insert({
-            path_id: pathId,
-            lesson_id: lessonId,
-            order_index: 0,
-          });
-
-        if (lessonError) throw lessonError;
-      } else {
-        pathId = existingPathLesson?.path_id || existingPaths[0].id;
-
-        // Add current lesson to existing path if not already added
-        if (!existingPathLesson) {
-          const { data: lastLesson, error: orderError } = await supabase
-            .from('learning_path_lessons')
-            .select('order_index')
-            .eq('path_id', pathId)
-            .order('order_index', { ascending: false })
-            .limit(1);
-
-          if (orderError) throw orderError;
-
-          const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
-
-          const { error: addLessonError } = await supabase
-            .from('learning_path_lessons')
-            .insert({
-              path_id: pathId,
-              lesson_id: lessonId,
-              order_index: nextOrderIndex,
-            });
-
-          if (addLessonError) throw addLessonError;
-        }
-      }
-
-      if (performance && pathId) {
-        // Generate a new lesson with increased difficulty if performance is good
-        newLesson = await handleGenerateLesson(
+      const result = await addToLearningPath(lessonId, subject, performance);
+      
+      if (result && performance) {
+        const newLesson = await handleGenerateLesson(
           subject,
           performance.correctPercentage < 70
         );
 
-        if (newLesson) {
-          // Get the latest order_index
+        if (newLesson && result.pathId) {
           const { data: lastLesson, error: orderError } = await supabase
             .from('learning_path_lessons')
             .select('order_index')
-            .eq('path_id', pathId)
+            .eq('path_id', result.pathId)
             .order('order_index', { ascending: false })
             .limit(1);
 
@@ -177,19 +101,18 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
 
           const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
 
-          // Add new lesson to learning path
           await supabase
             .from('learning_path_lessons')
             .insert({
-              path_id: pathId,
+              path_id: result.pathId,
               lesson_id: newLesson.id,
               order_index: nextOrderIndex,
             });
         }
       }
     } catch (error) {
-      console.error('Error managing learning path:', error);
-      toast.error('Failed to update learning path');
+      console.error('Error generating new lesson:', error);
+      toast.error('Failed to generate new lesson');
     }
   };
 
@@ -208,41 +131,15 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
             isLocked={false}
           />
         ))}
-        {!isSubmitted ? (
-          <Button 
-            onClick={handleSubmitAnswers} 
-            disabled={isSubmitting}
-            className="mt-4"
-          >
-            {isSubmitting ? "Checking answers..." : "Submit Answers"}
-          </Button>
-        ) : (
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <Button
-              onClick={handleTryAgain}
-              variant="secondary"
-              className="flex-1"
-            >
-              Try Again
-            </Button>
-            <Button 
-              onClick={handleGenerateNewLesson}
-              disabled={isGenerating}
-              className="flex-1"
-            >
-              {isGenerating ? "Generating..." : performance && performance.correctPercentage < 70 
-                ? "Try a Different Approach" 
-                : "Continue Learning"}
-            </Button>
-            <Button 
-              onClick={handleContinue}
-              variant="outline"
-              className="flex-1"
-            >
-              Return to Dashboard
-            </Button>
-          </div>
-        )}
+        <QuestionActionButtons
+          isSubmitted={isSubmitted}
+          isSubmitting={isSubmitting}
+          isGenerating={isGenerating}
+          performance={performance}
+          onTryAgain={handleSubmitAnswers}
+          onGenerateNewLesson={handleGenerateNewLesson}
+          onContinue={handleContinue}
+        />
       </div>
     </div>
   );

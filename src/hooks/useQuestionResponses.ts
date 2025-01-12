@@ -106,20 +106,30 @@ export const useQuestionResponses = (lessonId: string, subject: string, isPreAns
         questions.map(async (question, index) => {
           const userAnswer = answers[index]?.answer || "";
           const startTime = answers[index]?.startTime || Date.now();
-
           const result = await validateAnswer(question, userAnswer, startTime);
+          
+          // Ensure we have a valid boolean value for is_correct
+          const isCorrect = result.isCorrect === true;
+          
+          // Insert response with validated boolean
+          const { error: responseError } = await supabase
+            .from("question_responses")
+            .insert({
+              user_id: user.id,
+              lesson_id: lessonId,
+              question_index: index,
+              is_correct: isCorrect,
+              response_time: result.responseTime,
+            });
 
-          await supabase.from("question_responses").insert({
-            user_id: user.id,
-            lesson_id: lessonId,
-            question_index: index,
-            is_correct: result.isCorrect,
-            response_time: result.responseTime,
-          });
+          if (responseError) {
+            console.error("Error inserting question response:", responseError);
+            throw responseError;
+          }
 
           await updateProficiencyMutation.mutateAsync({
             subject,
-            isCorrect: result.isCorrect,
+            isCorrect,
           });
 
           return { index, ...result };

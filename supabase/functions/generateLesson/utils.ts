@@ -6,11 +6,16 @@ export const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const generateWithGemini = async (
   apiKey: string,
-  prompt: string
+  prompt: string,
+  retryCount = 0
 ): Promise<string> => {
   console.log('Sending request to Gemini API with prompt:', prompt);
+  const maxRetries = 3;
+  const baseDelay = 1000; // 1 second
   
   try {
     const controller = new AbortController();
@@ -38,6 +43,16 @@ export const generateWithGemini = async (
 
     clearTimeout(timeoutId);
 
+    if (response.status === 429) {
+      console.log(`Rate limit hit, attempt ${retryCount + 1} of ${maxRetries}`);
+      if (retryCount < maxRetries) {
+        const delay = baseDelay * Math.pow(2, retryCount);
+        await sleep(delay);
+        return generateWithGemini(apiKey, prompt, retryCount + 1);
+      }
+      throw new Error('API quota exceeded. Please try again later.');
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Gemini API error response:', errorText);
@@ -58,6 +73,9 @@ export const generateWithGemini = async (
     return generatedText;
   } catch (error) {
     console.error('Error in generateWithGemini:', error);
+    if (error.message.includes('API quota exceeded')) {
+      throw new Error('API quota exceeded. Please try again in a few minutes.');
+    }
     throw error;
   }
 };

@@ -51,7 +51,12 @@ export const useGenerateLesson = () => {
 
       if (generateError) {
         console.error("Error from generateLesson function:", generateError);
-        throw generateError;
+        if (generateError.message.includes('API quota exceeded')) {
+          toast.error("We're experiencing high demand. Please try again in a few minutes.");
+        } else {
+          toast.error("Failed to generate lesson. Please try again.");
+        }
+        return null;
       }
 
       console.log("Lesson generated, inserting into database...");
@@ -70,7 +75,8 @@ export const useGenerateLesson = () => {
 
       if (insertError) {
         console.error("Error inserting lesson:", insertError);
-        throw insertError;
+        toast.error("Failed to save lesson. Please try again.");
+        return null;
       }
 
       toast.success(isRetry 

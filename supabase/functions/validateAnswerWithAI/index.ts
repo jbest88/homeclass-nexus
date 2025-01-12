@@ -35,20 +35,40 @@ serve(async (req) => {
           validMeasuringTools.includes(answer.toLowerCase())
         );
 
-        return new Response(
-          JSON.stringify({
-            isCorrect: allValid,
-            explanation: allValid 
-              ? '' 
-              : 'Some of your selected items are not measuring tools. Valid measuring tools include rulers, scales, measuring cups, meter sticks, and other tools specifically designed for measurement.'
-          }),
-          {
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json' 
-            },
-          }
-        );
+        // For measuring tools questions, if all selected answers are valid measuring tools,
+        // the answer should be considered correct
+        if (allValid) {
+          return new Response(
+            JSON.stringify({
+              isCorrect: true,
+              explanation: 'Correct! All of your selected items are valid measuring tools.'
+            }),
+            {
+              headers: { 
+                ...corsHeaders,
+                'Content-Type': 'application/json' 
+              },
+            }
+          );
+        } else {
+          // If some selected items are not valid measuring tools
+          const invalidTools = normalizedUserAnswers.filter(answer => 
+            !validMeasuringTools.includes(answer.toLowerCase())
+          );
+          
+          return new Response(
+            JSON.stringify({
+              isCorrect: false,
+              explanation: `Some of your selected items (${invalidTools.join(', ')}) are not measuring tools. Valid measuring tools include rulers, scales, measuring cups, meter sticks, and other tools specifically designed for measurement.`
+            }),
+            {
+              headers: { 
+                ...corsHeaders,
+                'Content-Type': 'application/json' 
+              },
+            }
+          );
+        }
       }
     }
 
@@ -130,11 +150,11 @@ EXPLANATION: [only if incorrect, otherwise leave blank]`;
         explanation: `Error validating answer: ${error.message}`
       }),
       {
-        status: 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 
         },
+        status: 400,
       }
     );
   }

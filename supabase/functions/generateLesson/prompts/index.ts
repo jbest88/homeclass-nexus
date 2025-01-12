@@ -1,3 +1,2 @@
-export { createLessonPrompt } from './lessonPrompt';
-export { createQuestionsPrompt } from './questionsPrompt';
-export { getCurriculumContext } from './curriculumContext';
+export { createLessonPrompt } from './lessonPrompt.ts';
+export { createQuestionsPrompt } from './questionsPrompt.ts';

@@ -34,6 +34,11 @@ Your task:
 1. For multiple-answer questions, the student's answer is correct if ALL selected answers are valid for the question, regardless of whether they selected all possible correct answers.
 2. For other question types, determine if the student's answer matches exactly (case-insensitive).
 3. If incorrect, provide a brief, encouraging explanation.
+4. For mathematical questions, especially those involving calculations:
+   - Parse and evaluate numerical expressions
+   - Consider equivalent forms (e.g., -8 and -8.0 are the same)
+   - Show the step-by-step solution in the explanation
+   - Be particularly careful with negative numbers and decimals
 
 Respond in this exact format:
 CORRECT: [true/false]

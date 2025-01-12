@@ -31,75 +31,73 @@ export const createQuestionsPrompt = (
   difficultyLevel: string,
   proficiencyLevel: number
 ): string => {
-  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions that will help a ${gradeLevelText} student check their understanding. The questions should be at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions to help a ${gradeLevelText} student check their understanding. The questions must align with a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10).
 
-    IMPORTANT RULES:
-    1. The questions MUST be appropriate for ${gradeLevelText} students.
-    2. EVERY question must be directly related to the content in the lesson.
-    3. The correct answer MUST be one of the provided options.
-    4. Each option must be a complete, clear phrase or statement.
-    5. Do not reference any visual elements unless they are explicitly provided.
-    6. Keep options concise and clear - ideally 1-5 words each.
+    CRITICAL RULES:
+    1. The questions MUST be appropriate for ${gradeLevelText} students and match the lesson content.
+    2. Generate EXACTLY 5 questions, covering these types:
+       - Multiple choice (2 questions)
+       - Multiple answer (1 question)
+       - True/False (1 question)
+       - Dropdown (1 question)
+    3. Each question MUST follow the specified JSON format EXACTLY, with no additional text, comments, or deviations.
 
-    CRITICAL: You MUST include EXACTLY ONE of each of these question types:
-    1. Multiple choice question (2 questions)
-    2. Multiple answer question where students select multiple correct options (1 question)
-    3. True/False question (1 question)
-    4. Dropdown question (1 question)
+    FOR ALL QUESTIONS:
+    - Ensure every question is directly tied to the content in the lesson.
+    - Use clear, concise, and age-appropriate language.
+    - Avoid ambiguous, tricky, or overly complex phrasing.
+    - Verify that the correct answer(s) match exactly one or more provided options.
+    - Exclude references to visuals unless explicitly included in the lesson.
 
-    For EVERY question:
-    - Make sure the correct answer exactly matches one of the options
-    - Keep options simple and straightforward
-    - Avoid ambiguous or tricky wording
-    - Do not reference images or diagrams
-    - Ensure all options are relevant to the question
-
-    For multiple choice and dropdown questions:
-    - Provide 3-4 distinct, clear options
-    - Make sure the correct answer is exactly one of these options
-    - Keep options similar in length and style
-
-    For multiple answer questions:
-    - Include 2-3 correct answers from the options
-    - Make it clear multiple answers should be selected
-    - Use "Select all that apply" in the question text
-
-    For true/false questions:
-    - Make the statement clear and unambiguous
-    - Base it directly on information from the lesson
-
-    Return ONLY a JSON array with these exact structures:
-
-    Multiple choice:
+    SPECIFIC FORMATS:
+    1. Multiple choice:
     {
       "question": "What is...?",
       "type": "multiple-choice",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "option1"
     }
-
-    Multiple answer:
+    - Provide 3-4 distinct options; one correct answer must match an option.
+    
+    2. Multiple answer:
     {
       "question": "Select all that apply...",
       "type": "multiple-answer",
       "options": ["option1", "option2", "option3", "option4"],
       "correctAnswers": ["option1", "option2"]
     }
+    - Provide 2-3 correct answers and include "Select all that apply" in the question.
 
-    True/False:
+    3. True/False:
     {
       "question": "Is this statement true...?",
       "type": "true-false",
       "answer": "true"
     }
+    - Make the statement unambiguous and based on the lesson content.
 
-    Dropdown:
+    4. Dropdown:
     {
       "question": "Choose the correct...?",
       "type": "dropdown",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "option1"
     }
+    - Provide 3-4 options; one correct answer must match an option.
 
-    Return only the raw JSON array with EXACTLY 5 questions, no additional text or formatting.`;
+    OUTPUT INSTRUCTIONS:
+    - Return ONLY the raw JSON array with EXACTLY 5 questions.
+    - Do NOT include any additional text, explanations, or formatting.
+    - Verify completeness and correctness before output.
+
+    Your response should look like this:
+    [
+      {
+        "question": "...",
+        "type": "...",
+        "options": [...],
+        "answer": "..."
+      },
+      ...
+    ]`;
 };

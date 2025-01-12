@@ -22,20 +22,16 @@ export const generateLesson = async (
   geminiApiKey: string,
   subject: string,
   gradeLevelText: string,
-  difficultyLevel: string,
-  proficiencyLevel: number,
   isRetry: boolean
 ): Promise<GeneratedLesson> => {
-  console.log('Generating lesson content with difficulty:', difficultyLevel);
+  console.log('Generating lesson content...');
   
   const currentDate = new Date().toISOString();
   const curriculumPeriod = getCurriculumPeriod(currentDate);
   
   const lessonPrompt = createLessonPrompt(
     subject, 
-    gradeLevelText, 
-    difficultyLevel, 
-    isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel,
+    gradeLevelText,
     curriculumPeriod
   );
   const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
@@ -55,9 +51,7 @@ export const generateLesson = async (
     try {
       const questionsPrompt = createQuestionsPrompt(
         lessonContent, 
-        gradeLevelText, 
-        difficultyLevel, 
-        isRetry ? Math.max(1, proficiencyLevel - 2) : proficiencyLevel
+        gradeLevelText
       );
       const questionsText = await generateWithGemini(geminiApiKey, questionsPrompt);
 

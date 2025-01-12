@@ -63,8 +63,6 @@ serve(async (req) => {
       geminiApiKey,
       subject,
       gradeLevelText,
-      "intermediate",
-      3,
       isRetry || false
     );
     console.log("Lesson generated successfully");

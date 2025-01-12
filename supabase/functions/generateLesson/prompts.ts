@@ -1,8 +1,6 @@
 export const createLessonPrompt = (
   subject: string,
   gradeLevelText: string,
-  difficultyLevel: string,
-  proficiencyLevel: number,
   curriculumPeriod: string
 ): string => {
   const curriculumContext = getCurriculumContext(curriculumPeriod);
@@ -54,12 +52,8 @@ export const createLessonPrompt = (
 export const createQuestionsPrompt = (
   lessonContent: string,
   gradeLevelText: string,
-  difficultyLevel: string,
-  proficiencyLevel: number
 ): string => {
-  const gradeAdjustedDifficulty = getGradeAdjustedDifficulty(gradeLevelText, difficultyLevel);
-  
-  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions to help a ${gradeLevelText} student check their understanding. The questions must align with a ${gradeAdjustedDifficulty} difficulty level (proficiency: ${proficiencyLevel}/10).
+  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions to help a ${gradeLevelText} student check their understanding.
 
     CRITICAL RULES:
     1. Questions MUST be precisely calibrated for ${gradeLevelText} students:
@@ -168,32 +162,3 @@ const getCurriculumContext = (curriculumPeriod: string) => {
       };
   }
 };
-
-const getGradeAdjustedDifficulty = (gradeLevelText: string, baseDifficulty: string): string => {
-  // Extract grade number (or 0 for kindergarten)
-  const gradeNum = gradeLevelText.toLowerCase().includes('kindergarten') ? 0 : 
-    parseInt(gradeLevelText.match(/\d+/)?.[0] || '0');
-
-  // Adjust difficulty based on grade level with increased challenge
-  switch (baseDifficulty.toLowerCase()) {
-    case 'easy':
-      return gradeNum <= 3 ? 'basic' :           // Increased from 'foundational'
-             gradeNum <= 6 ? 'standard' :        // Increased from 'basic'
-             gradeNum <= 9 ? 'intermediate' :    // Increased from 'introductory'
-             'advanced';                         // Increased from 'standard'
-    case 'medium':
-      return gradeNum <= 3 ? 'intermediate' :    // Increased from 'basic'
-             gradeNum <= 6 ? 'advanced' :        // Increased from 'standard'
-             gradeNum <= 9 ? 'complex' :         // Increased from 'intermediate'
-             'expert';                           // Increased from 'advanced'
-    case 'hard':
-      return gradeNum <= 3 ? 'advanced' :        // Increased from 'challenging'
-             gradeNum <= 6 ? 'complex' :         // Increased from 'advanced'
-             gradeNum <= 9 ? 'expert' :          // Increased from 'complex'
-             'mastery';                          // New highest level
-    default:
-      return 'advanced';                         // Increased from 'standard'
-  }
-};
-
-// ... keep existing code (other functions and exports)

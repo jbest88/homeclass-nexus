@@ -1,4 +1,4 @@
-import { getCurriculumContext } from './curriculumContext';
+import { getCurriculumContext } from './curriculumContext.ts';
 
 const getPiagetStage = (gradeLevelText: string): string => {
   const gradeLevel = parseInt(gradeLevelText.replace(/[^0-9]/g, '')) || 0;

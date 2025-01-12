@@ -6,9 +6,8 @@ export const createLessonPrompt = (
   curriculumPeriod: string
 ): string => {
   const curriculumContext = getCurriculumContext(curriculumPeriod);
-  const gradeAdjustedDifficulty = getGradeAdjustedDifficulty(gradeLevelText, difficultyLevel);
 
-  return `Imagine you are an experienced and friendly teacher for ${gradeLevelText}. Create an engaging lesson about ${subject} specifically for a ${gradeLevelText} student at a ${gradeAdjustedDifficulty} difficulty level (proficiency: ${proficiencyLevel}/10). This lesson should be aligned with [relevant state/national standards, if applicable] and suitable for students who have completed [previous grade level].
+  return `Imagine you are an experienced and friendly teacher for ${gradeLevelText}. Create an engaging lesson about ${subject} specifically for a ${gradeLevelText} student. This lesson should be aligned with [relevant state/national standards, if applicable] and suitable for students who have completed [previous grade level].
 
     CRITICAL GRADE-LEVEL REQUIREMENTS:
     - Considering that ${gradeLevelText} students are typically in [Piaget's stage of cognitive development], tailor your explanations and examples accordingly.

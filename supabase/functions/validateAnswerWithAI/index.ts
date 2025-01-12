@@ -20,28 +20,22 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    // Construct the prompt based on the question type
-    let prompt = '';
-    if (type === 'multiple-answer') {
-      const userAnswersStr = Array.isArray(userAnswers) ? userAnswers.join(', ') : userAnswers;
-      prompt = `Question: "${question}"
-User selected answers: ${userAnswersStr}
-Expected correct answers: ${Array.isArray(correctAnswers) ? correctAnswers.join(', ') : correctAnswers}
+    // Format answers for the prompt
+    const userAnswersStr = Array.isArray(userAnswers) ? userAnswers.join(', ') : userAnswers;
+    const correctAnswersStr = Array.isArray(correctAnswers) ? correctAnswers.join(', ') : correctAnswers;
 
-Please analyze if the user's selected answers are correct for this question. Consider the following:
-1. For questions about shapes, validate based on geometric properties
-2. For numerical comparisons, check if all numbers meet the criteria
-3. For general knowledge questions, verify accuracy of all selected options
+    const prompt = `Evaluate this answer:
 
-Respond with ONLY "YES" if the answer is completely correct, or "NO" if it's incorrect or partially correct. No other text.`;
-    } else {
-      prompt = `Question: "${question}"
-User answer: ${userAnswers}
-Expected answer: ${correctAnswers}
+Question: "${question}"
+Student's answer(s): ${userAnswersStr}
+Correct answer(s): ${correctAnswersStr}
 
-Is the user's answer correct? Consider context and variations in expressing the same concept.
-Respond with ONLY "YES" if correct or "NO" if incorrect. No other text.`;
-    }
+First, determine if the student's answer is completely correct.
+Then, provide a very brief explanation (1-2 sentences) if incorrect.
+
+Respond in this exact format:
+CORRECT: [true/false]
+EXPLANATION: [only if incorrect, otherwise leave blank]`;
 
     console.log('Sending prompt to Gemini:', prompt);
 
@@ -58,7 +52,7 @@ Respond with ONLY "YES" if correct or "NO" if incorrect. No other text.`;
             temperature: 0.1,
             topK: 1,
             topP: 1,
-            maxOutputTokens: 1,
+            maxOutputTokens: 100,
           },
         }),
       }
@@ -71,12 +65,19 @@ Respond with ONLY "YES" if correct or "NO" if incorrect. No other text.`;
     const data = await response.json();
     console.log('Gemini API response:', data);
 
-    const aiResponse = data.candidates[0].content.parts[0].text.trim().toUpperCase();
-    const isCorrect = aiResponse === 'YES';
+    const aiResponse = data.candidates[0].content.parts[0].text.trim();
+    
+    // Parse the AI response
+    const correctMatch = aiResponse.match(/CORRECT:\s*(true|false)/i);
+    const explanationMatch = aiResponse.match(/EXPLANATION:\s*(.+)/i);
+    
+    const isCorrect = correctMatch ? correctMatch[1].toLowerCase() === 'true' : false;
+    const explanation = explanationMatch ? explanationMatch[1].trim() : '';
 
     return new Response(
       JSON.stringify({ 
         isCorrect,
+        explanation,
         aiResponse,
       }),
       {

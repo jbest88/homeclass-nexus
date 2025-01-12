@@ -3,31 +3,23 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { QuestionInputProps } from "@/types/questions";
 
 export const MultipleChoiceQuestion = ({ 
-  options = [], 
+  options, 
   value, 
   onChange, 
-  disabled 
+  disabled,
+  question 
 }: QuestionInputProps) => {
   return (
     <RadioGroup
-      value={value as string}
+      value={value as string || ""}
       onValueChange={onChange}
       className="space-y-2"
       disabled={disabled}
     >
-      {options.map((option, optionIndex) => (
+      {options?.map((option, optionIndex) => (
         <div key={optionIndex} className="flex items-center space-x-2">
-          <RadioGroupItem 
-            value={option} 
-            id={`option-${optionIndex}`}
-            disabled={disabled}
-          />
-          <Label 
-            htmlFor={`option-${optionIndex}`}
-            className={disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-          >
-            {option}
-          </Label>
+          <RadioGroupItem value={option} id={`option-${optionIndex}`} />
+          <Label htmlFor={`option-${optionIndex}`}>{option}</Label>
         </div>
       ))}
     </RadioGroup>

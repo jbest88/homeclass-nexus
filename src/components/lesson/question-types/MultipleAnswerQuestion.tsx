@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { QuestionInputProps } from "@/types/questions";
 
 export const MultipleAnswerQuestion = ({ 
-  options = [], 
+  options, 
   value, 
   onChange, 
   disabled 
@@ -35,12 +35,7 @@ export const MultipleAnswerQuestion = ({
               }
               disabled={disabled}
             />
-            <Label 
-              htmlFor={`option-${optionIndex}`}
-              className={disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-            >
-              {option}
-            </Label>
+            <Label htmlFor={`option-${optionIndex}`}>{option}</Label>
           </div>
         );
       })}

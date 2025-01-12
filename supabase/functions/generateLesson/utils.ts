@@ -17,12 +17,11 @@ export const generateWithGemini = async (
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
+      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
@@ -58,9 +57,6 @@ export const generateWithGemini = async (
     
     return generatedText;
   } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out after 60 seconds');
-    }
     console.error('Error in generateWithGemini:', error);
     throw error;
   }

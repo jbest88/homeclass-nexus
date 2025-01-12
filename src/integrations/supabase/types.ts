@@ -188,6 +188,44 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_section_progress: {
+        Row: {
+          completed_sections: number[] | null
+          created_at: string | null
+          current_section: number
+          id: string
+          last_accessed_at: string | null
+          lesson_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_sections?: number[] | null
+          created_at?: string | null
+          current_section?: number
+          id?: string
+          last_accessed_at?: string | null
+          lesson_id: string
+          user_id: string
+        }
+        Update: {
+          completed_sections?: number[] | null
+          created_at?: string | null
+          current_section?: number
+          id?: string
+          last_accessed_at?: string | null
+          lesson_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_section_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "generated_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_progress: {
         Row: {
           completed_at: string | null

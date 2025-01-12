@@ -16,7 +16,6 @@ export const createLessonPrompt = (
     - Clear explanations of key concepts using age-appropriate language
     - "Did you know?" facts that would interest a student at this grade level
     - Brief, bullet-point recaps of key ideas throughout the lesson
-    - At least one interactive activity, question, or task the student can try
     - Descriptions of visuals or diagrams that could enhance understanding
 
     End with a positive closing statement or question to encourage curiosity about the subject.

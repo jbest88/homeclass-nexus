@@ -6,8 +6,7 @@ export const MultipleChoiceQuestion = ({
   options, 
   value, 
   onChange, 
-  disabled,
-  question 
+  disabled 
 }: QuestionInputProps) => {
   return (
     <RadioGroup
@@ -21,7 +20,6 @@ export const MultipleChoiceQuestion = ({
           <RadioGroupItem 
             value={option} 
             id={`option-${optionIndex}`}
-            disabled={disabled}
           />
           <Label 
             htmlFor={`option-${optionIndex}`}

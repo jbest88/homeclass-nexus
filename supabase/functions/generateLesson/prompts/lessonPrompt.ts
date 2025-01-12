@@ -10,47 +10,60 @@ export const createLessonPrompt = (
   const piagetStage = getPiagetStage(gradeLevelText);
   const gradeExpectations = getGradeLevelExpectations(gradeLevelText);
 
-  return `Imagine you are an experienced teacher for ${gradeLevelText}. Create an engaging, grade-appropriate lesson about ${subject} specifically for a ${gradeLevelText} student. This lesson must be STRICTLY aligned with ${gradeLevelText} curriculum standards.
+  return `Generate an academically rigorous lesson on ${subject} that strictly adheres to ${gradeLevelText} academic standards. The content must maintain sophisticated academic depth while being precisely calibrated for the target grade level.
 
-    CRITICAL GRADE-LEVEL REQUIREMENTS:
-    - IMPORTANT: Content MUST be precisely calibrated for ${gradeLevelText}. DO NOT include concepts from higher grades.
-    - Students are in ${piagetStage}. Stay within their developmental capabilities.
-    - Expected comprehension level: ${gradeExpectations}
-    - Use vocabulary that ${gradeLevelText} students would understand
-    - Examples must reflect real-world scenarios that ${gradeLevelText} students encounter daily
-    - Break down complex ideas into simpler, digestible parts
-    - Include frequent comprehension checks
+    ACADEMIC REQUIREMENTS:
+    - Content MUST be at the upper range of ${gradeLevelText} curriculum standards
+    - Target cognitive development: ${piagetStage}
+    - Academic expectations: ${gradeExpectations}
+    - Employ precise academic terminology and sophisticated vocabulary appropriate for ${gradeLevelText}
+    - Incorporate advanced theoretical frameworks and complex analytical approaches
+    - Emphasize interdisciplinary connections and higher-order thinking skills
+    - CRITICAL: Content must challenge students at the upper bounds of their grade level
 
-    IMPORTANT: 
-    - The content MUST be appropriate for ${gradeLevelText} students. If you're unsure if a concept is too advanced, err on the side of simplicity.
-    - Based on the student's current learning progression:
-      - Focus on teaching: Basic foundations of ${curriculumContext.currentTopics}
-      - Build upon: Core understanding of ${curriculumContext.previousKnowledge}
-      - Prepare for: Introduction to ${curriculumContext.upcomingTopics}
-    - CRITICAL: Do NOT include ANY references to semesters, seasons, or time of year.
+    CONTENT STRUCTURE:
+    1. Core Theoretical Framework:
+       - Present advanced theoretical principles
+       - Define complex terminology with precision
+       - Establish mathematical/scientific foundations
+    
+    2. Advanced Concept Analysis:
+       For each key concept:
+       * Theoretical Foundation:
+         - Rigorous mathematical/scientific principles
+         - Formal definitions and proofs where applicable
+         - Underlying mechanisms and relationships
+       
+       * Complex Examples:
+         - Sophisticated real-world applications
+         - Multi-step problem-solving scenarios
+         - Advanced case studies
+         - Analytical frameworks
+       
+       * Critical Analysis:
+         - Theoretical implications
+         - Edge cases and limitations
+         - Advanced problem-solving strategies
+    
+    3. Integration Points:
+       - Connect to advanced topics in related fields
+       - Explore theoretical intersections
+       - Analyze real-world applications
+    
+    4. Advanced Applications:
+       - Complex problem-solving scenarios
+       - Multi-variable analysis
+       - Real-world case studies
+       - Theoretical extensions
 
-    Write in a friendly, encouraging tone appropriate for ${gradeLevelText} students. Include:
-    - A welcoming introduction that connects to their daily life
-    - For EACH concept:
-      * Start with the most basic explanation possible
-      * Provide 2-3 simple, relatable examples:
-          * **Scenario:** [Simple, age-appropriate situation]
-          * **Problem:** [Clear, straightforward challenge]
-          * **Solution:** [Step-by-step explanation]
-          * **Connection:** [How it relates to their life]
-      * Use visual analogies when possible
-      * Include practice opportunities
-    - Fun "Did you know?" facts that reinforce basic concepts
-    - Regular summary points:
-      * Main idea in simple terms
-      * Key points to remember
-      * Common mistakes to avoid
-      * Links to previous learning
-    - Simple self-check questions
-    - Activities that support different learning styles
+    CRITICAL GUIDELINES:
+    - Maintain sophisticated academic language throughout
+    - Include rigorous mathematical/scientific notation where appropriate
+    - Present complex, multi-step examples
+    - Challenge students with advanced concepts while maintaining grade-level appropriateness
+    - Focus on theoretical understanding and analytical thinking
+    - Emphasize problem-solving strategies and critical analysis
+    - IMPORTANT: Content must be at the upper bounds of ${gradeLevelText} difficulty
 
-    End with an encouraging message and a preview of how this knowledge will help them in their daily life.
-
-    The content should be easy to read and understand, using simple language appropriate for ${gradeLevelText}.
-    Include a clear, student-friendly title that includes the grade level (${gradeLevelText}).`;
+    The content should maintain high academic rigor while being precisely calibrated for ${gradeLevelText}. Include a clear, academically appropriate title that reflects the sophisticated nature of the content.`;
 };

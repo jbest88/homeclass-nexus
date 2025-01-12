@@ -22,8 +22,9 @@ export const QuestionComponent = ({
   isLocked = false,
 }: QuestionComponentProps) => {
   const handleAnswerChange = (value: string | string[]) => {
-    if (isLocked || answerState.isSubmitted) return;
-    onAnswerChange(value);
+    if (!isLocked && !answerState.isSubmitted) {
+      onAnswerChange(value);
+    }
   };
 
   const props = {

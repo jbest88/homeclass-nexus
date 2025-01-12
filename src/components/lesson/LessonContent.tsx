@@ -21,8 +21,8 @@ export const LessonContent = ({ title, subject, content, lessonId }: LessonConte
     saveProgress,
   } = useLessonProgress(lessonId);
 
-  // Split content into sections based on h2 headers
-  const sections = content.split(/(?=## )/g).filter(Boolean);
+  // Split content into sections based on h2 headers, ensuring we get valid sections
+  const sections = content.split(/(?=## )/g).filter(section => section.trim().length > 0);
 
   const handleNext = () => {
     if (currentSection < sections.length - 1) {
@@ -46,15 +46,20 @@ export const LessonContent = ({ title, subject, content, lessonId }: LessonConte
       saveProgress(newSection, completedSections);
     }
   };
+
+  // Ensure we have a valid current section
+  const validCurrentSection = Math.min(currentSection, sections.length - 1);
   
   return (
     <Card className="mb-8">
       <LessonHeader title={title} subject={subject} />
-      <CardContent>
-        <LessonSection content={sections[currentSection]} />
+      <CardContent className="py-6">
+        <div className="min-h-[300px]">
+          <LessonSection content={sections[validCurrentSection]} />
+        </div>
         <div className="mt-8">
           <SectionNavigation
-            currentSection={currentSection}
+            currentSection={validCurrentSection}
             totalSections={sections.length}
             onNext={handleNext}
             onPrevious={handlePrevious}

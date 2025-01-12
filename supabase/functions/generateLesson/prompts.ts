@@ -4,19 +4,49 @@ export const createLessonPrompt = (
   difficultyLevel: string,
   proficiencyLevel: number
 ): string => {
-  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+  return `Create a comprehensive, well-structured lesson about ${subject} for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10).
 
-    IMPORTANT: The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
+    REQUIRED SECTIONS (use these exact headings with markdown ##):
     
-    Write as if you're directly speaking to the student. Use clear, conversational language and include:
-    - A friendly introduction that gets them excited about the topic
-    - Real-world examples and relatable scenarios that a ${gradeLevelText} student would understand
-    - Clear explanations of key concepts using age-appropriate language
-    - "Did you know?" facts that would interest a student at this grade level
-    - Brief recap points throughout the lesson
+    ## Learning Objectives
+    Start with 3-4 clear, measurable learning objectives that are appropriate for ${gradeLevelText} students.
     
-    The content should be easy to read and understand, avoiding overly technical language unless necessary.
-    Include a clear, student-friendly title for the lesson.`;
+    ## Introduction
+    Begin with an engaging hook that connects to students' daily lives or prior knowledge.
+    Briefly explain why this topic matters and how it relates to what they already know.
+    
+    ## Key Concepts
+    Break down the main ideas into clear, digestible chunks.
+    Use simple language appropriate for ${gradeLevelText}.
+    Include relevant examples for each concept.
+    
+    ## Real-World Applications
+    Provide at least 2 concrete examples of how this topic is used in everyday life.
+    Make these examples relatable to ${gradeLevelText} students.
+    
+    ## Did you know?
+    Include 2-3 interesting facts that will capture student interest.
+    These should be grade-appropriate and connect to the main concepts.
+    
+    ## Practice Time
+    Brief review points or mini-exercises (separate from the actual questions that will be generated later).
+    
+    ## Summary
+    Recap the key points covered in the lesson.
+    Reinforce the main takeaways.
+
+    IMPORTANT GUIDELINES:
+    1. Write in a friendly, conversational tone
+    2. Use clear, age-appropriate language for ${gradeLevelText}
+    3. Break complex ideas into smaller, manageable parts
+    4. Include frequent examples and analogies
+    5. Maintain consistent difficulty level throughout
+    6. Keep paragraphs short (3-4 sentences maximum)
+    7. Use bullet points for lists
+    8. Include brief recaps after each major section
+    
+    The content should be thorough but concise, focusing on depth of understanding rather than breadth of coverage.
+    Use markdown formatting for headings (##) and emphasis (*) where appropriate.`;
 };
 
 export const createQuestionsPrompt = (
@@ -28,12 +58,14 @@ export const createQuestionsPrompt = (
   return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions that will help a ${gradeLevelText} student check their understanding. The questions should be at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
 
     IMPORTANT RULES:
-    1. The questions MUST be appropriate for ${gradeLevelText} students.
-    2. EVERY question must be directly related to the content in the lesson.
-    3. The correct answer MUST be one of the provided options.
-    4. Each option must be a complete, clear phrase or statement.
-    5. Do not reference any visual elements unless they are explicitly provided.
-    6. Keep options concise and clear - ideally 1-5 words each.
+    1. Questions MUST directly align with the learning objectives stated in the lesson
+    2. Each question should test a different concept from the lesson
+    3. Include questions that test both recall and understanding
+    4. Use clear, grade-appropriate language
+    5. Make questions engaging and relevant to real-world applications mentioned in the lesson
+    6. Ensure all options are plausible but only one is clearly correct
+    7. Avoid negative phrasing (e.g., "Which is NOT...")
+    8. Include at least one question about real-world applications
 
     CRITICAL: You MUST include EXACTLY ONE of each of these question types:
     1. Multiple choice question (2 questions)
@@ -42,25 +74,27 @@ export const createQuestionsPrompt = (
     4. Dropdown question (1 question)
 
     For EVERY question:
-    - Make sure the correct answer exactly matches one of the options
-    - Keep options simple and straightforward
-    - Avoid ambiguous or tricky wording
-    - Do not reference images or diagrams
+    - Base it directly on content from the lesson
+    - Make sure the correct answer is explicitly covered in the lesson
+    - Use clear, unambiguous wording
+    - Keep options concise and distinct
     - Ensure all options are relevant to the question
 
     For multiple choice and dropdown questions:
-    - Provide 3-4 distinct, clear options
-    - Make sure the correct answer is exactly one of these options
+    - Provide exactly 4 distinct options
+    - Make all options plausible
+    - Avoid obvious incorrect answers
     - Keep options similar in length and style
 
     For multiple answer questions:
-    - Include 2-3 correct answers from the options
+    - Include exactly 2-3 correct answers
     - Make it clear multiple answers should be selected
     - Use "Select all that apply" in the question text
 
     For true/false questions:
-    - Make the statement clear and unambiguous
-    - Base it directly on information from the lesson
+    - Base it on a clear fact from the lesson
+    - Avoid complex or compound statements
+    - Make the correct answer unambiguous
 
     Return ONLY a JSON array with these exact structures:
 

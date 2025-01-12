@@ -23,7 +23,7 @@ export const MultipleChoiceQuestion = ({
           />
           <Label 
             htmlFor={`option-${optionIndex}`}
-            className={disabled ? "opacity-50" : "cursor-pointer"}
+            className={disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
           >
             {option}
           </Label>

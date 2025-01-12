@@ -5,6 +5,7 @@ import { DropdownQuestion } from "./question-types/DropdownQuestion";
 import { TextQuestion } from "./question-types/TextQuestion";
 import { Question, AnswerState } from "@/types/questions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { isNumberComparisonQuestion, isMathematicalQuestion, calculateDiscriminant } from "@/utils/questionUtils";
 
 interface QuestionComponentProps {
   question: Question;

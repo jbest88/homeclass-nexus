@@ -136,6 +136,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
           isSubmitting={isSubmitting}
           isGenerating={isGenerating}
           performance={performance}
+          onSubmit={handleSubmitAnswers}
           onTryAgain={handleTryAgain}
           onGenerateNewLesson={handleGenerateNewLesson}
           onContinue={handleContinue}

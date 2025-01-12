@@ -7,6 +7,7 @@ interface QuestionActionButtonsProps {
   performance?: {
     correctPercentage: number;
   } | null;
+  onSubmit: () => void;
   onTryAgain: () => void;
   onGenerateNewLesson: () => void;
   onContinue: () => void;
@@ -17,6 +18,7 @@ export const QuestionActionButtons = ({
   isSubmitting,
   isGenerating,
   performance,
+  onSubmit,
   onTryAgain,
   onGenerateNewLesson,
   onContinue,
@@ -24,7 +26,7 @@ export const QuestionActionButtons = ({
   if (!isSubmitted) {
     return (
       <Button 
-        onClick={onTryAgain}
+        onClick={onSubmit}
         disabled={isSubmitting}
         className="mt-4"
       >

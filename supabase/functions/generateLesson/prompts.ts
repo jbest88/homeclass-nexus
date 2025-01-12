@@ -4,17 +4,23 @@ export const createLessonPrompt = (
   difficultyLevel: string,
   proficiencyLevel: number
 ): string => {
-  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10). 
+  return `Create an engaging, student-friendly lesson about ${subject} specifically for a ${gradeLevelText} student at a ${difficultyLevel} difficulty level (proficiency: ${proficiencyLevel}/10).
 
-    IMPORTANT: The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
-    
+    IMPORTANT: 
+    - The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
+    - The lesson should help the student understand [specific concepts].
+
     Write as if you're directly speaking to the student. Use clear, conversational language and include:
     - A friendly introduction that gets them excited about the topic
     - Real-world examples and relatable scenarios that a ${gradeLevelText} student would understand
     - Clear explanations of key concepts using age-appropriate language
     - "Did you know?" facts that would interest a student at this grade level
-    - Brief recap points throughout the lesson
-    
+    - Brief, bullet-point recaps of key ideas throughout the lesson
+    - At least one interactive activity, question, or task the student can try
+    - Descriptions of visuals or diagrams that could enhance understanding
+
+    End with a positive closing statement or question to encourage curiosity about the subject.
+
     The content should be easy to read and understand, avoiding overly technical language unless necessary.
     Include a clear, student-friendly title for the lesson.`;
 };

@@ -1,79 +1,79 @@
+import { getCurriculumContext } from './curriculumContext.ts';
+import { getPiagetStage, getGradeLevelExpectations } from './gradeUtils.ts';
+
 export const createLessonPrompt = (
   subject: string,
   gradeLevelText: string,
   curriculumPeriod: string
 ): string => {
   const curriculumContext = getCurriculumContext(curriculumPeriod);
+  const piagetStage = getPiagetStage(gradeLevelText);
+  const gradeExpectations = getGradeLevelExpectations(gradeLevelText);
 
-  return `Imagine you are an experienced and friendly teacher for ${gradeLevelText}. Create an engaging lesson about ${subject} specifically for a ${gradeLevelText} student. This lesson should be aligned with [relevant state/national standards, if applicable] and suitable for students who have completed [previous grade level].
+  return `Generate a comprehensive lesson on ${subject} aligned with ${gradeLevelText} academic standards. The content should be rigorous and maintain academic depth while remaining accessible to the target grade level.
 
-    CRITICAL GRADE-LEVEL REQUIREMENTS:
-    - Considering that ${gradeLevelText} students are typically in [Piaget's stage of cognitive development], tailor your explanations and examples accordingly.
-    - Use vocabulary and concepts appropriate for ${gradeLevelText} students.
-    - Examples must reflect real-world scenarios that ${gradeLevelText} students can relate to.
-    - Explanations should match the cognitive development level of ${gradeLevelText} students.
-    - Incorporate elements that cater to diverse learning styles (visual, auditory, kinesthetic).
+    ACADEMIC REQUIREMENTS:
+    - Content must align with ${gradeLevelText} curriculum standards
+    - Cognitive development stage: ${piagetStage}
+    - Expected comprehension level: ${gradeExpectations}
+    - Use precise academic terminology appropriate for ${gradeLevelText}
+    - Include practical applications that demonstrate real-world relevance
+    - Incorporate cross-disciplinary connections where applicable
 
-    IMPORTANT: 
-    - The content MUST be appropriate for ${gradeLevelText} students. Do not include concepts that are too advanced.
-    - Based on the student's current learning progression:
-      - Focus on teaching: ${curriculumContext.currentTopics}
-      - Build upon: ${curriculumContext.previousKnowledge}
-      - Prepare students for: ${curriculumContext.upcomingTopics}
-    - CRITICAL: Do NOT include ANY references to semesters, seasons, or time of year in the lesson content or examples.
+    CRITICAL FOCUS AREAS:
+    - Current learning objectives: ${curriculumContext.currentTopics}
+    - Foundation from previous work: ${curriculumContext.previousKnowledge}
+    - Preparation for advanced concepts: ${curriculumContext.upcomingTopics}
+    - IMPORTANT: Exclude any references to semesters, seasons, or temporal markers
 
-    Write as if you're directly speaking to the student. Use clear, conversational language, and employ scaffolding techniques (building on prior knowledge, gradually increasing complexity). Include:
-    - A friendly introduction that gets them excited about the topic.
-    - For EACH concept or topic covered:
-      * Start with a clear, simple explanation.
-      * Provide 2-5 diverse real-world examples that a ${gradeLevelText} student would understand (vary the number for each topic), following this format for each example:
-          * **Scenario:** [Real-world situation]
-          * **Problem:** [Question or challenge related to the concept]
-          * **Solution:** [Step-by-step explanation or demonstration]
-          * **Connection:** [How it relates to other concepts or the bigger picture]
-      * Include a detailed breakdown of how the concept works.
-      * Add practical applications or scenarios where they might encounter this.
-      * Provide step-by-step explanations when introducing new ideas.
-    - Multiple "Did you know?" facts for each major topic to deepen understanding.
-    - Comprehensive bullet-point recaps after each section, including:
-      * Main concept summary
-      * Key points to remember
-      * Common misconceptions to avoid
-      * Connections to previous learning
-    - Suggestions for formative assessment (e.g., quick quizzes, exit tickets) and/or summative assessment (e.g., a short assignment).
-    - Suggestions for differentiating the lesson for students with different learning needs or paces.
+    CONTENT STRUCTURE:
+    - Begin with core concept definitions and theoretical framework
+    - For each key concept:
+      * Present formal definition and theoretical background
+      * Provide sophisticated examples:
+          * **Context:** [Academic or real-world scenario]
+          * **Challenge:** [Complex problem or application]
+          * **Analysis:** [Detailed solution approach]
+          * **Implementation:** [Practical application]
+      * Include mathematical proofs or logical derivations where relevant
+      * Emphasize interconnections with related concepts
+    - Integrate relevant theorems, laws, or principles
+    - Include "Key Insights" sections highlighting:
+      * Critical theoretical foundations
+      * Common misconceptions and their resolution
+      * Advanced applications
+      * Connections to higher-level concepts
+    - Conclude with synthesis of concepts and advanced applications
 
-    End with a positive closing statement or question to encourage curiosity about the subject.
-
-    The content should be easy to read and understand, avoiding overly technical language unless necessary.
-    Include a clear, student-friendly title for the lesson that includes the grade level (${gradeLevelText}).`;
+    The content should maintain academic rigor while ensuring clarity and precision. Include a clear, academically appropriate title that includes the grade level (${gradeLevelText}).`;
 };
 
 export const createQuestionsPrompt = (
   lessonContent: string,
   gradeLevelText: string,
 ): string => {
-  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 practice questions to help a ${gradeLevelText} student check their understanding.
+  return `Based on this lesson: "${lessonContent}", generate EXACTLY 5 assessment questions appropriate for ${gradeLevelText} students that test conceptual understanding and application.
 
-    CRITICAL RULES:
-    1. Questions MUST be precisely calibrated for ${gradeLevelText} students:
-       - Use grade-appropriate vocabulary and concepts
-       - Match the cognitive development level of the grade
-       - Ensure examples are relatable to students of this age
-    2. Generate EXACTLY 5 questions, covering these types:
+    CRITICAL REQUIREMENTS:
+    1. Questions must:
+       - Target higher-order thinking skills
+       - Test both theoretical understanding and practical application
+       - Align with ${gradeLevelText} academic standards
+       - Require analytical reasoning
+    2. Generate EXACTLY 5 questions across these formats:
        - Multiple choice (2 questions)
        - Multiple answer (1 question)
        - True/False (1 question)
        - Dropdown (1 question)
-    3. Each question MUST follow the specified JSON format EXACTLY, with no additional text, comments, or deviations.
-    4. IMPORTANT: Do NOT include ANY references to semesters, seasons, or time of year in the questions or answer options.
+    3. Each question must follow the specified JSON format precisely
+    4. Exclude temporal references (semesters, seasons, etc.)
 
     FOR ALL QUESTIONS:
-    - Ensure every question is directly tied to the content in the lesson.
-    - Use clear, concise, and age-appropriate language.
-    - Avoid ambiguous, tricky, or overly complex phrasing.
-    - Verify that the correct answer(s) match exactly one or more provided options.
-    - Exclude references to visuals unless explicitly included in the lesson.
+    - Focus on conceptual understanding over memorization
+    - Include application-based scenarios
+    - Ensure clear, unambiguous language
+    - Verify answer options are mutually exclusive
+    - Maintain academic rigor appropriate for the grade level
 
     SPECIFIC FORMATS:
     1. Multiple choice:
@@ -83,7 +83,6 @@ export const createQuestionsPrompt = (
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "option1"
     }
-    - Provide 3-4 distinct options; one correct answer must match an option.
     
     2. Multiple answer:
     {
@@ -92,31 +91,27 @@ export const createQuestionsPrompt = (
       "options": ["option1", "option2", "option3", "option4"],
       "correctAnswers": ["option1", "option2"]
     }
-    - Provide 2-3 correct answers and include "Select all that apply" in the question.
-
+    
     3. True/False:
     {
-      "question": "Is this statement true...?",
+      "question": "Consider the following statement...",
       "type": "true-false",
       "answer": "true"
     }
-    - Make the statement unambiguous and based on the lesson content.
-
+    
     4. Dropdown:
     {
-      "question": "Choose the correct...?",
+      "question": "In the context of...",
       "type": "dropdown",
       "options": ["option1", "option2", "option3", "option4"],
       "answer": "option1"
     }
-    - Provide 3-4 options; one correct answer must match an option.
 
-    OUTPUT INSTRUCTIONS:
-    - Return ONLY the raw JSON array with EXACTLY 5 questions.
-    - Do NOT include any additional text, explanations, or formatting.
-    - Verify completeness and correctness before output.
+    OUTPUT FORMAT:
+    - Return ONLY the raw JSON array with EXACTLY 5 questions
+    - Verify all answers exist in their respective options lists
+    - Ensure multiple-answer questions have valid correctAnswers subsets
 
-    Your response should look like this:
     [
       {
         "question": "...",

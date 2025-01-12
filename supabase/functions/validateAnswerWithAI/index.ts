@@ -3,14 +3,26 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
     const { question, userAnswers, type } = await req.json();
 
     // Format user answers for display
     const userAnswersStr = Array.isArray(userAnswers) 
       ? userAnswers.join(", ") 
       : userAnswers;
+
+    console.log('Validating answer:', { question, userAnswers, type });
 
     const prompt = `You are an expert teacher evaluating a student's answer.
 
@@ -30,6 +42,8 @@ EXPLANATION: [only if incorrect, otherwise leave blank]`;
     const response = result.response;
     const text = response.text();
 
+    console.log('AI Response:', text);
+
     // Parse the AI response
     const correctMatch = text.match(/CORRECT:\s*(true|false)/i);
     const explanationMatch = text.match(/EXPLANATION:\s*(.+)/i);
@@ -42,22 +56,36 @@ EXPLANATION: [only if incorrect, otherwise leave blank]`;
     const explanation = explanationMatch ? explanationMatch[1].trim() : '';
 
     // Return structured response
+    const validationResponse = {
+      isCorrect,
+      explanation: isCorrect ? '' : explanation
+    };
+
+    console.log('Validation response:', validationResponse);
+
     return new Response(
-      JSON.stringify({
-        isCorrect,
-        explanation: isCorrect ? '' : explanation
-      }),
+      JSON.stringify(validationResponse),
       {
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        },
       }
     );
   } catch (error) {
     console.error("Error in validateAnswerWithAI:", error);
     return new Response(
-      JSON.stringify({ error: "Failed to validate answer" }),
+      JSON.stringify({ 
+        error: "Failed to validate answer",
+        isCorrect: false,
+        explanation: `Error validating answer: ${error.message}`
+      }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        },
       }
     );
   }

@@ -22,7 +22,7 @@ export const QuestionComponent = ({
   isLocked = false,
 }: QuestionComponentProps) => {
   const handleAnswerChange = (value: string | string[]) => {
-    if (!isLocked) {
+    if (!isLocked && !answerState.isSubmitted) {
       onAnswerChange(value);
     }
   };
@@ -31,7 +31,7 @@ export const QuestionComponent = ({
     question: question.question,
     value: answerState.answer,
     onChange: handleAnswerChange,
-    disabled: isLocked,
+    disabled: isLocked || answerState.isSubmitted,
     options: 'options' in question ? question.options : undefined,
   };
 

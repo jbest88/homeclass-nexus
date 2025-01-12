@@ -18,8 +18,17 @@ export const MultipleChoiceQuestion = ({
     >
       {options?.map((option, optionIndex) => (
         <div key={optionIndex} className="flex items-center space-x-2">
-          <RadioGroupItem value={option} id={`option-${optionIndex}`} />
-          <Label htmlFor={`option-${optionIndex}`}>{option}</Label>
+          <RadioGroupItem 
+            value={option} 
+            id={`option-${optionIndex}`}
+            disabled={disabled}
+          />
+          <Label 
+            htmlFor={`option-${optionIndex}`}
+            className={disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+          >
+            {option}
+          </Label>
         </div>
       ))}
     </RadioGroup>

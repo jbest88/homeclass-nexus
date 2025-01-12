@@ -9,6 +9,8 @@ export const MultipleAnswerQuestion = ({
   disabled 
 }: QuestionInputProps) => {
   const handleChange = (option: string, checked: boolean) => {
+    if (disabled) return;
+    
     const currentAnswers = (value as string[]) || [];
     let newAnswers: string[];
     
@@ -35,7 +37,12 @@ export const MultipleAnswerQuestion = ({
               }
               disabled={disabled}
             />
-            <Label htmlFor={`option-${optionIndex}`}>{option}</Label>
+            <Label 
+              htmlFor={`option-${optionIndex}`}
+              className={disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+            >
+              {option}
+            </Label>
           </div>
         );
       })}

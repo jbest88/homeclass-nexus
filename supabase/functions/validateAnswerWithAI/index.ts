@@ -108,7 +108,7 @@ EXPLANATION: [only if incorrect, otherwise leave blank]`;
       }
     );
   } catch (error) {
-    console.error('Error in validateAnswerWithAI:', error);
+    console.error('Error in validateAnswerWithAI function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

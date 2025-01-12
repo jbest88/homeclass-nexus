@@ -38,7 +38,7 @@ export const createLessonPrompt = (
     End with a positive closing statement or question to encourage curiosity about the subject.
 
     The content should be easy to read and understand, avoiding overly technical language unless necessary.
-    Include a clear, student-friendly title for the lesson.`;
+    Include a clear, student-friendly title for the lesson that includes the grade level (${gradeLevelText}).`;
 };
 
 export const createQuestionsPrompt = (

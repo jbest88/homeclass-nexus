@@ -13,13 +13,13 @@ export const MultipleChoiceQuestion = ({
       value={value as string}
       onValueChange={onChange}
       className="space-y-2"
-      disabled={disabled}
     >
       {options.map((option, optionIndex) => (
         <div key={optionIndex} className="flex items-center space-x-2">
           <RadioGroupItem 
             value={option} 
             id={`option-${optionIndex}`}
+            disabled={disabled}
           />
           <Label 
             htmlFor={`option-${optionIndex}`}

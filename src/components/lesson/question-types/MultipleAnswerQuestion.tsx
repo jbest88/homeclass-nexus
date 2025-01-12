@@ -9,6 +9,8 @@ export const MultipleAnswerQuestion = ({
   disabled 
 }: QuestionInputProps) => {
   const handleChange = (option: string, checked: boolean) => {
+    if (disabled) return;
+    
     const currentAnswers = (value as string[]) || [];
     let newAnswers: string[];
     

@@ -22,7 +22,7 @@ export const createQuestionsPrompt = (
     5. CRITICAL: Do NOT include ANY references to semesters, seasons, or time of year.
 
     FOR ALL QUESTIONS:
-    - Keep questions simple and directly related to the lesson content
+    - Keep questions directly related to the lesson content
     - Use clear, unambiguous language
     - Ensure every correct answer matches exactly one or more provided options
     - For multiple-answer questions, limit correct answers to 2-3 options maximum

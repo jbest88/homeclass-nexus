@@ -6,7 +6,7 @@ export const isNumberComparisonQuestion = (question: string): boolean => {
 };
 
 export const isMathematicalQuestion = (question: string): boolean => {
-  const mathPatterns = [
+  const mathPatterns: RegExp[] = [
     /discriminant/i,
     /quadratic equation/i,
     /solve for x/i,

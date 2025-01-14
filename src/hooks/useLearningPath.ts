@@ -58,7 +58,7 @@ export const useLearningPath = () => {
         return { pathId: existingPathLesson.path_id };
       }
 
-      // Get or create today's learning path
+      // Get today's learning path for this subject
       const { data: existingPath, error: pathError } = await supabase
         .from('learning_paths')
         .select()

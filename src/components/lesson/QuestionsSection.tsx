@@ -81,7 +81,7 @@ export const QuestionsSection = ({ questions, lessonId, subject }: QuestionsSect
     if (!user) return;
 
     try {
-      const result = await addToLearningPath(lessonId, subject, performance);
+      const result = await addToLearningPath(lessonId, subject);
       
       if (result && performance) {
         const newLesson = await handleGenerateLesson(

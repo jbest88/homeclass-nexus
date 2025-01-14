@@ -67,7 +67,7 @@ export const generateWithGemini = async (
       throw new Error('Invalid response format from Gemini API');
     }
 
-    const generatedText = data.candidates[0].content.parts[0].text;
+    const generatedText = data.candidates[0].content.parts[0].text.trim();
     console.log('Successfully extracted generated text:', generatedText.substring(0, 100) + '...');
     
     return generatedText;

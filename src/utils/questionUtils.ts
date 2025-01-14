@@ -1,8 +1,7 @@
 export const isNumberComparisonQuestion = (question: string): boolean => {
   const normalizedQuestion = question.toLowerCase();
-  return normalizedQuestion.includes('greater than') ||
-         normalizedQuestion.includes('less than') ||
-         normalizedQuestion.includes('equal to');
+  const comparisonTerms = ['greater than', 'less than', 'equal to'];
+  return comparisonTerms.some(term => normalizedQuestion.includes(term));
 };
 
 export const isMathematicalQuestion = (question: string): boolean => {

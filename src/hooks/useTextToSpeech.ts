@@ -10,20 +10,30 @@ export const useTextToSpeech = () => {
       setIsPlaying(true);
       
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/textToSpeech`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate speech');
+      if (!session) {
+        throw new Error('No active session');
       }
 
-      const blob = await response.blob();
+      // Use the supabase client's URL which is already configured
+      const response = await supabase.functions.invoke('textToSpeech', {
+        body: { text }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      // Convert the response data to a blob
+      const base64Data = response.data;
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       
       if (audioElement) {
@@ -39,7 +49,7 @@ export const useTextToSpeech = () => {
         URL.revokeObjectURL(url);
       };
 
-      audio.play();
+      await audio.play();
     } catch (error) {
       console.error('Error generating speech:', error);
       setIsPlaying(false);

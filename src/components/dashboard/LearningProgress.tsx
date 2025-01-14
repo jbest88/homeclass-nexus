@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useLearningPath } from "@/hooks/useLearningPath";
+import { useEffect } from "react";
 
 interface LearningProgressProps {
   isGenerating: boolean;
@@ -19,6 +21,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const user = useUser();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { addToLearningPath } = useLearningPath();
 
   // Fetch learning paths
   const { data: learningPaths } = useQuery({
@@ -121,36 +124,32 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const getTodayDate = () => format(new Date(), 'yyyy-MM-dd');
 
   // Process all lessons (both from paths and individual)
-  individualLessons?.forEach(lesson => {
-    const lessonDate = format(new Date(lesson.created_at), 'yyyy-MM-dd');
+  const processLessons = async () => {
+    if (!individualLessons) return;
+
     const today = getTodayDate();
-    
-    // Only process lessons from today
-    if (lessonDate === today) {
-      if (!allLessonsBySubject.has(lesson.subject)) {
-        allLessonsBySubject.set(lesson.subject, {
-          totalModules: 0,
-          completedModules: 0,
-          paths: [],
-          modules: [],
-        });
-      }
-
-      const subjectData = allLessonsBySubject.get(lesson.subject);
-      subjectData.totalModules += 1;
-      subjectData.completedModules += completedLessonIds.has(lesson.id) ? 1 : 0;
+    for (const lesson of individualLessons) {
+      const lessonDate = format(new Date(lesson.created_at), 'yyyy-MM-dd');
       
-      // Check if this lesson is already part of a learning path
-      const isInPath = learningPaths?.some(path => 
-        path.lessons?.some(pathLesson => pathLesson.lesson_id === lesson.id)
-      );
+      // Only process lessons from today
+      if (lessonDate === today) {
+        // Check if this lesson is already part of a learning path
+        const isInPath = learningPaths?.some(path => 
+          path.lessons?.some(pathLesson => pathLesson.lesson_id === lesson.id)
+        );
 
-      // If not in a path, add it to modules array
-      if (!isInPath) {
-        subjectData.modules.push(lesson);
+        // If not in a path, add it
+        if (!isInPath) {
+          await addToLearningPath(lesson.id, lesson.subject);
+        }
       }
     }
-  });
+  };
+
+  // Process lessons when they change
+  useEffect(() => {
+    processLessons();
+  }, [individualLessons]);
 
   // Add learning path lessons to the grouping
   learningPaths?.forEach(path => {

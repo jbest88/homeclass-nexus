@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export const useLearningPath = () => {
   const user = useUser();
   const queryClient = useQueryClient();
+  const [processedLessons] = useState(new Set<string>());
 
   const addToLearningPath = async (
     lessonId: string,
@@ -16,6 +17,12 @@ export const useLearningPath = () => {
     if (!user) return null;
 
     try {
+      // If we've already processed this lesson today, skip it
+      if (processedLessons.has(lessonId)) {
+        console.log(`Lesson ${lessonId} already processed today, skipping`);
+        return null;
+      }
+
       console.log(`Adding lesson ${lessonId} to learning path for subject ${subject}`);
       
       // First, check if the lesson exists
@@ -55,6 +62,7 @@ export const useLearningPath = () => {
 
       if (existingPathLesson) {
         console.log('Lesson already in path:', existingPathLesson.path_id);
+        processedLessons.add(lessonId);
         return { pathId: existingPathLesson.path_id };
       }
 
@@ -102,6 +110,7 @@ export const useLearningPath = () => {
         .select('order_index')
         .eq('path_id', pathId)
         .order('order_index', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (orderError && orderError.code !== 'PGRST116') {
@@ -124,11 +133,15 @@ export const useLearningPath = () => {
       if (addLessonError) {
         if (addLessonError.code === '23505') {
           console.log('Lesson already exists in path, skipping...');
+          processedLessons.add(lessonId);
           return { pathId };
         }
         console.error('Error adding lesson to path:', addLessonError);
         throw addLessonError;
       }
+
+      // Mark this lesson as processed
+      processedLessons.add(lessonId);
 
       // Invalidate queries to refresh the data
       console.log('Invalidating queries to refresh data');

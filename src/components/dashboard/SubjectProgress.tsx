@@ -5,8 +5,6 @@ import { toast } from "sonner";
 import { LearningPath } from "@/types/learning-path";
 import SubjectProgressHeader from "./SubjectProgressHeader";
 import LearningPathsList from "./LearningPathsList";
-import { useLearningPath } from "@/hooks/useLearningPath";
-import { useEffect, useCallback, useRef } from "react";
 
 interface SubjectProgressProps {
   subject: string;
@@ -33,8 +31,6 @@ const SubjectProgress = ({
   onLessonDeleted,
 }: SubjectProgressProps) => {
   const user = useUser();
-  const { addToLearningPath } = useLearningPath();
-  const processedModules = useRef<Set<string>>(new Set());
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -51,45 +47,6 @@ const SubjectProgress = ({
     },
     enabled: !!user,
   });
-
-  // Memoize the addModulesToPath function
-  const addModulesToPath = useCallback(async () => {
-    if (modules.length > 0) {
-      console.log(`Adding ${modules.length} modules to learning path for subject ${subject}`);
-      try {
-        for (const module of modules) {
-          // Skip if we've already processed this module
-          if (processedModules.current.has(module.id)) {
-            console.log(`Module ${module.id} already processed, skipping`);
-            continue;
-          }
-
-          console.log(`Processing module ${module.id}`);
-          const result = await addToLearningPath(module.id, subject);
-          if (!result) {
-            console.error(`Failed to add module ${module.id} to learning path`);
-          } else {
-            console.log(`Successfully added module ${module.id} to learning path ${result.pathId}`);
-            // Mark this module as processed
-            processedModules.current.add(module.id);
-          }
-        }
-      } catch (error: any) {
-        console.error('Error managing learning path:', error);
-        if (!error.message?.includes('duplicate key value')) {
-          toast.error('Failed to update learning path');
-        }
-      }
-    }
-  }, [modules, subject, addToLearningPath]);
-
-  // Effect to add standalone modules to learning path
-  useEffect(() => {
-    console.log('Running effect to add modules to learning path');
-    if (modules.length > 0) {
-      addModulesToPath();
-    }
-  }, [addModulesToPath, modules.length]); // Only run when modules change
 
   const handleDelete = async (lessonId: string) => {
     try {

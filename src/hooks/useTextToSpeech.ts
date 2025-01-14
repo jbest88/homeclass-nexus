@@ -21,7 +21,7 @@ export const useTextToSpeech = () => {
 
       if (error) {
         console.error('Supabase function error:', error);
-        throw new Error(error.message);
+        throw error;
       }
 
       if (!data) {
@@ -31,6 +31,7 @@ export const useTextToSpeech = () => {
       // Cleanup previous audio if it exists
       if (audioElement) {
         audioElement.pause();
+        audioElement.src = '';
         URL.revokeObjectURL(audioElement.src);
       }
 
@@ -58,6 +59,7 @@ export const useTextToSpeech = () => {
         console.error('Audio playback error:', e);
         setIsPlaying(false);
         URL.revokeObjectURL(url);
+        throw new Error('Failed to play audio');
       };
 
       await audio.play();
@@ -71,6 +73,8 @@ export const useTextToSpeech = () => {
   const stop = () => {
     if (audioElement) {
       audioElement.pause();
+      audioElement.src = '';
+      URL.revokeObjectURL(audioElement.src);
       setIsPlaying(false);
     }
   };

@@ -23,6 +23,14 @@ export const QuestionActionButtons = ({
   onGenerateNewLesson,
   onContinue,
 }: QuestionActionButtonsProps) => {
+  const LoadingDots = () => (
+    <span className="inline-flex gap-1">
+      <span className="animate-bounce delay-0">.</span>
+      <span className="animate-bounce delay-100">.</span>
+      <span className="animate-bounce delay-200">.</span>
+    </span>
+  );
+
   if (!isSubmitted) {
     return (
       <Button 
@@ -30,7 +38,13 @@ export const QuestionActionButtons = ({
         disabled={isSubmitting}
         className="mt-4"
       >
-        {isSubmitting ? "Checking answers..." : "Submit Answers"}
+        {isSubmitting ? (
+          <span className="flex items-center">
+            Checking answers<LoadingDots />
+          </span>
+        ) : (
+          "Submit Answers"
+        )}
       </Button>
     );
   }
@@ -49,9 +63,15 @@ export const QuestionActionButtons = ({
         disabled={isGenerating}
         className="flex-1"
       >
-        {isGenerating ? "Generating..." : performance && performance.correctPercentage < 70 
-          ? "Try a Different Approach" 
-          : "Continue Learning"}
+        {isGenerating ? (
+          <span className="flex items-center">
+            Generating<LoadingDots />
+          </span>
+        ) : (
+          performance && performance.correctPercentage < 70 
+            ? "Try a Different Approach" 
+            : "Continue Learning"
+        )}
       </Button>
       <Button 
         onClick={onContinue}

@@ -22,8 +22,8 @@ export const calculateDiscriminant = (equation: string): number => {
   const cleanedEquation = equation.replace(/\s+/g, '').replace(/=0$/, '');
   
   // Extract coefficients using regex
-  const coefficientRegex = /(-?\d*)?x\^2|(-?\d*)?x|(-?\d+)/g;
-  const terms = cleanedEquation.match(coefficientRegex) || [];
+  const matches = cleanedEquation.match(/(-?\d*)?x\^2|(-?\d*)?x|(-?\d+)/g);
+  const terms: string[] = matches || [];
   
   let a = 0, b = 0, c = 0;
   

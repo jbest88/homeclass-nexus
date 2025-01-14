@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const useLearningPath = () => {
@@ -42,20 +42,22 @@ export const useLearningPath = () => {
         return null;
       }
 
-      // Get today's date in YYYY-MM-DD format
-      const today = format(new Date(), 'yyyy-MM-dd');
+      // Get today's date range in UTC
+      const today = new Date();
+      const startOfToday = startOfDay(today).toISOString();
+      const endOfToday = endOfDay(today).toISOString();
       
-      // First try to find an existing learning path for today and this subject
+      // Try to find an existing learning path for today and this subject
       const { data: existingPath, error: pathError } = await supabase
         .from('learning_paths')
         .select()
         .eq('user_id', user.id)
         .eq('subject', subject)
-        .gte('created_at', `${today}T00:00:00`)
-        .lte('created_at', `${today}T23:59:59`)
+        .gte('created_at', startOfToday)
+        .lt('created_at', endOfToday)
         .maybeSingle();
 
-      if (pathError && pathError.code !== 'PGRST116') {
+      if (pathError) {
         console.error('Error checking existing path:', pathError);
         throw pathError;
       }
@@ -91,7 +93,7 @@ export const useLearningPath = () => {
         .eq('lesson_id', lessonId)
         .maybeSingle();
 
-      if (existingLessonError && existingLessonError.code !== 'PGRST116') {
+      if (existingLessonError) {
         console.error('Error checking existing lesson in path:', existingLessonError);
         throw existingLessonError;
       }
@@ -111,7 +113,7 @@ export const useLearningPath = () => {
         .limit(1)
         .maybeSingle();
 
-      if (orderError && orderError.code !== 'PGRST116') {
+      if (orderError) {
         console.error('Error getting last order index:', orderError);
         throw orderError;
       }

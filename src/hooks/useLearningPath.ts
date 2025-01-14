@@ -18,19 +18,44 @@ export const useLearningPath = () => {
     try {
       console.log(`Adding lesson ${lessonId} to learning path for subject ${subject}`);
       
-      // Get today's date in YYYY-MM-DD format
-      const today = format(new Date(), 'yyyy-MM-dd');
-      
       // First, check if the lesson exists
       const { data: lesson, error: lessonError } = await supabase
         .from('generated_lessons')
         .select('*')
         .eq('id', lessonId)
-        .single();
+        .maybeSingle();
 
       if (lessonError) {
         console.error('Error finding lesson:', lessonError);
         throw lessonError;
+      }
+
+      if (!lesson) {
+        console.error('Lesson not found');
+        return null;
+      }
+
+      // Get today's date in YYYY-MM-DD format
+      const today = format(new Date(), 'yyyy-MM-dd');
+      
+      // Check if lesson is already in a path for today
+      const { data: existingPathLesson, error: existingError } = await supabase
+        .from('learning_path_lessons')
+        .select('path_id, learning_paths!inner(*)')
+        .eq('lesson_id', lessonId)
+        .eq('learning_paths.subject', subject)
+        .gte('learning_paths.created_at', `${today}T00:00:00`)
+        .lte('learning_paths.created_at', `${today}T23:59:59`)
+        .maybeSingle();
+
+      if (existingError && existingError.code !== 'PGRST116') {
+        console.error('Error checking existing path lesson:', existingError);
+        throw existingError;
+      }
+
+      if (existingPathLesson) {
+        console.log('Lesson already in path:', existingPathLesson.path_id);
+        return { pathId: existingPathLesson.path_id };
       }
 
       // Get or create today's learning path
@@ -41,14 +66,16 @@ export const useLearningPath = () => {
         .eq('subject', subject)
         .gte('created_at', `${today}T00:00:00`)
         .lte('created_at', `${today}T23:59:59`)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .maybeSingle();
 
       let pathId;
 
-      if (pathError && pathError.code === 'PGRST116') {
-        // No path exists, create a new one
+      if (pathError && pathError.code !== 'PGRST116') {
+        console.error('Error checking existing path:', pathError);
+        throw pathError;
+      }
+
+      if (!existingPath) {
         console.log('Creating new learning path');
         const { data: newPath, error: createPathError } = await supabase
           .from('learning_paths')
@@ -64,9 +91,6 @@ export const useLearningPath = () => {
           throw createPathError;
         }
         pathId = newPath.id;
-      } else if (pathError) {
-        console.error('Error checking existing path:', pathError);
-        throw pathError;
       } else {
         console.log('Using existing path:', existingPath.id);
         pathId = existingPath.id;
@@ -78,8 +102,12 @@ export const useLearningPath = () => {
         .select('order_index')
         .eq('path_id', pathId)
         .order('order_index', { ascending: false })
-        .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (orderError && orderError.code !== 'PGRST116') {
+        console.error('Error getting last order index:', orderError);
+        throw orderError;
+      }
 
       const nextOrderIndex = (lastLesson?.order_index ?? -1) + 1;
       console.log('Using order index:', nextOrderIndex);
@@ -104,8 +132,10 @@ export const useLearningPath = () => {
 
       // Invalidate queries to refresh the data
       console.log('Invalidating queries to refresh data');
-      await queryClient.invalidateQueries({ queryKey: ["learning-paths"] });
-      await queryClient.invalidateQueries({ queryKey: ["generated-lessons"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["learning-paths"] }),
+        queryClient.invalidateQueries({ queryKey: ["generated-lessons"] })
+      ]);
 
       return { pathId };
     } catch (error: any) {

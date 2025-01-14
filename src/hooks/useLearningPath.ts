@@ -45,28 +45,7 @@ export const useLearningPath = () => {
       // Get today's date in YYYY-MM-DD format
       const today = format(new Date(), 'yyyy-MM-dd');
       
-      // Check if lesson is already in a path for today
-      const { data: existingPathLesson, error: existingError } = await supabase
-        .from('learning_path_lessons')
-        .select('path_id, learning_paths!inner(*)')
-        .eq('lesson_id', lessonId)
-        .eq('learning_paths.subject', subject)
-        .gte('learning_paths.created_at', `${today}T00:00:00`)
-        .lte('learning_paths.created_at', `${today}T23:59:59`)
-        .maybeSingle();
-
-      if (existingError && existingError.code !== 'PGRST116') {
-        console.error('Error checking existing path lesson:', existingError);
-        throw existingError;
-      }
-
-      if (existingPathLesson) {
-        console.log('Lesson already in path:', existingPathLesson.path_id);
-        processedLessons.add(lessonId);
-        return { pathId: existingPathLesson.path_id };
-      }
-
-      // Get today's learning path for this subject
+      // First try to find an existing learning path for today and this subject
       const { data: existingPath, error: pathError } = await supabase
         .from('learning_paths')
         .select()
@@ -76,12 +55,12 @@ export const useLearningPath = () => {
         .lte('created_at', `${today}T23:59:59`)
         .maybeSingle();
 
-      let pathId;
-
       if (pathError && pathError.code !== 'PGRST116') {
         console.error('Error checking existing path:', pathError);
         throw pathError;
       }
+
+      let pathId;
 
       if (!existingPath) {
         console.log('Creating new learning path');
@@ -102,6 +81,25 @@ export const useLearningPath = () => {
       } else {
         console.log('Using existing path:', existingPath.id);
         pathId = existingPath.id;
+      }
+
+      // Check if lesson is already in this path
+      const { data: existingLesson, error: existingLessonError } = await supabase
+        .from('learning_path_lessons')
+        .select()
+        .eq('path_id', pathId)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
+
+      if (existingLessonError && existingLessonError.code !== 'PGRST116') {
+        console.error('Error checking existing lesson in path:', existingLessonError);
+        throw existingLessonError;
+      }
+
+      if (existingLesson) {
+        console.log('Lesson already in path:', pathId);
+        processedLessons.add(lessonId);
+        return { pathId };
       }
 
       // Get the highest order_index for the current path
@@ -131,11 +129,6 @@ export const useLearningPath = () => {
         });
 
       if (addLessonError) {
-        if (addLessonError.code === '23505') {
-          console.log('Lesson already exists in path, skipping...');
-          processedLessons.add(lessonId);
-          return { pathId };
-        }
         console.error('Error adding lesson to path:', addLessonError);
         throw addLessonError;
       }

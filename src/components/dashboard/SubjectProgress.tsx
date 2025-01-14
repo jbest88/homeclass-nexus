@@ -55,14 +55,25 @@ const SubjectProgress = ({
   useEffect(() => {
     const addModulesToPath = async () => {
       if (modules.length > 0) {
-        for (const module of modules) {
-          await addToLearningPath(module.id, subject);
+        try {
+          for (const module of modules) {
+            const result = await addToLearningPath(module.id, subject);
+            if (!result) {
+              console.error(`Failed to add module ${module.id} to learning path`);
+            }
+          }
+        } catch (error: any) {
+          console.error('Error managing learning path:', error);
+          // Only show toast for non-duplicate errors
+          if (!error.message?.includes('duplicate key value')) {
+            toast.error('Failed to update learning path');
+          }
         }
       }
     };
     
     addModulesToPath();
-  }, [modules, subject, addToLearningPath]);
+  }, [modules, subject, addToLearningPath]); // Add proper dependencies
 
   const handleDelete = async (lessonId: string) => {
     try {

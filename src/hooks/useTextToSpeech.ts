@@ -14,18 +14,28 @@ export const useTextToSpeech = () => {
         throw new Error('No active session');
       }
 
-      // Use the supabase client's URL which is already configured
-      const response = await supabase.functions.invoke('textToSpeech', {
+      console.log('Calling textToSpeech function...');
+      const { data, error } = await supabase.functions.invoke('textToSpeech', {
         body: { text }
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message);
       }
 
-      // Convert the response data to a blob
-      const base64Data = response.data;
-      const byteCharacters = atob(base64Data);
+      if (!data) {
+        throw new Error('No audio data received');
+      }
+
+      // Cleanup previous audio if it exists
+      if (audioElement) {
+        audioElement.pause();
+        URL.revokeObjectURL(audioElement.src);
+      }
+
+      // Convert the base64 response to a blob
+      const byteCharacters = atob(data);
       const byteNumbers = new Array(byteCharacters.length);
       
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -36,15 +46,16 @@ export const useTextToSpeech = () => {
       const blob = new Blob([byteArray], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       
-      if (audioElement) {
-        audioElement.pause();
-        URL.revokeObjectURL(audioElement.src);
-      }
-
       const audio = new Audio(url);
       setAudioElement(audio);
       
       audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(url);
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
         setIsPlaying(false);
         URL.revokeObjectURL(url);
       };

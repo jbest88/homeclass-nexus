@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -57,7 +58,8 @@ serve(async (req) => {
     
     for (let i = 0; i < uint8Array.length; i += chunkSize) {
       const chunk = uint8Array.slice(i, i + chunkSize);
-      base64 += btoa(String.fromCharCode(...Array.from(chunk)));
+      const chunkArray = Array.from(chunk); // Convert to regular array to avoid stack issues
+      base64 += btoa(String.fromCharCode(...chunkArray));
     }
 
     return new Response(

@@ -54,16 +54,19 @@ const SubjectProgress = ({
   // Memoize the addModulesToPath function
   const addModulesToPath = useCallback(async () => {
     if (modules.length > 0) {
+      console.log(`Adding ${modules.length} modules to learning path for subject ${subject}`);
       try {
         for (const module of modules) {
+          console.log(`Processing module ${module.id}`);
           const result = await addToLearningPath(module.id, subject);
           if (!result) {
             console.error(`Failed to add module ${module.id} to learning path`);
+          } else {
+            console.log(`Successfully added module ${module.id} to learning path ${result.pathId}`);
           }
         }
       } catch (error: any) {
         console.error('Error managing learning path:', error);
-        // Only show toast for non-duplicate errors
         if (!error.message?.includes('duplicate key value')) {
           toast.error('Failed to update learning path');
         }
@@ -73,6 +76,7 @@ const SubjectProgress = ({
 
   // Effect to add standalone modules to learning path
   useEffect(() => {
+    console.log('Running effect to add modules to learning path');
     addModulesToPath();
   }, [addModulesToPath]);
 

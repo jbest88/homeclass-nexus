@@ -10,7 +10,7 @@ export const createLessonPrompt = (
   const piagetStage = getPiagetStage(gradeLevelText);
   const gradeExpectations = getGradeLevelExpectations(gradeLevelText);
 
-  return `Generate an engaging and academically sound lesson on ${subject} that aligns with ${gradeLevelText} curriculum standards. The content should maintain academic depth while being accessible to students at this level.
+  return `Generate an engaging and academically sound lesson on ${subject} that aligns with ${gradeLevelText} curriculum standards. Start with a clear, descriptive title for the lesson (without any prefix like "Title:" or "Lesson Title:"). The content should maintain academic depth while being accessible to students at this level.
 
     ACADEMIC REQUIREMENTS:
     - Content should target the upper-middle range of ${gradeLevelText} curriculum standards
@@ -65,5 +65,5 @@ export const createLessonPrompt = (
     - Emphasize problem-solving strategies
     - Maintain engagement through relevant examples
 
-    The content should be academically sound while being appropriately challenging for ${gradeLevelText}. Include a clear, descriptive title that reflects the lesson content.`;
+    The content should be academically sound while being appropriately challenging for ${gradeLevelText}.`;
 };

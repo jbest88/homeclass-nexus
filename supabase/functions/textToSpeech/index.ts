@@ -57,7 +57,7 @@ serve(async (req) => {
     
     for (let i = 0; i < uint8Array.length; i += chunkSize) {
       const chunk = uint8Array.slice(i, i + chunkSize);
-      base64 += btoa(String.fromCharCode.apply(null, chunk));
+      base64 += btoa(String.fromCharCode(...Array.from(chunk)));
     }
 
     return new Response(

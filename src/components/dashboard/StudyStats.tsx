@@ -9,24 +9,24 @@ const StudyStats = () => {
   const user = useUser();
   const { data: dailyStats, isLoading: isDailyStatsLoading } = useDailyStats();
 
-  const { data: proficiencyData } = useQuery({
-    queryKey: ["subject-proficiency"],
+  const { data: lessonsCreatedToday } = useQuery({
+    queryKey: ["lessons-created-today"],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
-        .from("subject_proficiency")
-        .select("*")
-        .eq("user_id", user.id);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { count, error } = await supabase
+        .from("generated_lessons")
+        .select("*", { count: 'exact', head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", today.toISOString());
 
       if (error) throw error;
-      return data;
+      return count || 0;
     },
     enabled: !!user,
   });
-
-  // Calculate average proficiency from all subjects
-  const averageProficiency = proficiencyData?.reduce((acc, curr) => acc + curr.proficiency_level, 0) / (proficiencyData?.length || 1);
-  const maxProficiency = 10; // Maximum proficiency level
 
   if (isDailyStatsLoading) {
     return (
@@ -68,10 +68,8 @@ const StudyStats = () => {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Average Proficiency</span>
-            <span className="text-2xl font-bold">
-              {Math.round(averageProficiency)}/{maxProficiency}
-            </span>
+            <span className="text-sm font-medium">Lessons Created Today</span>
+            <span className="text-2xl font-bold">{lessonsCreatedToday || 0}</span>
           </div>
         </div>
       </CardContent>

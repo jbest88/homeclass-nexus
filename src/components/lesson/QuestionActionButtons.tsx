@@ -24,10 +24,10 @@ export const QuestionActionButtons = ({
   onContinue,
 }: QuestionActionButtonsProps) => {
   const LoadingDots = () => (
-    <span className="inline-flex gap-1">
-      <span className="animate-bounce delay-0">.</span>
-      <span className="animate-bounce delay-100">.</span>
-      <span className="animate-bounce delay-200">.</span>
+    <span className="inline-flex items-center gap-1">
+      <span className="w-1 h-1 rounded-full bg-current animate-[bounce_0.7s_infinite] delay-0" />
+      <span className="w-1 h-1 rounded-full bg-current animate-[bounce_0.7s_infinite] delay-[0.2s]" />
+      <span className="w-1 h-1 rounded-full bg-current animate-[bounce_0.7s_infinite] delay-[0.4s]" />
     </span>
   );
 
@@ -39,7 +39,7 @@ export const QuestionActionButtons = ({
         className="mt-4"
       >
         {isSubmitting ? (
-          <span className="flex items-center">
+          <span className="flex items-center gap-2">
             Checking answers<LoadingDots />
           </span>
         ) : (
@@ -64,7 +64,7 @@ export const QuestionActionButtons = ({
         className="flex-1"
       >
         {isGenerating ? (
-          <span className="flex items-center">
+          <span className="flex items-center gap-2">
             Generating<LoadingDots />
           </span>
         ) : (

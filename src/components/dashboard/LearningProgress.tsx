@@ -213,3 +213,5 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     </Card>
   );
 };
+
+export default LearningProgress;

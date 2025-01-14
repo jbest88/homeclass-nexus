@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LessonHeader } from "@/components/lesson/LessonHeader";
-import LessonContent from "@/components/lesson/LessonContent";
+import { LessonContent } from "@/components/lesson/LessonContent";
 import { QuestionsSection } from "@/components/lesson/QuestionsSection";
 import { Question } from "@/types/questions";
 
@@ -42,6 +42,7 @@ const GeneratedLesson = () => {
       <LessonHeader />
       <LessonContent 
         title={lesson.title}
+        subject={lesson.subject}
         content={lesson.content}
       />
       {hasQuestions && (

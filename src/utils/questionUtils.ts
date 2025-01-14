@@ -40,7 +40,3 @@ export const calculateDiscriminant = (equation: string): number => {
   // Calculate discriminant using b² - 4ac
   return Math.pow(b, 2) - (4 * a * c);
 };
-
-export const cleanTitle = (title: string): string => {
-  return title.trim();
-};

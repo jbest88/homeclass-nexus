@@ -24,9 +24,7 @@ export const useLearningPath = () => {
         .eq('user_id', user.id)
         .eq('subject', subject)
         .gte('created_at', `${today}T00:00:00`)
-        .lte('created_at', `${today}T23:59:59`)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .lte('created_at', `${today}T23:59:59`);
 
       if (pathError) throw pathError;
 
@@ -49,30 +47,30 @@ export const useLearningPath = () => {
         pathId = existingPaths[0].id;
       }
 
-      // Check if this lesson is already in any learning path
+      // Get the highest order_index for the current path
+      const { data: lastLesson, error: orderError } = await supabase
+        .from('learning_path_lessons')
+        .select('order_index')
+        .eq('path_id', pathId)
+        .order('order_index', { ascending: false })
+        .limit(1);
+
+      if (orderError) throw orderError;
+
+      const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
+
+      // Check if this specific lesson is already in this specific path
       const { data: existingPathLesson, error: checkError } = await supabase
         .from('learning_path_lessons')
-        .select('path_id')
+        .select('id')
+        .eq('path_id', pathId)
         .eq('lesson_id', lessonId)
         .maybeSingle();
 
       if (checkError) throw checkError;
 
-      // Only add the lesson if it's not already in a path
+      // Only add the lesson if it's not already in this specific path
       if (!existingPathLesson) {
-        // Get the highest order_index for the current path
-        const { data: lastLesson, error: orderError } = await supabase
-          .from('learning_path_lessons')
-          .select('order_index')
-          .eq('path_id', pathId)
-          .order('order_index', { ascending: false })
-          .limit(1);
-
-        if (orderError) throw orderError;
-
-        const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
-
-        // Add the lesson to the path
         const { error: addLessonError } = await supabase
           .from('learning_path_lessons')
           .insert({

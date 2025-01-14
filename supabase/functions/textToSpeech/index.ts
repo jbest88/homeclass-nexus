@@ -43,6 +43,18 @@ serve(async (req) => {
     if (!response.ok) {
       const error = await response.text()
       console.error('ElevenLabs API error:', error);
+      
+      // Check for quota exceeded error
+      if (error.includes('quota_exceeded')) {
+        return new Response(
+          JSON.stringify({ error: 'API quota exceeded. Please try again later.' }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+      
       throw new Error(`ElevenLabs API error: ${error}`)
     }
 
@@ -61,10 +73,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(base64),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   } catch (error) {
@@ -72,11 +81,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        status: error.status || 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   }

@@ -29,9 +29,9 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
       const textToRead = `${cleanTitle}. ${content}`;
       toast.info("Starting to read the lesson");
       await speak(textToRead);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Text-to-speech error:', error);
-      toast.error("Failed to start reading. Please try again.");
+      // Error message is already handled in useTextToSpeech hook
     }
   };
   

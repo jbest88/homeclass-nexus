@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from 'sonner';
 
 export const useTextToSpeech = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -21,6 +22,9 @@ export const useTextToSpeech = () => {
 
       if (error) {
         console.error('Supabase function error:', error);
+        if (error.message.includes('quota_exceeded')) {
+          throw new Error('Text-to-speech service is temporarily unavailable due to high demand. Please try again later.');
+        }
         throw error;
       }
 
@@ -63,9 +67,17 @@ export const useTextToSpeech = () => {
       };
 
       await audio.play();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating speech:', error);
       setIsPlaying(false);
+      
+      // Show user-friendly error message
+      if (error.message.includes('quota_exceeded') || error.message.includes('high demand')) {
+        toast.error('Text-to-speech is temporarily unavailable. Please try again later.');
+      } else {
+        toast.error('Failed to generate speech. Please try again.');
+      }
+      
       throw error;
     }
   };

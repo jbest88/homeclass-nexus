@@ -30,7 +30,7 @@ export const useLearningPath = () => {
         .from('generated_lessons')
         .select('*')
         .eq('id', lessonId)
-        .maybeSingle();
+        .single();
 
       if (lessonError) {
         console.error('Error finding lesson:', lessonError);
@@ -47,24 +47,24 @@ export const useLearningPath = () => {
       const startOfToday = startOfDay(today).toISOString();
       const endOfToday = endOfDay(today).toISOString();
       
-      // Try to find an existing learning path for today and this subject
-      const { data: existingPath, error: pathError } = await supabase
+      // Try to find existing learning paths for today and this subject
+      const { data: todayPaths, error: pathError } = await supabase
         .from('learning_paths')
         .select()
         .eq('user_id', user.id)
         .eq('subject', subject)
         .gte('created_at', startOfToday)
-        .lt('created_at', endOfToday)
-        .maybeSingle();
+        .lt('created_at', endOfToday);
 
       if (pathError) {
-        console.error('Error checking existing path:', pathError);
+        console.error('Error checking existing paths:', pathError);
         throw pathError;
       }
 
       let pathId;
 
-      if (!existingPath) {
+      // If no path exists for today, create one
+      if (!todayPaths || todayPaths.length === 0) {
         console.log('Creating new learning path');
         const { data: newPath, error: createPathError } = await supabase
           .from('learning_paths')
@@ -81,8 +81,9 @@ export const useLearningPath = () => {
         }
         pathId = newPath.id;
       } else {
-        console.log('Using existing path:', existingPath.id);
-        pathId = existingPath.id;
+        // Use the first (and should be only) path from today
+        console.log('Using existing path:', todayPaths[0].id);
+        pathId = todayPaths[0].id;
       }
 
       // Check if lesson is already in this path
@@ -148,9 +149,7 @@ export const useLearningPath = () => {
       return { pathId };
     } catch (error: any) {
       console.error('Error managing learning path:', error);
-      if (!error.message?.includes('duplicate key value')) {
-        toast.error('Failed to update learning path');
-      }
+      toast.error('Failed to update learning path');
       return null;
     }
   };

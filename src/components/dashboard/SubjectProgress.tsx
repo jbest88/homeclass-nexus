@@ -3,10 +3,11 @@ import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LearningPath } from "@/types/learning-path";
-import { LessonItem } from "./LessonItem";
 import { getCurriculumPeriod } from "@/utils/curriculumPeriod";
 import SubjectProgressHeader from "./SubjectProgressHeader";
 import LearningPathsList from "./LearningPathsList";
+import { useLearningPath } from "@/hooks/useLearningPath";
+import { useEffect } from "react";
 
 interface SubjectProgressProps {
   subject: string;
@@ -33,6 +34,7 @@ const SubjectProgress = ({
   onLessonDeleted,
 }: SubjectProgressProps) => {
   const user = useUser();
+  const { addToLearningPath } = useLearningPath();
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -49,6 +51,19 @@ const SubjectProgress = ({
     },
     enabled: !!user,
   });
+
+  // Effect to add standalone modules to learning path
+  useEffect(() => {
+    const addModulesToPath = async () => {
+      if (modules.length > 0) {
+        for (const module of modules) {
+          await addToLearningPath(module.id, subject);
+        }
+      }
+    };
+    
+    addModulesToPath();
+  }, [modules, subject, addToLearningPath]);
 
   const handleDelete = async (lessonId: string) => {
     try {
@@ -80,14 +95,6 @@ const SubjectProgress = ({
 
   const progressPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
 
-  // Group standalone modules into a "Today's Lessons" section if they're not part of a learning path
-  const standaloneModules = modules.filter(module => {
-    // Check if this module is not part of any learning path
-    return !learningPaths.some(path => 
-      path.lessons?.some(lesson => lesson.lesson_id === module.id)
-    );
-  });
-
   return (
     <div className="mb-6 last:mb-0">
       <SubjectProgressHeader 
@@ -95,35 +102,12 @@ const SubjectProgress = ({
         progressPercentage={progressPercentage} 
       />
       
-      {/* Display learning paths first */}
       <LearningPathsList
         learningPaths={learningPaths}
         onDelete={handleDelete}
         isGenerating={isGenerating}
         cleanTitle={cleanTitle}
       />
-
-      {/* Display standalone modules in their own section if any exist */}
-      {standaloneModules.length > 0 && (
-        <div className="mt-4">
-          <div className="mb-2">
-            <h4 className="text-sm font-medium">Individual Lessons</h4>
-          </div>
-          <div className="space-y-2">
-            {standaloneModules.map((module) => (
-              <LessonItem
-                key={module.id}
-                id={module.id}
-                title={cleanTitle(module.title)}
-                createdAt={module.created_at}
-                curriculumPeriod={getCurriculumPeriod(module.created_at)}
-                onDelete={handleDelete}
-                isGenerating={isGenerating}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

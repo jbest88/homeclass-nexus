@@ -9,6 +9,7 @@ import { LearningPath } from "@/types/learning-path";
 import { Button } from "@/components/ui/button";
 import { Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 
 interface LearningProgressProps {
   isGenerating: boolean;
@@ -104,53 +105,77 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     enabled: !!user,
   });
 
-  // Create a set of completed lesson IDs
-  const completedLessonIds = new Set(questionResponses?.map(response => response.lesson_id));
-
   const handleLessonDeleted = () => {
     queryClient.invalidateQueries({ queryKey: ["generated-lessons"] });
     queryClient.invalidateQueries({ queryKey: ["learning-paths"] });
     queryClient.invalidateQueries({ queryKey: ["archived-lessons"] });
   };
 
-  // Group all lessons by subject (both from paths and individual lessons)
+  // Create a set of completed lesson IDs
+  const completedLessonIds = new Set(questionResponses?.map(response => response.lesson_id));
+
+  // Group all lessons by subject and date
   const allLessonsBySubject = new Map();
+
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodayDate = () => format(new Date(), 'yyyy-MM-dd');
+
+  // Process all lessons (both from paths and individual)
+  individualLessons?.forEach(lesson => {
+    const lessonDate = format(new Date(lesson.created_at), 'yyyy-MM-dd');
+    const today = getTodayDate();
+    
+    // Only process lessons from today
+    if (lessonDate === today) {
+      if (!allLessonsBySubject.has(lesson.subject)) {
+        allLessonsBySubject.set(lesson.subject, {
+          totalModules: 0,
+          completedModules: 0,
+          paths: [],
+          modules: [],
+        });
+      }
+
+      const subjectData = allLessonsBySubject.get(lesson.subject);
+      subjectData.totalModules += 1;
+      subjectData.completedModules += completedLessonIds.has(lesson.id) ? 1 : 0;
+      
+      // Check if this lesson is already part of a learning path
+      const isInPath = learningPaths?.some(path => 
+        path.lessons?.some(pathLesson => pathLesson.lesson_id === lesson.id)
+      );
+
+      // If not in a path, add it to modules array
+      if (!isInPath) {
+        subjectData.modules.push(lesson);
+      }
+    }
+  });
 
   // Add learning path lessons to the grouping
   learningPaths?.forEach(path => {
-    if (!allLessonsBySubject.has(path.subject)) {
-      allLessonsBySubject.set(path.subject, {
-        totalModules: 0,
-        completedModules: 0,
-        paths: [],
-        modules: [],
-      });
+    const pathDate = format(new Date(path.created_at), 'yyyy-MM-dd');
+    const today = getTodayDate();
+    
+    // Only process paths from today
+    if (pathDate === today) {
+      if (!allLessonsBySubject.has(path.subject)) {
+        allLessonsBySubject.set(path.subject, {
+          totalModules: 0,
+          completedModules: 0,
+          paths: [],
+          modules: [],
+        });
+      }
+
+      const subjectData = allLessonsBySubject.get(path.subject);
+      const pathLessons = path.lessons || [];
+      subjectData.totalModules += pathLessons.length;
+      subjectData.completedModules += pathLessons.filter(
+        lesson => completedLessonIds.has(lesson.lesson_id)
+      ).length;
+      subjectData.paths.push(path);
     }
-
-    const subjectData = allLessonsBySubject.get(path.subject);
-    const pathLessons = path.lessons || [];
-    subjectData.totalModules += pathLessons.length;
-    subjectData.completedModules += pathLessons.filter(
-      lesson => completedLessonIds.has(lesson.lesson_id)
-    ).length;
-    subjectData.paths.push(path);
-  });
-
-  // Add individual lessons to the grouping
-  individualLessons?.forEach(lesson => {
-    if (!allLessonsBySubject.has(lesson.subject)) {
-      allLessonsBySubject.set(lesson.subject, {
-        totalModules: 0,
-        completedModules: 0,
-        paths: [],
-        modules: [],
-      });
-    }
-
-    const subjectData = allLessonsBySubject.get(lesson.subject);
-    subjectData.totalModules += 1;
-    subjectData.completedModules += completedLessonIds.has(lesson.id) ? 1 : 0;
-    subjectData.modules.push(lesson);
   });
 
   return (

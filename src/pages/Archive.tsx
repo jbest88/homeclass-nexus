@@ -1,42 +1,32 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { GraduationCap } from "lucide-react";
+import { useUser } from "@supabase/auth-helpers-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useUser } from "@supabase/auth-helpers-react";
-import SubjectProgress from "@/components/dashboard/SubjectProgress";
-import { LearningPath } from "@/types/learning-path";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { format, parseISO } from "date-fns";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface ArchivedLesson {
+  id: string;
+  title: string;
+  subject: string;
+  created_at: string;
+}
 
 const Archive = () => {
   const user = useUser();
+  const navigate = useNavigate();
 
   const { data: archivedLessons } = useQuery({
     queryKey: ["archived-lessons"],
     queryFn: async () => {
       if (!user) return null;
-      
-      // First, get the lesson IDs that have responses
-      const { data: lessonResponses } = await supabase
-        .from('question_responses')
-        .select('lesson_id')
-        .eq('user_id', user.id);
 
-      const lessonIds = lessonResponses?.map(response => response.lesson_id) || [];
-      
-      // Then use these IDs to filter archived lessons
-      const { data, error } = await supabase
+      const { data: archived, error } = await supabase
         .from("archived_lessons")
         .select(`
           id,
-          archived_at,
           lesson_id,
+          archived_at,
           generated_lessons (
             id,
             title,
@@ -44,102 +34,38 @@ const Archive = () => {
             created_at
           )
         `)
-        .eq('user_id', user.id)
-        .in('lesson_id', lessonIds)
+        .eq("user_id", user.id)
         .order("archived_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      return archived.map(item => ({
+        id: item.lesson_id,
+        title: item.generated_lessons.title,
+        subject: item.generated_lessons.subject,
+        created_at: item.generated_lessons.created_at
+      })) as ArchivedLesson[];
     },
     enabled: !!user,
   });
 
-  // Group archived lessons by date first, then by subject
-  const lessonsByDate = archivedLessons?.reduce((acc, lesson) => {
-    const date = format(parseISO(lesson.archived_at), 'yyyy-MM-dd');
-    if (!acc[date]) {
-      acc[date] = {};
-    }
-    
-    const subject = lesson.generated_lessons.subject;
-    if (!acc[date][subject]) {
-      acc[date][subject] = {
-        totalModules: 0,
-        completedModules: 0,
-        paths: [{
-          id: `${date}-${subject}`,
-          subject,
-          created_at: lesson.archived_at,
-          lessons: []
-        }] as LearningPath[]
-      };
-    }
-
-    acc[date][subject].totalModules += 1;
-    acc[date][subject].paths[0].lessons?.push({
-      id: lesson.id,
-      path_id: `${date}-${subject}`,
-      lesson_id: lesson.lesson_id,
-      order_index: 0,
-      title: lesson.generated_lessons.title,
-      created_at: lesson.archived_at,
-    });
-
-    return acc;
-  }, {} as Record<string, Record<string, { totalModules: number; completedModules: number; paths: LearningPath[] }>>);
-
-  const hasArchivedLessons = archivedLessons && archivedLessons.length > 0;
-
   return (
-    <div className="container mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            Other Journeys
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!hasArchivedLessons ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="mb-2">Your previous learning journeys will appear here.</p>
-              <p>Completed lessons that are more than 24 hours old are automatically moved to this space, 
-                 allowing you to track your learning progress over time.</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Archived Lessons</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[400px] pr-4">
+          {archivedLessons?.map(lesson => (
+            <div key={lesson.id}>
+              <h2>{lesson.title}</h2>
+              <p>{lesson.subject}</p>
+              <p>{new Date(lesson.created_at).toLocaleDateString()}</p>
             </div>
-          ) : (
-            <ScrollArea className="h-[600px] pr-4">
-              <Accordion type="single" collapsible className="space-y-4">
-                {lessonsByDate && Object.entries(lessonsByDate).map(([date, subjectData]) => (
-                  <AccordionItem key={date} value={date} className="border rounded-lg px-4">
-                    <AccordionTrigger className="py-4">
-                      <span className="text-lg font-semibold">
-                        {format(parseISO(date), 'MMMM d, yyyy')}
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-6 py-4">
-                        {Object.entries(subjectData).map(([subject, data]) => (
-                          <SubjectProgress
-                            key={`${date}-${subject}`}
-                            subject={subject}
-                            totalModules={data.totalModules}
-                            completedModules={data.completedModules}
-                            modules={[]}
-                            learningPaths={data.paths}
-                            isGenerating={false}
-                            onLessonDeleted={() => {}}
-                          />
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </ScrollArea>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          ))}
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 };
 

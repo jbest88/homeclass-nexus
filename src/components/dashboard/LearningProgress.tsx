@@ -17,6 +17,31 @@ interface LearningProgressProps {
   isGenerating: boolean;
 }
 
+interface GeneratedLesson {
+  id: string;
+  title: string;
+  subject: string;
+  created_at: string;
+}
+
+interface LearningPathLesson {
+  id: string;
+  path_id: string;
+  lesson_id: string;
+  order_index: number;
+  generated_lessons: GeneratedLesson;
+  title: string;
+  subject: string;
+}
+
+interface LearningPath {
+  id: string;
+  user_id: string;
+  subject: string;
+  created_at: string;
+  lessons: LearningPathLesson[];
+}
+
 const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const user = useUser();
   const queryClient = useQueryClient();
@@ -70,7 +95,7 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
         })
       );
 
-      return pathsWithLessons.filter(path => path.lessons && path.lessons.length > 0);
+      return pathsWithLessons as LearningPath[];
     },
     enabled: !!user,
   });

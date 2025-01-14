@@ -68,21 +68,25 @@ const SubjectProgress = ({
   };
 
   const cleanTitle = (title: string) => {
-    // Remove any existing grade information in parentheses
     let baseTitle = title.replace(/\s*\([^)]*\)/g, '');
-    // Remove any grade information from the beginning of the title
     baseTitle = baseTitle.replace(/^(Grade|K|Kindergarten)\s*\d*\s*:?\s*/i, '');
-    // Remove special characters
     baseTitle = baseTitle.replace(/[*#]/g, '').trim();
     
     const gradeLevel = profile?.grade_level;
     if (gradeLevel === null || gradeLevel === undefined) return baseTitle;
     
-    // Add the grade level in a consistent format
     return `${baseTitle} (Grade ${gradeLevel === 0 ? 'K' : gradeLevel})`;
   };
 
   const progressPercentage = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
+
+  // Group standalone modules into a "Today's Lessons" section if they're not part of a learning path
+  const standaloneModules = modules.filter(module => {
+    // Check if this module is not part of any learning path
+    return !learningPaths.some(path => 
+      path.lessons?.some(lesson => lesson.lesson_id === module.id)
+    );
+  });
 
   return (
     <div className="mb-6 last:mb-0">
@@ -91,6 +95,7 @@ const SubjectProgress = ({
         progressPercentage={progressPercentage} 
       />
       
+      {/* Display learning paths first */}
       <LearningPathsList
         learningPaths={learningPaths}
         onDelete={handleDelete}
@@ -98,19 +103,27 @@ const SubjectProgress = ({
         cleanTitle={cleanTitle}
       />
 
-      <div className="space-y-2">
-        {modules.map((module) => (
-          <LessonItem
-            key={module.id}
-            id={module.id}
-            title={cleanTitle(module.title)}
-            createdAt={module.created_at}
-            curriculumPeriod={getCurriculumPeriod(module.created_at)}
-            onDelete={handleDelete}
-            isGenerating={isGenerating}
-          />
-        ))}
-      </div>
+      {/* Display standalone modules in their own section if any exist */}
+      {standaloneModules.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2">
+            <h4 className="text-sm font-medium">Individual Lessons</h4>
+          </div>
+          <div className="space-y-2">
+            {standaloneModules.map((module) => (
+              <LessonItem
+                key={module.id}
+                id={module.id}
+                title={cleanTitle(module.title)}
+                createdAt={module.created_at}
+                curriculumPeriod={getCurriculumPeriod(module.created_at)}
+                onDelete={handleDelete}
+                isGenerating={isGenerating}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

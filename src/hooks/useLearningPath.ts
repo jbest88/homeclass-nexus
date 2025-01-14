@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const useLearningPath = () => {
   const user = useUser();
+  const queryClient = useQueryClient();
 
   const addToLearningPath = async (
     lessonId: string,
@@ -47,18 +49,6 @@ export const useLearningPath = () => {
         pathId = existingPaths[0].id;
       }
 
-      // Get the highest order_index for the current path
-      const { data: lastLesson, error: orderError } = await supabase
-        .from('learning_path_lessons')
-        .select('order_index')
-        .eq('path_id', pathId)
-        .order('order_index', { ascending: false })
-        .limit(1);
-
-      if (orderError) throw orderError;
-
-      const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
-
       // Check if this specific lesson is already in this specific path
       const { data: existingPathLesson, error: checkError } = await supabase
         .from('learning_path_lessons')
@@ -71,6 +61,18 @@ export const useLearningPath = () => {
 
       // Only add the lesson if it's not already in this specific path
       if (!existingPathLesson) {
+        // Get the highest order_index for the current path
+        const { data: lastLesson, error: orderError } = await supabase
+          .from('learning_path_lessons')
+          .select('order_index')
+          .eq('path_id', pathId)
+          .order('order_index', { ascending: false })
+          .limit(1);
+
+        if (orderError) throw orderError;
+
+        const nextOrderIndex = (lastLesson?.[0]?.order_index ?? -1) + 1;
+
         const { error: addLessonError } = await supabase
           .from('learning_path_lessons')
           .insert({
@@ -80,6 +82,10 @@ export const useLearningPath = () => {
           });
 
         if (addLessonError) throw addLessonError;
+
+        // Invalidate queries to refresh the data
+        queryClient.invalidateQueries({ queryKey: ["learning-paths"] });
+        queryClient.invalidateQueries({ queryKey: ["generated-lessons"] });
       }
 
       return { pathId };

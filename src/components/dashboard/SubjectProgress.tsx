@@ -3,7 +3,6 @@ import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LearningPath } from "@/types/learning-path";
-import { getCurriculumPeriod } from "@/utils/curriculumPeriod";
 import SubjectProgressHeader from "./SubjectProgressHeader";
 import LearningPathsList from "./LearningPathsList";
 import { useLearningPath } from "@/hooks/useLearningPath";
@@ -44,7 +43,7 @@ const SubjectProgress = ({
         .from("profiles")
         .select("grade_level")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

@@ -1,7 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Play, Square } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { Video } from "@/types/video";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { toast } from "sonner";
 
 interface LessonContentProps {
   title: string;
@@ -11,16 +15,42 @@ interface LessonContentProps {
 }
 
 export const LessonContent = ({ title, subject, content, videos }: LessonContentProps) => {
-  // Remove markdown formatting from title (e.g., stars)
   const cleanTitle = title.replace(/[*#]/g, '').trim();
+  const { speak, stop, isPlaying } = useTextToSpeech();
+  
+  const handleTextToSpeech = async () => {
+    if (isPlaying) {
+      stop();
+      toast.info("Stopped reading");
+      return;
+    }
+
+    const textToRead = `${cleanTitle}. ${content}`;
+    toast.info("Starting to read the lesson");
+    await speak(textToRead);
+  };
   
   return (
     <Card className="mb-8">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">{cleanTitle}</CardTitle>
-        <div className="text-sm text-muted-foreground">
-          Subject: {subject}
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle className="text-2xl font-bold">{cleanTitle}</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            Subject: {subject}
+          </div>
         </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleTextToSpeech}
+          title={isPlaying ? "Stop reading" : "Read lesson aloud"}
+        >
+          {isPlaying ? (
+            <Square className="h-4 w-4" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="prose prose-slate dark:prose-invert max-w-none

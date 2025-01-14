@@ -12,7 +12,7 @@ export const useTextToSpeech = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'xi-api-key': process.env.ELEVEN_LABS_API_KEY || '',
+          'xi-api-key': import.meta.env.VITE_ELEVEN_LABS_API_KEY || '',
         },
         body: JSON.stringify({
           text,
@@ -48,6 +48,7 @@ export const useTextToSpeech = () => {
     } catch (error) {
       console.error('Error generating speech:', error);
       setIsPlaying(false);
+      throw error; // Re-throw to handle in the component
     }
   };
 

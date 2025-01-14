@@ -25,9 +25,14 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
       return;
     }
 
-    const textToRead = `${cleanTitle}. ${content}`;
-    toast.info("Starting to read the lesson");
-    await speak(textToRead);
+    try {
+      const textToRead = `${cleanTitle}. ${content}`;
+      toast.info("Starting to read the lesson");
+      await speak(textToRead);
+    } catch (error) {
+      console.error('Text-to-speech error:', error);
+      toast.error("Failed to start reading. Please try again.");
+    }
   };
   
   return (

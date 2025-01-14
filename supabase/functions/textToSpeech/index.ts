@@ -45,9 +45,20 @@ serve(async (req) => {
       throw new Error(`ElevenLabs API error: ${error}`)
     }
 
-    // Convert audio blob to base64
+    // Get the audio data as an ArrayBuffer
     const arrayBuffer = await response.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    // Create a Uint8Array from the ArrayBuffer
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 in chunks to avoid stack overflow
+    const chunkSize = 32768; // Process 32KB at a time
+    let base64 = '';
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      base64 += btoa(String.fromCharCode.apply(null, chunk));
+    }
 
     return new Response(
       JSON.stringify(base64),

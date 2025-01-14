@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from "@/integrations/supabase/client";
 
 export const useTextToSpeech = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -8,20 +9,14 @@ export const useTextToSpeech = () => {
     try {
       setIsPlaying(true);
       
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/XB0fDUnXU5powFXDhCwa/stream', {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/textToSpeech`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'xi-api-key': import.meta.env.VITE_ELEVEN_LABS_API_KEY || '',
+          'Authorization': `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          }
-        }),
+        body: JSON.stringify({ text }),
       });
 
       if (!response.ok) {
@@ -48,7 +43,7 @@ export const useTextToSpeech = () => {
     } catch (error) {
       console.error('Error generating speech:', error);
       setIsPlaying(false);
-      throw error; // Re-throw to handle in the component
+      throw error;
     }
   };
 

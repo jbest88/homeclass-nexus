@@ -22,7 +22,6 @@ const Archive = () => {
     queryFn: async () => {
       if (!user) return null;
       
-      // First, get the lesson IDs that have responses
       const { data: lessonResponses } = await supabase
         .from('question_responses')
         .select('lesson_id')
@@ -30,7 +29,6 @@ const Archive = () => {
 
       const lessonIds = lessonResponses?.map(response => response.lesson_id) || [];
       
-      // Then use these IDs to filter archived lessons
       const { data, error } = await supabase
         .from("archived_lessons")
         .select(`
@@ -49,7 +47,14 @@ const Archive = () => {
         .order("archived_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data.map(lesson => ({
+        id: lesson.id,
+        archived_at: lesson.archived_at,
+        lesson_id: lesson.lesson_id,
+        title: lesson.generated_lessons.title,
+        subject: lesson.generated_lessons.subject,
+        created_at: lesson.generated_lessons.created_at
+      }));
     },
     enabled: !!user,
   });
@@ -61,7 +66,7 @@ const Archive = () => {
       acc[date] = {};
     }
     
-    const subject = lesson.generated_lessons.subject;
+    const subject = lesson.subject;
     if (!acc[date][subject]) {
       acc[date][subject] = {
         totalModules: 0,
@@ -81,7 +86,7 @@ const Archive = () => {
       path_id: `${date}-${subject}`,
       lesson_id: lesson.lesson_id,
       order_index: 0,
-      title: lesson.generated_lessons.title,
+      title: lesson.title,
       created_at: lesson.archived_at,
     });
 

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@supabase/auth-helpers-react";
 import SubjectProgress from "./SubjectProgress";
-import { LearningPath } from "@/types/learning-path";
+import type { LearningPath } from "@/types/learning-path";
 import { Button } from "@/components/ui/button";
 import { Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +23,6 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
   const navigate = useNavigate();
   const { addToLearningPath } = useLearningPath();
 
-  // Fetch learning paths
   const { data: learningPaths } = useQuery({
     queryKey: ["learning-paths"],
     queryFn: async () => {
@@ -62,10 +61,12 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
           return {
             ...path,
             lessons: pathLessons.map(pl => ({
-              ...pl,
+              id: pl.id,
+              lesson_id: pl.lesson_id,
               title: pl.generated_lessons.title,
               subject: pl.generated_lessons.subject,
-            })),
+              created_at: pl.created_at
+            }))
           };
         })
       );
@@ -75,7 +76,6 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     enabled: !!user,
   });
 
-  // Fetch individual lessons
   const { data: individualLessons } = useQuery({
     queryKey: ["generated-lessons"],
     queryFn: async () => {
@@ -213,5 +213,3 @@ const LearningProgress = ({ isGenerating }: LearningProgressProps) => {
     </Card>
   );
 };
-
-export default LearningProgress;

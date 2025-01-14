@@ -6,7 +6,7 @@ import { LearningPath } from "@/types/learning-path";
 import SubjectProgressHeader from "./SubjectProgressHeader";
 import LearningPathsList from "./LearningPathsList";
 import { useLearningPath } from "@/hooks/useLearningPath";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
 interface SubjectProgressProps {
   subject: string;
@@ -51,29 +51,30 @@ const SubjectProgress = ({
     enabled: !!user,
   });
 
-  // Effect to add standalone modules to learning path
-  useEffect(() => {
-    const addModulesToPath = async () => {
-      if (modules.length > 0) {
-        try {
-          for (const module of modules) {
-            const result = await addToLearningPath(module.id, subject);
-            if (!result) {
-              console.error(`Failed to add module ${module.id} to learning path`);
-            }
-          }
-        } catch (error: any) {
-          console.error('Error managing learning path:', error);
-          // Only show toast for non-duplicate errors
-          if (!error.message?.includes('duplicate key value')) {
-            toast.error('Failed to update learning path');
+  // Memoize the addModulesToPath function
+  const addModulesToPath = useCallback(async () => {
+    if (modules.length > 0) {
+      try {
+        for (const module of modules) {
+          const result = await addToLearningPath(module.id, subject);
+          if (!result) {
+            console.error(`Failed to add module ${module.id} to learning path`);
           }
         }
+      } catch (error: any) {
+        console.error('Error managing learning path:', error);
+        // Only show toast for non-duplicate errors
+        if (!error.message?.includes('duplicate key value')) {
+          toast.error('Failed to update learning path');
+        }
       }
-    };
-    
+    }
+  }, [modules, subject, addToLearningPath]);
+
+  // Effect to add standalone modules to learning path
+  useEffect(() => {
     addModulesToPath();
-  }, [modules, subject, addToLearningPath]); // Add proper dependencies
+  }, [addModulesToPath]);
 
   const handleDelete = async (lessonId: string) => {
     try {

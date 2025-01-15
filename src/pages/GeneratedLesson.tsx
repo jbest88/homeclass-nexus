@@ -5,6 +5,7 @@ import { LessonHeader } from "@/components/lesson/LessonHeader";
 import { LessonContent } from "@/components/lesson/LessonContent";
 import { QuestionsSection } from "@/components/lesson/QuestionsSection";
 import { Question } from "@/types/questions";
+import { Video } from "@/types/video";
 
 const GeneratedLesson = () => {
   const { lessonId } = useParams();
@@ -12,16 +13,35 @@ const GeneratedLesson = () => {
   const { data: lesson, isLoading } = useQuery({
     queryKey: ["generated-lesson", lessonId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch the lesson
+      const { data: lessonData, error: lessonError } = await supabase
         .from("generated_lessons")
         .select("*")
         .eq("id", lessonId)
         .single();
 
-      if (error) throw error;
+      if (lessonError) throw lessonError;
+
+      // Then fetch related videos
+      const { data: videosData, error: videosError } = await supabase
+        .from("lesson_videos")
+        .select("*")
+        .eq("lesson_id", lessonId);
+
+      if (videosError) throw videosError;
+
+      // Transform video data to match Video type
+      const videos: Video[] = videosData.map(video => ({
+        videoId: video.video_id,
+        title: video.title,
+        description: video.description || "",
+        topics: [] // Topics will be extracted from the lesson content
+      }));
+
       return {
-        ...data,
-        questions: data.questions as Question[]
+        ...lessonData,
+        questions: lessonData.questions as Question[],
+        videos
       };
     },
   });
@@ -44,6 +64,7 @@ const GeneratedLesson = () => {
         title={lesson.title}
         subject={lesson.subject}
         content={lesson.content}
+        videos={lesson.videos}
       />
       {hasQuestions && (
         <QuestionsSection

@@ -50,6 +50,7 @@ export const generateLesson = async (
       console.log('Searching YouTube video for topic:', firstTopic);
       const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
       if (!YOUTUBE_API_KEY) {
+        console.error("YouTube API key not found in environment variables");
         throw new Error("YouTube API key not configured");
       }
 
@@ -66,7 +67,7 @@ export const generateLesson = async (
       searchUrl.searchParams.append("relevanceLanguage", "en");
       searchUrl.searchParams.append("key", YOUTUBE_API_KEY);
 
-      console.log('Making YouTube API request to URL:', searchUrl.toString());
+      console.log('Making YouTube API request...');
       const response = await fetch(searchUrl.toString());
       
       if (!response.ok) {

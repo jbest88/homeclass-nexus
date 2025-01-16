@@ -14,6 +14,14 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
   // Remove markdown formatting from title (e.g., stars)
   const cleanTitle = title.replace(/[*#]/g, '').trim();
   
+  console.log('LessonContent rendered with:', {
+    title: cleanTitle,
+    subject,
+    contentLength: content?.length,
+    videosCount: videos?.length,
+    videos: videos
+  });
+  
   return (
     <Card className="mb-8">
       <CardHeader>
@@ -45,10 +53,12 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
                 }
                 return <p {...props} />;
               },
-              // Add video embeds after each third topic (h2 or h3)
+              // Add video embed after first heading only
               h2: ({ node, ...props }) => {
                 const headingContent = String(props.children);
-                const video = videos?.find(v => v.topics.includes(headingContent));
+                console.log('Processing h2:', headingContent);
+                const video = videos?.[0]; // Only use first video
+                console.log('Video for heading:', video);
                 return (
                   <>
                     <h2 {...props} />
@@ -62,34 +72,16 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
                             className="w-full h-full rounded-lg"
                           />
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">{video.title}</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {video.title}
+                        </p>
                       </div>
                     )}
                   </>
                 );
               },
-              h3: ({ node, ...props }) => {
-                const headingContent = String(props.children);
-                const video = videos?.find(v => v.topics.includes(headingContent));
-                return (
-                  <>
-                    <h3 {...props} />
-                    {video && (
-                      <div className="my-6">
-                        <div className="aspect-w-16 aspect-h-9">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${video.videoId}`}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-full rounded-lg"
-                          />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">{video.title}</p>
-                      </div>
-                    )}
-                  </>
-                );
-              },
+              // Remove video embedding from h3
+              h3: ({ node, ...props }) => <h3 {...props} />,
             }}
           >
             {content}

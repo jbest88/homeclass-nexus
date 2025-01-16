@@ -9,9 +9,10 @@ const extractTopics = (content: string): string[] => {
   const lines = content.split('\n');
   
   for (const line of lines) {
-    // Look for headings that might indicate topics
     if (line.startsWith('##') || line.startsWith('###')) {
-      topics.push(line.replace(/^#+\s+/, '').trim());
+      const topic = line.replace(/^#+\s+/, '').trim();
+      console.log('Extracted topic:', topic);
+      topics.push(topic);
     }
   }
   
@@ -24,7 +25,7 @@ export const generateLesson = async (
   gradeLevelText: string,
   isRetry: boolean
 ): Promise<GeneratedLesson> => {
-  console.log('Generating lesson content...');
+  console.log('Starting lesson generation for:', subject, 'Grade:', gradeLevelText);
   
   const currentDate = new Date().toISOString();
   const curriculumPeriod = getCurriculumPeriod(currentDate);
@@ -36,9 +37,50 @@ export const generateLesson = async (
   );
   const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
 
-  // Extract topics from the lesson content
+  // Extract only the first topic for video search
   const topics = extractTopics(lessonContent);
-  console.log('Extracted topics:', topics);
+  console.log('All extracted topics:', topics);
+  const firstTopic = topics[0];
+  console.log('Selected first topic for video:', firstTopic);
+
+  let videos = [];
+  try {
+    // Search for video only for the first topic
+    if (firstTopic) {
+      console.log('Searching YouTube video for topic:', firstTopic);
+      const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
+      if (!YOUTUBE_API_KEY) {
+        throw new Error("YouTube API key not configured");
+      }
+
+      const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
+      searchUrl.searchParams.append("part", "snippet");
+      searchUrl.searchParams.append("q", `${firstTopic} educational tutorial`);
+      searchUrl.searchParams.append("type", "video");
+      searchUrl.searchParams.append("maxResults", "1");
+      searchUrl.searchParams.append("videoEmbeddable", "true");
+      searchUrl.searchParams.append("key", YOUTUBE_API_KEY);
+
+      console.log('Making YouTube API request to URL:', searchUrl.toString());
+      const response = await fetch(searchUrl.toString());
+      const data = await response.json();
+      console.log('YouTube API response:', JSON.stringify(data, null, 2));
+
+      if (data.items?.[0]) {
+        videos.push({
+          videoId: data.items[0].id.videoId,
+          title: data.items[0].snippet.title,
+          description: data.items[0].snippet.description,
+          topics: [firstTopic],
+        });
+        console.log('Successfully found video:', videos[0]);
+      }
+    }
+  } catch (error) {
+    console.error('Error searching YouTube videos:', error);
+    // Continue without videos if there's an error
+    videos = [];
+  }
 
   let validQuestions = null;
   let attempts = 0;
@@ -54,7 +96,7 @@ export const generateLesson = async (
         gradeLevelText
       );
       const questionsText = await generateWithGemini(geminiApiKey, questionsPrompt);
-
+      
       console.log('Raw questions text:', questionsText);
       
       const cleanedQuestionsText = questionsText
@@ -88,55 +130,20 @@ export const generateLesson = async (
     throw new Error('Failed to generate valid questions');
   }
 
-  // Search for relevant YouTube videos using the YouTube API directly
-  const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
-  if (!YOUTUBE_API_KEY) {
-    throw new Error("YouTube API key not configured");
-  }
-
-  let videos = [];
-  try {
-    // Process topics in groups of three
-    for (let i = 0; i < topics.length; i += 3) {
-      const topicGroup = topics.slice(i, i + 3);
-      const searchQuery = topicGroup.join(" ");
-      
-      const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
-      searchUrl.searchParams.append("part", "snippet");
-      searchUrl.searchParams.append("q", `${searchQuery} educational tutorial`);
-      searchUrl.searchParams.append("type", "video");
-      searchUrl.searchParams.append("maxResults", "1");
-      searchUrl.searchParams.append("videoEmbeddable", "true");
-      searchUrl.searchParams.append("key", YOUTUBE_API_KEY);
-
-      const response = await fetch(searchUrl.toString());
-      const data = await response.json();
-
-      if (data.items?.[0]) {
-        videos.push({
-          videoId: data.items[0].id.videoId,
-          title: data.items[0].snippet.title,
-          description: data.items[0].snippet.description,
-          topics: topicGroup,
-        });
-      }
-    }
-    console.log('Found videos:', videos);
-  } catch (error) {
-    console.error('Error searching YouTube videos:', error);
-    // Continue without videos if there's an error
-    videos = [];
-  }
-
   const title = lessonContent.split('\n')[0].replace('#', '').trim();
   const content = lessonContent.split('\n').slice(1).join('\n').trim();
 
-  console.log('Successfully generated lesson');
+  console.log('Successfully generated lesson with:', {
+    title,
+    contentLength: content.length,
+    questionsCount: validQuestions.length,
+    videosCount: videos.length
+  });
 
   return {
     title,
     content,
     questions: validQuestions,
-    videos: videos || [],
+    videos: videos,
   };
 };

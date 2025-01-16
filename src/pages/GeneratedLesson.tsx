@@ -13,6 +13,8 @@ const GeneratedLesson = () => {
   const { data: lesson, isLoading } = useQuery({
     queryKey: ["generated-lesson", lessonId],
     queryFn: async () => {
+      console.log('Fetching lesson data for ID:', lessonId);
+      
       // First fetch the lesson
       const { data: lessonData, error: lessonError } = await supabase
         .from("generated_lessons")
@@ -20,7 +22,12 @@ const GeneratedLesson = () => {
         .eq("id", lessonId)
         .single();
 
-      if (lessonError) throw lessonError;
+      if (lessonError) {
+        console.error('Error fetching lesson:', lessonError);
+        throw lessonError;
+      }
+      
+      console.log('Fetched lesson data:', lessonData);
 
       // Then fetch related videos
       const { data: videosData, error: videosError } = await supabase
@@ -28,7 +35,12 @@ const GeneratedLesson = () => {
         .select("*")
         .eq("lesson_id", lessonId);
 
-      if (videosError) throw videosError;
+      if (videosError) {
+        console.error('Error fetching videos:', videosError);
+        throw videosError;
+      }
+      
+      console.log('Fetched videos data:', videosData);
 
       // Transform video data to match Video type
       const videos: Video[] = videosData.map(video => ({
@@ -37,6 +49,8 @@ const GeneratedLesson = () => {
         description: video.description || "",
         topics: [] // Topics will be extracted from the lesson content
       }));
+      
+      console.log('Transformed videos:', videos);
 
       return {
         ...lessonData,
@@ -53,6 +67,13 @@ const GeneratedLesson = () => {
   if (!lesson) {
     return <div>Lesson not found</div>;
   }
+
+  console.log('Rendering lesson with data:', {
+    title: lesson.title,
+    subject: lesson.subject,
+    videosCount: lesson?.videos?.length,
+    videos: lesson?.videos
+  });
 
   const hasQuestions = Array.isArray(lesson.questions);
   const questions = hasQuestions ? lesson.questions : [];

@@ -66,6 +66,11 @@ export const generateLesson = async (
       const data = await response.json();
       console.log('YouTube API response:', JSON.stringify(data, null, 2));
 
+      if (data.error) {
+        console.error('YouTube API error:', data.error);
+        throw new Error(`YouTube API error: ${data.error.message}`);
+      }
+
       if (data.items?.[0]) {
         videos.push({
           videoId: data.items[0].id.videoId,
@@ -74,6 +79,8 @@ export const generateLesson = async (
           topics: [firstTopic],
         });
         console.log('Successfully found video:', videos[0]);
+      } else {
+        console.log('No videos found for topic:', firstTopic);
       }
     }
   } catch (error) {
@@ -81,6 +88,8 @@ export const generateLesson = async (
     // Continue without videos if there's an error
     videos = [];
   }
+
+  console.log('Found videos:', videos);
 
   let validQuestions = null;
   let attempts = 0;

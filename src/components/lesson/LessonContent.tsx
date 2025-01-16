@@ -49,20 +49,16 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
           [&_hr]:my-8 [&_hr]:border-muted">
           <ReactMarkdown
             components={{
-              // Custom component for "Did you know?" sections
-              p: ({ node, ...props }) => {
-                const content = String(props.children);
-                if (content.startsWith('Did you know?')) {
-                  return <div className="did-you-know" {...props} />;
-                }
-                return <p {...props} />;
-              },
-              // Add video embed after first heading
               p: ({ node, ...props }) => {
                 const content = String(props.children);
                 console.log('Processing paragraph:', content);
                 
-                // Check if this paragraph matches our first heading
+                // Handle "Did you know?" sections
+                if (content.startsWith('Did you know?')) {
+                  return <div className="did-you-know" {...props} />;
+                }
+                
+                // Handle first heading video embed
                 if (content === firstHeading?.replace(/\*/g, '')) {
                   console.log('Found matching paragraph for first heading');
                   const video = videos?.[0];
@@ -89,6 +85,7 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
                     </>
                   );
                 }
+                
                 return <p {...props} />;
               },
             }}

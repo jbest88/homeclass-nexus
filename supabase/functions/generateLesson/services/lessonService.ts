@@ -37,7 +37,7 @@ export const generateLesson = async (
   );
   const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
 
-  // Extract only the first topic for video search
+  // Extract topics for video search
   const topics = extractTopics(lessonContent);
   console.log('All extracted topics:', topics);
   const firstTopic = topics[0];
@@ -53,16 +53,28 @@ export const generateLesson = async (
         throw new Error("YouTube API key not configured");
       }
 
+      const searchQuery = `${subject} ${firstTopic} educational tutorial`;
+      console.log('Search query:', searchQuery);
+
       const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
       searchUrl.searchParams.append("part", "snippet");
-      searchUrl.searchParams.append("q", `${firstTopic} educational tutorial`);
+      searchUrl.searchParams.append("q", searchQuery);
       searchUrl.searchParams.append("type", "video");
       searchUrl.searchParams.append("maxResults", "1");
       searchUrl.searchParams.append("videoEmbeddable", "true");
+      searchUrl.searchParams.append("safeSearch", "strict");
+      searchUrl.searchParams.append("relevanceLanguage", "en");
       searchUrl.searchParams.append("key", YOUTUBE_API_KEY);
 
       console.log('Making YouTube API request to URL:', searchUrl.toString());
       const response = await fetch(searchUrl.toString());
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('YouTube API error response:', errorText);
+        throw new Error(`YouTube API request failed: ${response.status} ${errorText}`);
+      }
+
       const data = await response.json();
       console.log('YouTube API response:', JSON.stringify(data, null, 2));
 
@@ -72,13 +84,14 @@ export const generateLesson = async (
       }
 
       if (data.items?.[0]) {
-        videos.push({
+        const video = {
           videoId: data.items[0].id.videoId,
           title: data.items[0].snippet.title,
-          description: data.items[0].snippet.description,
+          description: data.items[0].snippet.description || "",
           topics: [firstTopic],
-        });
-        console.log('Successfully found video:', videos[0]);
+        };
+        videos.push(video);
+        console.log('Successfully found video:', video);
       } else {
         console.log('No videos found for topic:', firstTopic);
       }

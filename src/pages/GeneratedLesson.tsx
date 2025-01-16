@@ -43,12 +43,12 @@ const GeneratedLesson = () => {
       console.log('Fetched videos data:', videosData);
 
       // Transform video data to match Video type
-      const videos: Video[] = videosData.map(video => ({
+      const videos: Video[] = videosData?.map(video => ({
         videoId: video.video_id,
         title: video.title,
         description: video.description || "",
         topics: [] // Topics will be extracted from the lesson content
-      }));
+      })) || [];
       
       console.log('Transformed videos:', videos);
 

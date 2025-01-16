@@ -21,6 +21,10 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
     videosCount: videos?.length,
     videos: videos
   });
+
+  // Extract the first heading from content
+  const firstHeading = content.split('\n').find(line => line.startsWith('**') && line.endsWith('**'));
+  console.log('First heading found:', firstHeading);
   
   return (
     <Card className="mb-8">
@@ -53,35 +57,40 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
                 }
                 return <p {...props} />;
               },
-              // Add video embed after first heading only
-              h2: ({ node, ...props }) => {
-                const headingContent = String(props.children);
-                console.log('Processing h2:', headingContent);
-                const video = videos?.[0]; // Only use first video
-                console.log('Video for heading:', video);
-                return (
-                  <>
-                    <h2 {...props} />
-                    {video && (
-                      <div className="my-6">
-                        <div className="aspect-w-16 aspect-h-9">
-                          <iframe
-                            src={`https://www.youtube.com/embed/${video.videoId}`}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="w-full h-full rounded-lg"
-                          />
+              // Add video embed after first heading
+              p: ({ node, ...props }) => {
+                const content = String(props.children);
+                console.log('Processing paragraph:', content);
+                
+                // Check if this paragraph matches our first heading
+                if (content === firstHeading?.replace(/\*/g, '')) {
+                  console.log('Found matching paragraph for first heading');
+                  const video = videos?.[0];
+                  console.log('Video for first heading:', video);
+                  
+                  return (
+                    <>
+                      <p {...props} />
+                      {video && (
+                        <div className="my-6">
+                          <div className="aspect-w-16 aspect-h-9">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${video.videoId}`}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="w-full h-full rounded-lg"
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            {video.title}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          {video.title}
-                        </p>
-                      </div>
-                    )}
-                  </>
-                );
+                      )}
+                    </>
+                  );
+                }
+                return <p {...props} />;
               },
-              // Remove video embedding from h3
-              h3: ({ node, ...props }) => <h3 {...props} />,
             }}
           >
             {content}

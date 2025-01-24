@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Plus, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSubscription } from "@/hooks/useSubscription";
 
 export interface Subscription {
   tier: 'free' | 'basic' | 'premium' | 'enterprise';

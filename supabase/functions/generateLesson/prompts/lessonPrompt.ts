@@ -56,6 +56,17 @@ export const createLessonPrompt = (
        - Hands-on activities
        - Extension opportunities
 
+    DISPLAY AND PRESENTATION:
+    - Break down content into **concise, scannable sections** with clear headings
+    - Use **bullet points, numbered lists, and tables** to structure information
+    - Highlight key terms or principles in **bold or italics**
+    - Provide **diagrams, charts, or visuals** where necessary to clarify complex ideas
+    - Ensure text is written in short paragraphs for readability
+    - Incorporate **interactive elements** where appropriate, such as quizzes or drag-and-drop activities
+    - Include a **summary box** for quick review of key takeaways
+    - Use **color-coding or icons** to distinguish theoretical, practical, and review sections
+    - Ensure content is mobile-friendly and displays well on small screens
+
     CRITICAL GUIDELINES:
     - Use clear, precise language
     - Include appropriate mathematical/scientific notation
@@ -63,7 +74,5 @@ export const createLessonPrompt = (
     - Balance challenge with accessibility
     - Focus on understanding and application
     - Emphasize problem-solving strategies
-    - Maintain engagement through relevant examples
-
-    The content should be academically sound while being appropriately challenging for ${gradeLevelText}.`;
+    - Maintain engagement through relevant examples`;
 };

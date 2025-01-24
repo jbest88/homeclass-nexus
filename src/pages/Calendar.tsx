@@ -8,13 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { CalendarPlus, CalendarCheck } from "lucide-react";
+import { CalendarPlus, CalendarCheck, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@supabase/auth-helpers-react";
 
 const CalendarPage = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<null | { id: string; title: string; description: string; startTime: string; endTime: string }>(null);
   const [newEvent, setNewEvent] = useState({
     title: "",
     description: "",
@@ -73,15 +74,23 @@ const CalendarPage = () => {
 
   const addEventMutation = useMutation({
     mutationFn: async (eventData: typeof newEvent) => {
-      if (!session?.user?.id) {
-        throw new Error("User must be logged in to add events");
+      if (!session?.user?.id || !date) {
+        throw new Error("User must be logged in and date must be selected to add events");
       }
+
+      const startDate = new Date(date);
+      const [startHours, startMinutes] = eventData.startTime.split(':');
+      startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
+
+      const endDate = new Date(date);
+      const [endHours, endMinutes] = eventData.endTime.split(':');
+      endDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
 
       const { data, error } = await supabase.from("calendar_events").insert([{
         title: eventData.title,
         description: eventData.description,
-        start_time: new Date(eventData.startTime).toISOString(),
-        end_time: new Date(eventData.endTime).toISOString(),
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
         user_id: session.user.id
       }]);
 
@@ -100,16 +109,95 @@ const CalendarPage = () => {
     },
   });
 
+  const updateEventMutation = useMutation({
+    mutationFn: async (eventData: typeof editingEvent) => {
+      if (!eventData) return;
+      
+      const startDate = new Date(date!);
+      const [startHours, startMinutes] = eventData.startTime.split(':');
+      startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
+
+      const endDate = new Date(date!);
+      const [endHours, endMinutes] = eventData.endTime.split(':');
+      endDate.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+
+      const { error } = await supabase
+        .from("calendar_events")
+        .update({
+          title: eventData.title,
+          description: eventData.description,
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+        })
+        .eq("id", eventData.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setIsAddEventOpen(false);
+      setEditingEvent(null);
+      toast.success("Event updated successfully");
+    },
+    onError: (error) => {
+      console.error("Error updating event:", error);
+      toast.error("Failed to update event");
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const { error } = await supabase
+        .from("calendar_events")
+        .delete()
+        .eq("id", eventId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Event deleted successfully");
+    },
+    onError: (error) => {
+      console.error("Error deleting event:", error);
+      toast.error("Failed to delete event");
+    },
+  });
+
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    addEventMutation.mutate(newEvent);
+    if (editingEvent) {
+      updateEventMutation.mutate(editingEvent);
+    } else {
+      addEventMutation.mutate(newEvent);
+    }
+  };
+
+  const handleEditEvent = (event: any) => {
+    setEditingEvent({
+      id: event.id,
+      title: event.title,
+      description: event.description || "",
+      startTime: format(new Date(event.start_time), "HH:mm"),
+      endTime: format(new Date(event.end_time), "HH:mm"),
+    });
+    setIsAddEventOpen(true);
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      deleteEventMutation.mutate(eventId);
+    }
   };
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Calendar</h1>
-        <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
+        <Dialog open={isAddEventOpen} onOpenChange={(open) => {
+          setIsAddEventOpen(open);
+          if (!open) setEditingEvent(null);
+        }}>
           <DialogTrigger asChild>
             <Button>
               <CalendarPlus className="mr-2 h-4 w-4" />
@@ -118,16 +206,18 @@ const CalendarPage = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Event</DialogTitle>
+              <DialogTitle>{editingEvent ? "Edit Event" : "Add New Event"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddEvent} className="space-y-4">
               <div>
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  value={newEvent.title}
+                  value={editingEvent?.title || newEvent.title}
                   onChange={(e) =>
-                    setNewEvent({ ...newEvent, title: e.target.value })
+                    editingEvent
+                      ? setEditingEvent({ ...editingEvent, title: e.target.value })
+                      : setNewEvent({ ...newEvent, title: e.target.value })
                   }
                   required
                 />
@@ -136,9 +226,11 @@ const CalendarPage = () => {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={newEvent.description}
+                  value={editingEvent?.description || newEvent.description}
                   onChange={(e) =>
-                    setNewEvent({ ...newEvent, description: e.target.value })
+                    editingEvent
+                      ? setEditingEvent({ ...editingEvent, description: e.target.value })
+                      : setNewEvent({ ...newEvent, description: e.target.value })
                   }
                 />
               </div>
@@ -146,10 +238,12 @@ const CalendarPage = () => {
                 <Label htmlFor="startTime">Start Time</Label>
                 <Input
                   id="startTime"
-                  type="datetime-local"
-                  value={newEvent.startTime}
+                  type="time"
+                  value={editingEvent?.startTime || newEvent.startTime}
                   onChange={(e) =>
-                    setNewEvent({ ...newEvent, startTime: e.target.value })
+                    editingEvent
+                      ? setEditingEvent({ ...editingEvent, startTime: e.target.value })
+                      : setNewEvent({ ...newEvent, startTime: e.target.value })
                   }
                   required
                 />
@@ -158,16 +252,18 @@ const CalendarPage = () => {
                 <Label htmlFor="endTime">End Time</Label>
                 <Input
                   id="endTime"
-                  type="datetime-local"
-                  value={newEvent.endTime}
+                  type="time"
+                  value={editingEvent?.endTime || newEvent.endTime}
                   onChange={(e) =>
-                    setNewEvent({ ...newEvent, endTime: e.target.value })
+                    editingEvent
+                      ? setEditingEvent({ ...editingEvent, endTime: e.target.value })
+                      : setNewEvent({ ...newEvent, endTime: e.target.value })
                   }
                   required
                 />
               </div>
               <Button type="submit" className="w-full">
-                Add Event
+                {editingEvent ? "Update Event" : "Add Event"}
               </Button>
             </form>
           </DialogContent>
@@ -203,9 +299,27 @@ const CalendarPage = () => {
                       key={event.id}
                       className="p-3 border rounded-lg space-y-1"
                     >
-                      <div className="flex items-center">
-                        <CalendarCheck className="mr-2 h-4 w-4" />
-                        <h4 className="font-medium">{event.title}</h4>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <CalendarCheck className="mr-2 h-4 w-4" />
+                          <h4 className="font-medium">{event.title}</h4>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditEvent(event)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteEvent(event.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       {event.description && (
                         <p className="text-sm text-muted-foreground">

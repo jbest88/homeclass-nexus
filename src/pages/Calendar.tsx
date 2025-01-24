@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { CalendarPlus, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "@supabase/auth-helpers-react";
 
 const CalendarPage = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -21,6 +22,7 @@ const CalendarPage = () => {
     endTime: "",
   });
 
+  const session = useSession();
   const queryClient = useQueryClient();
 
   // Fetch events for the selected date
@@ -71,14 +73,17 @@ const CalendarPage = () => {
 
   const addEventMutation = useMutation({
     mutationFn: async (eventData: typeof newEvent) => {
-      const { data, error } = await supabase.from("calendar_events").insert([
-        {
-          title: eventData.title,
-          description: eventData.description,
-          start_time: new Date(eventData.startTime).toISOString(),
-          end_time: new Date(eventData.endTime).toISOString(),
-        },
-      ]);
+      if (!session?.user?.id) {
+        throw new Error("User must be logged in to add events");
+      }
+
+      const { data, error } = await supabase.from("calendar_events").insert([{
+        title: eventData.title,
+        description: eventData.description,
+        start_time: new Date(eventData.startTime).toISOString(),
+        end_time: new Date(eventData.endTime).toISOString(),
+        user_id: session.user.id
+      }]);
 
       if (error) throw error;
       return data;

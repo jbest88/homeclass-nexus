@@ -11,6 +11,7 @@ import SignUp from "./pages/SignUp";
 import Module from "./pages/Module";
 import GeneratedLesson from "./pages/GeneratedLesson";
 import Archive from "./pages/Archive";
+import Calendar from "./pages/Calendar";
 import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -104,6 +105,16 @@ function App() {
                 element={
                   isAuthenticated ? (
                     <Archive />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route
+                path="/calendar"
+                element={
+                  isAuthenticated ? (
+                    <Calendar />
                   ) : (
                     <Navigate to="/" replace />
                   )

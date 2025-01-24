@@ -6,7 +6,7 @@ import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { getSubjectsForGrade } from "@/utils/gradeSubjects";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery } from "@tanstack/react-query";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ProfileSettings from "@/components/profile/ProfileSettings";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { CreateLessonDialog } from "@/components/dashboard/CreateLessonDialog";

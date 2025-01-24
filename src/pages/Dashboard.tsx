@@ -10,7 +10,6 @@ import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { getSubjectsForGrade } from "@/utils/gradeSubjects";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
-import { YouTubeConnect } from "@/components/dashboard/YouTubeConnect";
 import {
   Dialog,
   DialogContent,
@@ -160,7 +159,7 @@ const Dashboard = () => {
               <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
                 <Settings className="h-4 w-4" />
                 {!isMobile && "My Profile"}
-                {isMobile && "My Profile"}
+                {isMobile && "Profile"}
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -170,8 +169,6 @@ const Dashboard = () => {
               <ProfileSettings onClose={() => setIsProfileOpen(false)} />
             </DialogContent>
           </Dialog>
-
-          <YouTubeConnect />
 
           <Button
             onClick={handleLogout}

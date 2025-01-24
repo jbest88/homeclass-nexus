@@ -2,25 +2,22 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { generateLesson } from "./services/lessonService.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { corsHeaders } from "./utils.ts";
+import { AIProvider } from "./services/aiService.ts";
 
 console.log("Generate lesson function started");
 
 serve(async (req) => {
   try {
-    // Handle CORS preflight requests
     if (req.method === "OPTIONS") {
-      return new Response(null, {
-        headers: corsHeaders,
-      });
+      return new Response(null, { headers: corsHeaders });
     }
 
-    // Validate request method
     if (req.method !== "POST") {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    const { subject, userId, isRetry } = await req.json();
-    console.log(`Generating lesson for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}`);
+    const { subject, userId, isRetry, aiProvider = 'gemini' } = await req.json();
+    console.log(`Generating lesson for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}, provider: ${aiProvider}`);
 
     if (!subject || !userId) {
       throw new Error("Missing required parameters: subject and userId are required");
@@ -60,7 +57,8 @@ serve(async (req) => {
       geminiApiKey,
       subject,
       gradeLevelText,
-      isRetry || false
+      isRetry || false,
+      aiProvider as AIProvider
     );
     console.log("Lesson generated successfully");
 

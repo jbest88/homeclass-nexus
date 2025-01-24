@@ -5,8 +5,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
+export type AIProvider = 'gemini' | 'deepseek';
+
 export const useGenerateLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiProvider, setAIProvider] = useState<AIProvider>('gemini');
   const user = useUser();
   const navigate = useNavigate();
 
@@ -34,7 +37,7 @@ export const useGenerateLesson = () => {
 
     try {
       setIsGenerating(true);
-      console.log("Starting lesson generation...");
+      console.log("Starting lesson generation with provider:", aiProvider);
       
       const maxOrderIndex = generatedLessons?.reduce((max, lesson) => 
         lesson.subject === subject ? Math.max(max, lesson.order_index) : max, -1
@@ -46,6 +49,7 @@ export const useGenerateLesson = () => {
           subject, 
           userId: user.id,
           isRetry,
+          aiProvider,
         },
       });
 
@@ -97,5 +101,7 @@ export const useGenerateLesson = () => {
   return {
     isGenerating,
     handleGenerateLesson,
+    aiProvider,
+    setAIProvider,
   };
 };

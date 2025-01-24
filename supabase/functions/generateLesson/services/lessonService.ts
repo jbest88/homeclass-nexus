@@ -1,8 +1,8 @@
-import { generateWithGemini } from '../utils.ts';
+import { generateWithAI, AIProvider } from './aiService.ts';
 import { createLessonPrompt, createQuestionsPrompt } from '../prompts/index.ts';
 import { validateQuestions } from '../validators/questionValidator.ts';
-import { GeneratedLesson } from '../types.ts';
 import { getCurriculumPeriod } from '../utils.ts';
+import { GeneratedLesson } from '../types.ts';
 
 const extractTopics = (content: string): string[] => {
   const topics: string[] = [];
@@ -23,9 +23,10 @@ export const generateLesson = async (
   geminiApiKey: string,
   subject: string,
   gradeLevelText: string,
-  isRetry: boolean
+  isRetry: boolean,
+  aiProvider: AIProvider = 'gemini'
 ): Promise<GeneratedLesson> => {
-  console.log('Starting lesson generation for:', subject, 'Grade:', gradeLevelText);
+  console.log('Starting lesson generation for:', subject, 'Grade:', gradeLevelText, 'Using:', aiProvider);
   
   const currentDate = new Date().toISOString();
   const curriculumPeriod = getCurriculumPeriod(currentDate);
@@ -35,7 +36,7 @@ export const generateLesson = async (
     gradeLevelText,
     curriculumPeriod
   );
-  const lessonContent = await generateWithGemini(geminiApiKey, lessonPrompt);
+  const lessonContent = await generateWithAI(lessonPrompt, aiProvider);
 
   // Extract topics for video search
   const topics = extractTopics(lessonContent);
@@ -118,7 +119,7 @@ export const generateLesson = async (
         lessonContent, 
         gradeLevelText
       );
-      const questionsText = await generateWithGemini(geminiApiKey, questionsPrompt);
+      const questionsText = await generateWithAI(questionsPrompt, aiProvider);
       
       console.log('Raw questions text:', questionsText);
       
@@ -160,7 +161,8 @@ export const generateLesson = async (
     title,
     contentLength: content.length,
     questionsCount: validQuestions.length,
-    videosCount: videos.length
+    videosCount: videos.length,
+    provider: aiProvider
   });
 
   return {

@@ -46,7 +46,12 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
           prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6
           [&_blockquote]:border-l-4 [&_blockquote]:border-muted [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6
           [&_.did-you-know]:bg-accent/10 [&_.did-you-know]:p-4 [&_.did-you-know]:rounded-lg [&_.did-you-know]:my-6
-          [&_hr]:my-8 [&_hr]:border-muted">
+          [&_.summary-box]:bg-primary/5 [&_.summary-box]:p-4 [&_.summary-box]:rounded-lg [&_.summary-box]:my-6 [&_.summary-box]:border [&_.summary-box]:border-primary/20
+          [&_hr]:my-8 [&_hr]:border-muted
+          [&_strong]:text-primary [&_strong]:font-semibold
+          [&_table]:w-full [&_table]:my-6 [&_table]:border-collapse
+          [&_th]:border [&_th]:border-muted [&_th]:p-2 [&_th]:bg-muted/50
+          [&_td]:border [&_td]:border-muted [&_td]:p-2">
           <ReactMarkdown
             components={{
               p: ({ node, ...props }) => {
@@ -56,6 +61,11 @@ export const LessonContent = ({ title, subject, content, videos }: LessonContent
                 // Handle "Did you know?" sections
                 if (content.startsWith('Did you know?')) {
                   return <div className="did-you-know" {...props} />;
+                }
+                
+                // Handle summary boxes
+                if (content.startsWith('Summary:')) {
+                  return <div className="summary-box" {...props} />;
                 }
                 
                 // Handle first heading video embed

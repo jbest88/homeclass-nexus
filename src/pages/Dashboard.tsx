@@ -1,35 +1,16 @@
-import { Button } from "@/components/ui/button";
-import { LogOut, Plus, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import LearningProgress from "@/components/dashboard/LearningProgress";
-import StudyStats from "@/components/dashboard/StudyStats";
-import UpcomingAssignments from "@/components/dashboard/UpcomingAssignments";
 import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { getSubjectsForGrade } from "@/utils/gradeSubjects";
 import { useSubscription } from "@/hooks/useSubscription";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Dialog } from "@/components/ui/dialog";
 import ProfileSettings from "@/components/profile/ProfileSettings";
-import { useIsMobile } from "@/hooks/use-mobile";
-import FeatureGate from "@/components/subscription/FeatureGate";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { CreateLessonDialog } from "@/components/dashboard/CreateLessonDialog";
+import { DashboardContent } from "@/components/dashboard/DashboardContent";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -37,7 +18,6 @@ const Dashboard = () => {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const isMobile = useIsMobile();
   const { subscription, isLoading: isSubscriptionLoading } = useSubscription();
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
@@ -95,123 +75,38 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">My Learning Dashboard</h1>
-          <div className="flex items-center gap-2">
-            <Badge variant={subscription?.tier === 'free' ? 'secondary' : 'default'}>
-              {subscription?.tier.charAt(0).toUpperCase() + subscription?.tier.slice(1)} Plan
-            </Badge>
-            {!subscription?.is_active && (
-              <Badge variant="destructive">Inactive</Badge>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2 w-full sm:w-auto">
-                <Plus className="h-4 w-4" />
-                {!isMobile && "Create Lesson"}
-                {isMobile && "Create"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Generate New Lesson</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Select
-                    value={selectedSubject}
-                    onValueChange={setSelectedSubject}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {subject}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {profile?.grade_level !== null && (
-                    <p className="text-sm text-muted-foreground">
-                      Subjects shown are appropriate for {profile?.grade_level === 0 ? "Kindergarten" : `Grade ${profile?.grade_level}`}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !selectedSubject}
-                  className="w-full"
-                >
-                  {isGenerating ? "Generating..." : "Generate"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+      <DashboardHeader
+        subscription={subscription}
+        isLoading={isSubscriptionLoading}
+        onCreateLesson={() => setIsDialogOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onLogout={handleLogout}
+      />
 
-          <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
-                <Settings className="h-4 w-4" />
-                {!isMobile && "My Profile"}
-                {isMobile && "Profile"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Profile Settings</DialogTitle>
-              </DialogHeader>
-              <ProfileSettings onClose={() => setIsProfileOpen(false)} />
-            </DialogContent>
-          </Dialog>
+      <CreateLessonDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        subjects={subjects}
+        selectedSubject={selectedSubject}
+        onSubjectChange={setSelectedSubject}
+        onGenerate={handleGenerate}
+        isGenerating={isGenerating}
+        gradeLevel={profile?.grade_level ?? null}
+      />
 
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            <LogOut className="h-4 w-4" />
-            {!isMobile && "Logout"}
-          </Button>
-        </div>
-      </div>
-      
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <FeatureGate 
-            featureCode="learning_paths"
-            fallback={
-              <Alert>
-                <AlertDescription>
-                  Learning paths are available with a subscription. Upgrade to access this feature!
-                </AlertDescription>
-              </Alert>
-            }
-          >
-            <LearningProgress isGenerating={isGenerating} />
-          </FeatureGate>
-        </div>
-        <div className="space-y-4">
-          <FeatureGate 
-            featureCode="progress_analytics"
-            fallback={
-              <Alert>
-                <AlertDescription>
-                  Detailed analytics are available with a Basic or higher subscription.
-                </AlertDescription>
-              </Alert>
-            }
-          >
-            <StudyStats />
-          </FeatureGate>
-          <UpcomingAssignments assignments={upcomingAssignments} />
-        </div>
-      </div>
+      <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Profile Settings</DialogTitle>
+          </DialogHeader>
+          <ProfileSettings onClose={() => setIsProfileOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <DashboardContent
+        isGenerating={isGenerating}
+        upcomingAssignments={upcomingAssignments}
+      />
     </div>
   );
 };

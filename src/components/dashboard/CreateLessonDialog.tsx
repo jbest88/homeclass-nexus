@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ export const CreateLessonDialog = ({
   isGenerating,
   gradeLevel,
 }: CreateLessonDialogProps) => {
-  const [isPlacementTest, setIsPlacementTest] = React.useState(false);
+  const [isPlacementTest, setIsPlacementTest] = useState(false);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

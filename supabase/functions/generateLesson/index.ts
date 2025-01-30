@@ -8,6 +8,7 @@ console.log("Generate lesson function started");
 
 serve(async (req) => {
   try {
+    // Handle CORS preflight requests
     if (req.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
@@ -72,12 +73,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in generateLesson function:", error);
     
-    const errorResponse = {
+    return new Response(JSON.stringify({
       error: error.message,
       details: error.stack,
-    };
-
-    return new Response(JSON.stringify(errorResponse), {
+    }), {
       status: error.message.includes('API quota exceeded') ? 429 : 500,
       headers: {
         ...corsHeaders,

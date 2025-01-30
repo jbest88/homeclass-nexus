@@ -16,8 +16,8 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    const { subject, userId, isRetry, aiProvider = 'gemini' } = await req.json();
-    console.log(`Generating lesson for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}, provider: ${aiProvider}`);
+    const { subject, userId, isRetry, aiProvider = 'gemini', isPlacementTest = false } = await req.json();
+    console.log(`Generating ${isPlacementTest ? 'placement test' : 'lesson'} for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}, provider: ${aiProvider}`);
 
     if (!subject || !userId) {
       throw new Error("Missing required parameters: subject and userId are required");
@@ -58,7 +58,8 @@ serve(async (req) => {
       subject,
       gradeLevelText,
       isRetry || false,
-      aiProvider as AIProvider
+      aiProvider as AIProvider,
+      isPlacementTest
     );
     console.log("Lesson generated successfully");
 

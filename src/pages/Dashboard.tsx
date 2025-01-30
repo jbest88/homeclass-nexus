@@ -53,12 +53,12 @@ const Dashboard = () => {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (isPlacementTest: boolean) => {
     if (!selectedSubject) {
       toast.error("Please select a subject");
       return;
     }
-    await handleGenerateLesson(selectedSubject);
+    await handleGenerateLesson(selectedSubject, false, isPlacementTest);
     setIsDialogOpen(false);
     setSelectedSubject("");
   };

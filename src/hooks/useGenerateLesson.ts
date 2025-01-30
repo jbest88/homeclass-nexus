@@ -29,7 +29,7 @@ export const useGenerateLesson = () => {
     enabled: !!user,
   });
 
-  const handleGenerateLesson = async (subject: string, isRetry: boolean = false) => {
+  const handleGenerateLesson = async (subject: string, isRetry: boolean = false, isPlacementTest: boolean = false) => {
     if (!user) {
       toast.error("Please sign in to generate lessons");
       return null;
@@ -50,6 +50,7 @@ export const useGenerateLesson = () => {
           userId: user.id,
           isRetry,
           aiProvider,
+          isPlacementTest,
         },
       });
 
@@ -83,9 +84,11 @@ export const useGenerateLesson = () => {
         return null;
       }
 
-      toast.success(isRetry 
-        ? "New approach generated! Let's try this topic again." 
-        : "New lesson generated successfully!");
+      toast.success(isPlacementTest 
+        ? "Placement test generated successfully!" 
+        : isRetry 
+          ? "New approach generated! Let's try this topic again." 
+          : "New lesson generated successfully!");
       navigate(`/generated-lesson/${insertData.id}`);
       
       return insertData;

@@ -1,5 +1,6 @@
 import { generateWithAI, AIProvider } from './aiService.ts';
 import { createLessonPrompt, createQuestionsPrompt } from '../prompts/index.ts';
+import { createPlacementTestPrompt } from '../prompts/placementTestPrompt.ts';
 import { validateQuestions } from '../validators/questionValidator.ts';
 import { getCurriculumPeriod } from '../utils.ts';
 import { GeneratedLesson } from '../types.ts';
@@ -24,21 +25,20 @@ export const generateLesson = async (
   subject: string,
   gradeLevelText: string,
   isRetry: boolean,
-  aiProvider: AIProvider = 'gemini'
+  aiProvider: AIProvider = 'gemini',
+  isPlacementTest: boolean = false
 ): Promise<GeneratedLesson> => {
-  console.log('Starting lesson generation for:', subject, 'Grade:', gradeLevelText, 'Using:', aiProvider);
+  console.log('Starting lesson generation for:', subject, 'Grade:', gradeLevelText, 'Using:', aiProvider, 'Type:', isPlacementTest ? 'Placement Test' : 'Lesson');
   
   const currentDate = new Date().toISOString();
   const curriculumPeriod = getCurriculumPeriod(currentDate);
   
-  const lessonPrompt = createLessonPrompt(
-    subject, 
-    gradeLevelText,
-    curriculumPeriod
-  );
-  const lessonContent = await generateWithAI(lessonPrompt, aiProvider);
+  const prompt = isPlacementTest
+    ? createPlacementTestPrompt(subject, gradeLevelText)
+    : createLessonPrompt(subject, gradeLevelText, curriculumPeriod);
 
-  // Extract topics for video search
+  const lessonContent = await generateWithAI(prompt, aiProvider);
+
   const topics = extractTopics(lessonContent);
   console.log('All extracted topics:', topics);
   const firstTopic = topics[0];
@@ -46,7 +46,6 @@ export const generateLesson = async (
 
   let videos = [];
   try {
-    // Search for video only for the first topic
     if (firstTopic) {
       console.log('Searching YouTube video for topic:', firstTopic);
       const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
@@ -100,7 +99,6 @@ export const generateLesson = async (
     }
   } catch (error) {
     console.error('Error searching YouTube videos:', error);
-    // Continue without videos if there's an error
     videos = [];
   }
 

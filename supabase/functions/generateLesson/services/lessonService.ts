@@ -1,5 +1,5 @@
 import { generateWithAI, AIProvider } from './aiService.ts';
-import { createLessonPrompt, createQuestionsPrompt } from '../prompts/index.ts';
+import { createLessonPrompt } from '../prompts/lessonPrompt.ts';
 import { createPlacementTestPrompt } from '../prompts/placementTestPrompt.ts';
 import { validateQuestions } from '../validators/questionValidator.ts';
 import { getCurriculumPeriod } from '../utils.ts';
@@ -28,145 +28,122 @@ export const generateLesson = async (
   aiProvider: AIProvider = 'gemini',
   isPlacementTest: boolean = false
 ): Promise<GeneratedLesson> => {
-  console.log('Starting lesson generation for:', subject, 'Grade:', gradeLevelText, 'Using:', aiProvider, 'Type:', isPlacementTest ? 'Placement Test' : 'Lesson');
+  console.log('Starting generation for:', {
+    type: isPlacementTest ? 'Placement Test' : 'Lesson',
+    subject,
+    grade: gradeLevelText,
+    provider: aiProvider
+  });
   
-  const currentDate = new Date().toISOString();
-  const curriculumPeriod = getCurriculumPeriod(currentDate);
+  let content = '';
+  let questions = [];
   
-  const prompt = isPlacementTest
-    ? createPlacementTestPrompt(subject, gradeLevelText)
-    : createLessonPrompt(subject, gradeLevelText, curriculumPeriod);
-
-  const lessonContent = await generateWithAI(prompt, aiProvider);
-
-  const topics = extractTopics(lessonContent);
-  console.log('All extracted topics:', topics);
-  const firstTopic = topics[0];
-  console.log('Selected first topic for video:', firstTopic);
-
-  let videos = [];
-  try {
-    if (firstTopic) {
-      console.log('Searching YouTube video for topic:', firstTopic);
-      const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
-      if (!YOUTUBE_API_KEY) {
-        console.error("YouTube API key not found in environment variables");
-        throw new Error("YouTube API key not configured");
-      }
-
-      const searchQuery = `${subject} ${firstTopic} educational tutorial`;
-      console.log('Search query:', searchQuery);
-
-      const searchUrl = new URL("https://www.googleapis.com/youtube/v3/search");
-      searchUrl.searchParams.append("part", "snippet");
-      searchUrl.searchParams.append("q", searchQuery);
-      searchUrl.searchParams.append("type", "video");
-      searchUrl.searchParams.append("maxResults", "1");
-      searchUrl.searchParams.append("videoEmbeddable", "true");
-      searchUrl.searchParams.append("safeSearch", "strict");
-      searchUrl.searchParams.append("relevanceLanguage", "en");
-      searchUrl.searchParams.append("key", YOUTUBE_API_KEY);
-
-      console.log('Making YouTube API request...');
-      const response = await fetch(searchUrl.toString());
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('YouTube API error response:', errorText);
-        throw new Error(`YouTube API request failed: ${response.status} ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('YouTube API response:', JSON.stringify(data, null, 2));
-
-      if (data.error) {
-        console.error('YouTube API error:', data.error);
-        throw new Error(`YouTube API error: ${data.error.message}`);
-      }
-
-      if (data.items?.[0]) {
-        const video = {
-          videoId: data.items[0].id.videoId,
-          title: data.items[0].snippet.title,
-          description: data.items[0].snippet.description || "",
-          topics: [firstTopic],
-        };
-        videos.push(video);
-        console.log('Successfully found video:', video);
-      } else {
-        console.log('No videos found for topic:', firstTopic);
-      }
-    }
-  } catch (error) {
-    console.error('Error searching YouTube videos:', error);
-    videos = [];
-  }
-
-  console.log('Found videos:', videos);
-
-  let validQuestions = null;
-  let attempts = 0;
-  const maxAttempts = 3;
-
-  while (!validQuestions && attempts < maxAttempts) {
-    attempts++;
-    console.log(`Generating questions attempt ${attempts}/${maxAttempts}`);
+  if (isPlacementTest) {
+    console.log('Generating placement test questions...');
+    const prompt = createPlacementTestPrompt(subject, gradeLevelText);
+    const questionsText = await generateWithAI(prompt, aiProvider);
+    
+    console.log('Raw questions text:', questionsText);
+    
+    const cleanedQuestionsText = questionsText
+      .replace(/```json\n|\n```/g, '')
+      .replace(/^[\s\n]*\[/, '[')
+      .replace(/\][\s\n]*$/, ']')
+      .trim();
+    
+    console.log('Cleaned questions text:', cleanedQuestionsText);
     
     try {
-      const questionsPrompt = createQuestionsPrompt(
-        lessonContent, 
-        gradeLevelText
-      );
-      const questionsText = await generateWithAI(questionsPrompt, aiProvider);
+      questions = JSON.parse(cleanedQuestionsText);
+      await validateQuestions(questions);
+      console.log('Questions validated successfully');
       
-      console.log('Raw questions text:', questionsText);
-      
-      const cleanedQuestionsText = questionsText
-        .replace(/```json\n|\n```/g, '')
-        .replace(/^[\s\n]*\[/, '[')
-        .replace(/\][\s\n]*$/, ']')
-        .trim();
-      
-      console.log('Cleaned questions text:', cleanedQuestionsText);
+      // For placement tests, we don't need additional content
+      content = `# ${subject} Placement Test for ${gradeLevelText}\n\nThis placement test will assess your knowledge of ${subject} concepts relative to ${gradeLevelText} standards. The questions will range from concepts typically covered in earlier grades to more advanced topics. Answer each question to the best of your ability.`;
+    } catch (error) {
+      console.error('Error parsing or validating questions:', error);
+      throw new Error(`Failed to generate valid placement test questions: ${error.message}`);
+    }
+  } else {
+    console.log('Generating regular lesson...');
+    const currentDate = new Date().toISOString();
+    const curriculumPeriod = getCurriculumPeriod(currentDate);
+    const prompt = createLessonPrompt(subject, gradeLevelText, curriculumPeriod);
+    content = await generateWithAI(prompt, aiProvider);
+    
+    // Generate practice questions for regular lessons
+    console.log('Generating practice questions...');
+    let validQuestions = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (!validQuestions && attempts < maxAttempts) {
+      attempts++;
+      console.log(`Generating questions attempt ${attempts}/${maxAttempts}`);
       
       try {
-        const questions = JSON.parse(cleanedQuestionsText);
-        await validateQuestions(questions);
-        validQuestions = questions;
-        console.log('Questions validated successfully');
-      } catch (parseError) {
-        console.error(`Attempt ${attempts}: Error validating questions:`, parseError);
+        const questionsPrompt = createQuestionsPrompt(
+          content, 
+          gradeLevelText
+        );
+        const questionsText = await generateWithAI(questionsPrompt, aiProvider);
+        
+        console.log('Raw questions text:', questionsText);
+        
+        const cleanedQuestionsText = questionsText
+          .replace(/```json\n|\n```/g, '')
+          .replace(/^[\s\n]*\[/, '[')
+          .replace(/\][\s\n]*$/, ']')
+          .trim();
+        
+        console.log('Cleaned questions text:', cleanedQuestionsText);
+        
+        try {
+          const parsedQuestions = JSON.parse(cleanedQuestionsText);
+          await validateQuestions(parsedQuestions);
+          validQuestions = parsedQuestions;
+          console.log('Questions validated successfully');
+        } catch (parseError) {
+          console.error(`Attempt ${attempts}: Error validating questions:`, parseError);
+          if (attempts === maxAttempts) {
+            throw new Error(`Failed to generate valid questions after ${maxAttempts} attempts: ${parseError.message}`);
+          }
+        }
+      } catch (error) {
+        console.error(`Attempt ${attempts}: Error generating questions:`, error);
         if (attempts === maxAttempts) {
-          throw new Error(`Failed to generate valid questions after ${maxAttempts} attempts: ${parseError.message}`);
+          throw new Error(`Failed to generate questions after ${maxAttempts} attempts: ${error.message}`);
         }
       }
-    } catch (error) {
-      console.error(`Attempt ${attempts}: Error generating questions:`, error);
-      if (attempts === maxAttempts) {
-        throw new Error(`Failed to generate questions after ${maxAttempts} attempts: ${error.message}`);
-      }
     }
+
+    if (!validQuestions) {
+      throw new Error('Failed to generate valid questions');
+    }
+    
+    questions = validQuestions;
   }
 
-  if (!validQuestions) {
-    throw new Error('Failed to generate valid questions');
-  }
+  const title = isPlacementTest 
+    ? `${subject} Placement Test - ${gradeLevelText}`
+    : content.split('\n')[0].replace('#', '').trim();
 
-  const title = lessonContent.split('\n')[0].replace('#', '').trim();
-  const content = lessonContent.split('\n').slice(1).join('\n').trim();
+  // For regular lessons, we want to keep all content after the title
+  const finalContent = isPlacementTest 
+    ? content 
+    : content.split('\n').slice(1).join('\n').trim();
 
-  console.log('Successfully generated lesson with:', {
+  console.log('Successfully generated:', {
+    type: isPlacementTest ? 'Placement Test' : 'Lesson',
     title,
-    contentLength: content.length,
-    questionsCount: validQuestions.length,
-    videosCount: videos.length,
-    provider: aiProvider
+    contentLength: finalContent.length,
+    questionsCount: questions.length
   });
 
   return {
     title,
-    content,
-    questions: validQuestions,
-    videos: videos,
+    content: finalContent,
+    questions,
+    videos: [], // Placement tests don't need videos
   };
 };

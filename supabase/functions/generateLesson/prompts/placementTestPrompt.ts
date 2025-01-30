@@ -11,24 +11,45 @@ export const createPlacementTestPrompt = (
     4. Cover all major topic areas within ${subject}
 
     QUESTION DISTRIBUTION:
-    - 20% below grade level concepts
-    - 60% at grade level concepts
-    - 20% above grade level concepts
+    Generate EXACTLY 5 questions with this distribution:
+    - First question (multiple-choice): Test below grade level concept
+    - Second question (multiple-answer): Test at grade level concept
+    - Third question (true-false): Test at grade level concept
+    - Fourth question (dropdown): Test at grade level concept
+    - Fifth question (multiple-choice): Test above grade level concept
 
-    CONTENT REQUIREMENTS:
-    - Clear, concise instructions
-    - Gradually increasing difficulty
-    - Mix of theoretical and practical questions
-    - Coverage of all key subject areas
-    - Clear assessment criteria
-    - Varied question formats
+    Each question must follow these JSON formats exactly:
 
-    FORMAT GUIDELINES:
-    - Use markdown formatting
-    - Break into clear sections
-    - Include a brief introduction
-    - Provide clear instructions
-    - End with assessment criteria
+    Multiple Choice:
+    {
+      "question": "What is...?",
+      "type": "multiple-choice",
+      "options": ["option1", "option2", "option3", "option4"],
+      "answer": "option1"
+    }
+
+    Multiple Answer:
+    {
+      "question": "Select all that apply...",
+      "type": "multiple-answer",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswers": ["option1", "option2"]
+    }
+
+    True/False:
+    {
+      "question": "Consider the statement...",
+      "type": "true-false",
+      "answer": "true"
+    }
+
+    Dropdown:
+    {
+      "question": "Choose the correct...",
+      "type": "dropdown",
+      "options": ["option1", "option2", "option3", "option4"],
+      "answer": "option1"
+    }
 
     CRITICAL RULES:
     - Questions must be precise and unambiguous
@@ -36,5 +57,18 @@ export const createPlacementTestPrompt = (
     - Ensure questions are independent
     - Avoid cultural or regional specific content
     - Focus on core competencies
-    - Include clear grading criteria`;
+    - Include clear grading criteria
+    - Questions must gradually increase in difficulty
+    - Each question must test a different concept
+    - Explanations must be included for each answer
+
+    OUTPUT FORMAT:
+    Return ONLY a JSON array containing EXACTLY 5 questions in the specified order:
+    [
+      {multiple-choice question testing below grade level},
+      {multiple-answer question testing at grade level},
+      {true-false question testing at grade level},
+      {dropdown question testing at grade level},
+      {multiple-choice question testing above grade level}
+    ]`;
 };

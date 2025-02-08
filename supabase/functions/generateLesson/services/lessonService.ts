@@ -1,6 +1,6 @@
-
 import { generateWithAI, AIProvider } from './aiService.ts';
 import { createLessonPrompt } from '../prompts/lessonPrompt.ts';
+import { createQuestionsPrompt } from '../prompts/questionsPrompt.ts';
 import { createPlacementTestPrompt } from '../prompts/placementTestPrompt.ts';
 import { validateQuestions } from '../validators/questionValidator.ts';
 import { getCurriculumPeriod } from '../utils.ts';
@@ -109,34 +109,7 @@ export const generateLesson = async (
         console.log(`Generating questions attempt ${attempts}/${maxAttempts}`);
         
         try {
-          const questionsPrompt = `Generate 5 interactive practice questions based on this lesson content: "${content}". Make sure to follow this exact format for each question:
-
-          For multiple choice and dropdown:
-          {
-            "question": "Clear question text",
-            "type": "multiple-choice" or "dropdown",
-            "options": ["option1", "option2", "option3", "option4"],
-            "answer": "exact match to one option"
-          }
-
-          For multiple answer:
-          {
-            "question": "Clear question text",
-            "type": "multiple-answer",
-            "options": ["option1", "option2", "option3", "option4"],
-            "correctAnswers": ["option1", "option2"] (subset of options)
-          }
-
-          For true/false:
-          {
-            "question": "Clear statement to evaluate",
-            "type": "true-false",
-            "answer": "true" or "false"
-          }
-
-          Return EXACTLY 5 questions in a JSON array: 2 multiple-choice, 1 multiple-answer, 1 true-false, and 1 dropdown.
-          Questions must test understanding of the lesson content.`;
-          
+          const questionsPrompt = createQuestionsPrompt(content, gradeLevelText);
           console.log('Using questions prompt:', questionsPrompt);
           const questionsText = await generateWithAI(questionsPrompt, aiProvider);
           

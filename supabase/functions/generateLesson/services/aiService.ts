@@ -1,81 +1,127 @@
-import { GoogleGenerativeAI } from "npm:@google/generative-ai@^0.1.0";
-
-interface AIResponse {
-  text: string;
-}
 
 export type AIProvider = 'gemini' | 'deepseek';
 
-export async function generateWithAI(
-  prompt: string,
-  provider: AIProvider = 'gemini',
-  retryCount = 0
-): Promise<string> {
-  console.log(`Generating with ${provider}, attempt ${retryCount + 1}`);
-  console.log('Prompt:', prompt);
-
-  const maxRetries = 3;
-  const baseDelay = 1000;
-
+export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini'): Promise<string> {
   try {
-    let response: AIResponse;
+    console.log(`Generating with ${provider}...`);
+    console.log('Prompt:', prompt);
 
     if (provider === 'gemini') {
-      response = await generateWithGemini(prompt);
+      return await generateWithGemini(prompt);
     } else {
-      response = await generateWithDeepseek(prompt);
+      return await generateWithDeepseek(prompt);
     }
-
-    console.log('AI response:', response);
-    return response.text;
   } catch (error) {
     console.error(`Error in ${provider} generation:`, error);
-
-    if (error.message.includes('API quota exceeded') && retryCount < maxRetries) {
-      const delay = baseDelay * Math.pow(2, retryCount);
-      console.log(`Rate limit hit, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return generateWithAI(prompt, provider, retryCount + 1);
-    }
-
     throw error;
   }
 }
 
-async function generateWithGemini(prompt: string): Promise<AIResponse> {
+async function generateWithGemini(prompt: string): Promise<string> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-  const result = await model.generateContent(prompt);
-  return { text: result.response.text() };
-}
-
-async function generateWithDeepseek(prompt: string): Promise<AIResponse> {
-  const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
-  if (!apiKey) throw new Error("DEEPSEEK_API_KEY is not configured");
-
-  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "deepseek-chat",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 2048,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`DeepSeek API error: ${error}`);
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
   }
 
-  const data = await response.json();
-  return { text: data.choices[0].message.content };
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API error response:', errorText);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Unexpected Gemini API response format:', data);
+      throw new Error('Invalid response format from Gemini API');
+    }
+
+    return data.candidates[0].content.parts[0].text;
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    throw error;
+  }
+}
+
+async function generateWithDeepseek(prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
+  if (!apiKey) {
+    throw new Error("DEEPSEEK_API_KEY is not configured");
+  }
+
+  try {
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Deepseek API error response:', errorText);
+      throw new Error(`Deepseek API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Unexpected Deepseek API response format:', data);
+      throw new Error('Invalid response format from Deepseek API');
+    }
+
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error calling Deepseek API:', error);
+    throw error;
+  }
 }

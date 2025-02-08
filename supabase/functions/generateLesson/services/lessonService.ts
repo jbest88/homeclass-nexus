@@ -1,3 +1,4 @@
+
 import { generateWithAI, AIProvider } from './aiService.ts';
 import { createLessonPrompt } from '../prompts/lessonPrompt.ts';
 import { createPlacementTestPrompt } from '../prompts/placementTestPrompt.ts';
@@ -39,42 +40,63 @@ export const generateLesson = async (
     if (isPlacementTest) {
       console.log('Generating placement test questions...');
       const prompt = createPlacementTestPrompt(subject, gradeLevelText);
-      const questionsText = await generateWithAI(prompt, aiProvider);
+      console.log('Using prompt:', prompt);
       
-      console.log('Raw questions text:', questionsText);
+      const questionsText = await generateWithAI(prompt, aiProvider);
+      console.log('Raw questions text received:', questionsText);
+      
+      if (!questionsText) {
+        throw new Error('No response received from AI provider');
+      }
       
       const cleanedQuestionsText = questionsText
-        .replace(/```json\n|\n```/g, '')
+        .replace(/```json\n?|\n?```/g, '')
         .replace(/^[\s\n]*\[/, '[')
         .replace(/\][\s\n]*$/, ']')
         .trim();
       
       console.log('Cleaned questions text:', cleanedQuestionsText);
       
+      let questions;
       try {
-        const questions = JSON.parse(cleanedQuestionsText);
+        questions = JSON.parse(cleanedQuestionsText);
+        console.log('Successfully parsed questions:', questions);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        throw new Error(`Failed to parse questions JSON: ${parseError.message}`);
+      }
+
+      try {
         await validateQuestions(questions);
         console.log('Questions validated successfully');
-        
-        const title = `${subject} Placement Test - ${gradeLevelText}`;
-        const content = `# ${title}\n\nThis placement test will assess your knowledge of ${subject} concepts relative to ${gradeLevelText} standards. The questions will range from concepts typically covered in earlier grades to more advanced topics. Answer each question to the best of your ability.`;
-        
-        return {
-          title,
-          content,
-          questions,
-          videos: [],
-        };
-      } catch (error) {
-        console.error('Error parsing or validating questions:', error);
-        throw new Error(`Failed to generate valid placement test questions: ${error.message}`);
+      } catch (validationError) {
+        console.error('Validation error:', validationError);
+        throw new Error(`Question validation failed: ${validationError.message}`);
       }
+      
+      const title = `${subject} Placement Test - ${gradeLevelText}`;
+      const content = `# ${title}\n\nThis placement test will assess your knowledge of ${subject} concepts relative to ${gradeLevelText} standards. The questions will range from concepts typically covered in earlier grades to more advanced topics. Answer each question to the best of your ability.`;
+      
+      return {
+        title,
+        content,
+        questions,
+        videos: [],
+      };
     } else {
       console.log('Generating regular lesson...');
       const currentDate = new Date().toISOString();
       const curriculumPeriod = getCurriculumPeriod(currentDate);
       const prompt = createLessonPrompt(subject, gradeLevelText, curriculumPeriod);
+      console.log('Using lesson prompt:', prompt);
+      
       const content = await generateWithAI(prompt, aiProvider);
+      
+      if (!content) {
+        throw new Error('No content received from AI provider');
+      }
+      
+      console.log('Content generated, length:', content.length);
       
       // Generate practice questions for regular lessons
       console.log('Generating practice questions...');
@@ -87,16 +109,45 @@ export const generateLesson = async (
         console.log(`Generating questions attempt ${attempts}/${maxAttempts}`);
         
         try {
-          const questionsPrompt = createQuestionsPrompt(
-            content, 
-            gradeLevelText
-          );
+          const questionsPrompt = `Generate 5 interactive practice questions based on this lesson content: "${content}". Make sure to follow this exact format for each question:
+
+          For multiple choice and dropdown:
+          {
+            "question": "Clear question text",
+            "type": "multiple-choice" or "dropdown",
+            "options": ["option1", "option2", "option3", "option4"],
+            "answer": "exact match to one option"
+          }
+
+          For multiple answer:
+          {
+            "question": "Clear question text",
+            "type": "multiple-answer",
+            "options": ["option1", "option2", "option3", "option4"],
+            "correctAnswers": ["option1", "option2"] (subset of options)
+          }
+
+          For true/false:
+          {
+            "question": "Clear statement to evaluate",
+            "type": "true-false",
+            "answer": "true" or "false"
+          }
+
+          Return EXACTLY 5 questions in a JSON array: 2 multiple-choice, 1 multiple-answer, 1 true-false, and 1 dropdown.
+          Questions must test understanding of the lesson content.`;
+          
+          console.log('Using questions prompt:', questionsPrompt);
           const questionsText = await generateWithAI(questionsPrompt, aiProvider);
+          
+          if (!questionsText) {
+            throw new Error('No questions received from AI provider');
+          }
           
           console.log('Raw questions text:', questionsText);
           
           const cleanedQuestionsText = questionsText
-            .replace(/```json\n|\n```/g, '')
+            .replace(/```json\n?|\n?```/g, '')
             .replace(/^[\s\n]*\[/, '[')
             .replace(/\][\s\n]*$/, ']')
             .trim();

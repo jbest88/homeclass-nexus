@@ -9,12 +9,12 @@ const validateQuestionWithAI = async (question: Question): Promise<boolean> => {
 
     const prompt = `Validate this question and its answer(s). Return a JSON object with "isValid" (boolean) and "reason" (string) explaining why.
     
-    Question: "${question.question}"
+    Question: ${JSON.stringify(question.question)}
     Type: ${question.type}
     ${question.options ? `Options: ${JSON.stringify(question.options)}` : ''}
     ${question.type === 'multiple-answer' 
       ? `Correct Answers: ${JSON.stringify(question.correctAnswers)}`
-      : `Correct Answer: ${question.answer}`}
+      : `Correct Answer: ${JSON.stringify(question.answer)}`}
 
     Check for:
     1. Question clarity and completeness
@@ -39,15 +39,38 @@ const validateQuestionWithAI = async (question: Question): Promise<boolean> => {
     console.log('Sending validation prompt to Gemini:', prompt);
     
     const result = await model.generateContent(prompt);
-    const response = JSON.parse(result.response.text());
+    const responseText = result.response.text().trim();
     
-    console.log('AI validation response:', response);
+    console.log('Raw AI response:', responseText);
     
-    if (!response.isValid) {
-      console.error('Question validation failed:', response.reason);
+    // Clean up the response to ensure valid JSON
+    const cleanedResponse = responseText
+      .replace(/```json\n?|\n?```/g, '')  // Remove code blocks
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')  // Remove control characters
+      .trim();
+    
+    console.log('Cleaned AI response:', cleanedResponse);
+    
+    try {
+      const response = JSON.parse(cleanedResponse);
+      
+      if (typeof response.isValid !== 'boolean') {
+        console.error('Invalid response format - isValid is not boolean:', response);
+        return false;
+      }
+      
+      console.log('Parsed AI validation response:', response);
+      
+      if (!response.isValid) {
+        console.error('Question validation failed:', response.reason);
+      }
+      
+      return response.isValid;
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', parseError);
+      console.error('Response that failed to parse:', cleanedResponse);
+      throw new Error(`Failed to parse AI response: ${parseError.message}`);
     }
-    
-    return response.isValid;
   } catch (error) {
     console.error('Error validating question with AI:', error);
     throw new Error(`AI validation failed: ${error.message}`);

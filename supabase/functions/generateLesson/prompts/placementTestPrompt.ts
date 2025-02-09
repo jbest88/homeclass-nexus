@@ -1,3 +1,4 @@
+
 export const createPlacementTestPrompt = (
   subject: string,
   gradeLevelText: string,
@@ -11,12 +12,13 @@ export const createPlacementTestPrompt = (
     4. Cover all major topic areas within ${subject}
 
     QUESTION DISTRIBUTION:
-    Generate EXACTLY 5 questions with this distribution:
-    - First question (multiple-choice): Test below grade level concept
-    - Second question (multiple-answer): Test at grade level concept
-    - Third question (true-false): Test at grade level concept
-    - Fourth question (dropdown): Test at grade level concept
-    - Fifth question (multiple-choice): Test above grade level concept
+    Generate EXACTLY 10 questions with this distribution:
+    - First two questions (multiple-choice): Test below grade level concepts
+    - Next five questions: Test at grade level concepts
+      * Two multiple-answer questions
+      * One true-false question
+      * Two dropdown questions
+    - Last three questions (multiple-choice): Test above grade level concepts
 
     Each question must follow these JSON formats exactly:
 
@@ -25,7 +27,8 @@ export const createPlacementTestPrompt = (
       "question": "What is...?",
       "type": "multiple-choice",
       "options": ["option1", "option2", "option3", "option4"],
-      "answer": "option1"
+      "answer": "option1",
+      "explanation": "Detailed explanation of why this is correct and common misconceptions"
     }
 
     Multiple Answer:
@@ -33,14 +36,16 @@ export const createPlacementTestPrompt = (
       "question": "Select all that apply...",
       "type": "multiple-answer",
       "options": ["option1", "option2", "option3", "option4"],
-      "correctAnswers": ["option1", "option2"]
+      "correctAnswers": ["option1", "option2"],
+      "explanation": "Explanation of why each selected option is correct and why others are incorrect"
     }
 
     True/False:
     {
       "question": "Consider the statement...",
       "type": "true-false",
-      "answer": "true"
+      "answer": "true",
+      "explanation": "Detailed explanation of why the statement is true/false with examples"
     }
 
     Dropdown:
@@ -48,27 +53,32 @@ export const createPlacementTestPrompt = (
       "question": "Choose the correct...",
       "type": "dropdown",
       "options": ["option1", "option2", "option3", "option4"],
-      "answer": "option1"
+      "answer": "option1",
+      "explanation": "Explanation of why this is the correct choice and what makes other options incorrect"
     }
 
     CRITICAL RULES:
     - Questions must be precise and unambiguous
-    - Include complete solutions and explanations
-    - Ensure questions are independent
+    - Include detailed explanations for all answers
+    - Ensure questions are independent but progress logically
     - Avoid cultural or regional specific content
-    - Focus on core competencies
+    - Focus on core competencies and key skills
     - Include clear grading criteria
     - Questions must gradually increase in difficulty
     - Each question must test a different concept
-    - Explanations must be included for each answer
+    - Make questions challenging but fair
+    - Cover multiple aspects of ${subject}
+    - Include application and problem-solving scenarios
+    - Include word problems where appropriate
+    - Test both procedural and conceptual understanding
 
     OUTPUT FORMAT:
-    Return ONLY a JSON array containing EXACTLY 5 questions in the specified order:
+    Return ONLY a JSON array containing EXACTLY 10 questions in this order:
     [
-      {multiple-choice question testing below grade level},
-      {multiple-answer question testing at grade level},
-      {true-false question testing at grade level},
-      {dropdown question testing at grade level},
-      {multiple-choice question testing above grade level}
+      {two multiple-choice questions testing below grade level},
+      {two multiple-answer questions testing at grade level},
+      {one true-false question testing at grade level},
+      {two dropdown questions testing at grade level},
+      {three multiple-choice questions testing above grade level}
     ]`;
 };

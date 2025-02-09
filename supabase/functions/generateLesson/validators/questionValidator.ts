@@ -133,6 +133,10 @@ const validateMultipleChoice = (q: any, index: number) => {
     throw new Error(`Question ${index + 1} needs at least 2 options`);
   }
   if (!q.answer || !q.options.includes(q.answer)) {
+    console.error(`Invalid answer for question ${index + 1}:`, {
+      answer: q.answer,
+      options: q.options
+    });
     throw new Error(`Question ${index + 1}'s answer must be one of the options`);
   }
 };

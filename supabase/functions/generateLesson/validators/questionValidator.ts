@@ -1,3 +1,4 @@
+
 import { Question } from '../types.ts';
 import { GoogleGenerativeAI } from "npm:@google/generative-ai@^0.1.0";
 
@@ -58,8 +59,10 @@ export const validateQuestions = async (questions: Question[]) => {
     throw new Error('Generated questions must be an array');
   }
 
-  if (questions.length !== 5) {
-    throw new Error(`Expected 5 questions, but got ${questions.length}`);
+  // For placement tests, expect 10 questions; for regular lessons, expect 5
+  const expectedCount = questions.length === 10 ? 10 : 5;
+  if (questions.length !== expectedCount) {
+    throw new Error(`Expected ${expectedCount} questions, but got ${questions.length}`);
   }
 
   // First run basic validation
@@ -67,7 +70,12 @@ export const validateQuestions = async (questions: Question[]) => {
     validateQuestion(q, index);
   });
 
-  validateQuestionTypes(questions);
+  // Validate question type distribution based on total count
+  if (expectedCount === 10) {
+    validatePlacementTestQuestionTypes(questions);
+  } else {
+    validateRegularLessonQuestionTypes(questions);
+  }
 
   // Then run AI validation for each question
   console.log('Running AI validation on questions...');
@@ -159,7 +167,34 @@ const validateTrueFalse = (q: any, index: number) => {
   }
 };
 
-const validateQuestionTypes = (questions: Question[]) => {
+const validatePlacementTestQuestionTypes = (questions: Question[]) => {
+  // First two should be multiple-choice (below grade level)
+  if (!questions.slice(0, 2).every(q => q.type === 'multiple-choice')) {
+    throw new Error('First two questions must be multiple-choice for below grade level concepts');
+  }
+
+  // Next two should be multiple-answer (at grade level)
+  if (!questions.slice(2, 4).every(q => q.type === 'multiple-answer')) {
+    throw new Error('Questions 3-4 must be multiple-answer for at grade level concepts');
+  }
+
+  // Next one should be true-false (at grade level)
+  if (questions[4].type !== 'true-false') {
+    throw new Error('Question 5 must be true-false for at grade level concepts');
+  }
+
+  // Next two should be dropdown (at grade level)
+  if (!questions.slice(5, 7).every(q => q.type === 'dropdown')) {
+    throw new Error('Questions 6-7 must be dropdown for at grade level concepts');
+  }
+
+  // Last three should be multiple-choice (above grade level)
+  if (!questions.slice(7, 10).every(q => q.type === 'multiple-choice')) {
+    throw new Error('Last three questions must be multiple-choice for above grade level concepts');
+  }
+};
+
+const validateRegularLessonQuestionTypes = (questions: Question[]) => {
   const types = questions.map(q => q.type);
   const typeCount = types.reduce((acc, type) => {
     acc[type] = (acc[type] || 0) + 1;
@@ -177,3 +212,4 @@ const validateQuestionTypes = (questions: Question[]) => {
     throw new Error(`Missing required question types: ${missingTypes.join(', ')}`);
   }
 };
+

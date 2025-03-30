@@ -19,7 +19,8 @@ export const generateLearningPlan = async (subject: string): Promise<string> => 
     const { data, error } = await supabase.functions.invoke<GeminiResponse>('generateLearningPlan', {
       body: { 
         subject,
-        model: 'gemini-2.5-pro-exp-03-25'
+        // Use a more reliable model name that's available in the API
+        model: 'gemini-1.5-flash'
       }
     });
 

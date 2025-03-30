@@ -1,12 +1,14 @@
 
-export type AIProvider = 'gemini' | 'deepseek';
+export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-2.5-pro';
 
 export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini'): Promise<string> {
   try {
     console.log(`Generating with ${provider}...`);
     console.log('Prompt:', prompt);
 
-    if (provider === 'gemini') {
+    if (provider === 'gemini-2.5-pro') {
+      return await generateWithGemini25Pro(prompt);
+    } else if (provider === 'gemini' || provider === 'gemini-pro') {
       return await generateWithGemini(prompt);
     } else {
       return await generateWithDeepseek(prompt);
@@ -81,6 +83,74 @@ async function generateWithGemini(prompt: string): Promise<string> {
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error('Error calling Gemini API:', error);
+    throw error;
+  }
+}
+
+async function generateWithGemini25Pro(prompt: string): Promise<string> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not configured");
+  }
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro-exp-03-25:generateContent?key=' + apiKey, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini 2.5 API error response:', errorText);
+      throw new Error(`Gemini 2.5 API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('Unexpected Gemini 2.5 API response format:', data);
+      throw new Error('Invalid response format from Gemini 2.5 API');
+    }
+
+    return data.candidates[0].content.parts[0].text;
+  } catch (error) {
+    console.error('Error calling Gemini 2.5 API:', error);
     throw error;
   }
 }

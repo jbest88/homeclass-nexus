@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GoogleGenerativeAI } from "npm:@google/generative-ai@^0.1.0";
 
@@ -17,7 +18,7 @@ serve(async (req) => {
     console.log('Validating answer:', { question, userAnswers, correctAnswers, type });
 
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro-exp-03-25" });
 
     // Format answers for display
     const userAnswersStr = Array.isArray(userAnswers) 
@@ -45,7 +46,7 @@ Your response must be a valid JSON object with this exact format:
 
 Do not include any other text before or after the JSON object.`;
 
-    console.log('Sending prompt to Gemini:', prompt);
+    console.log('Sending prompt to Gemini 2.5:', prompt);
     
     const result = await model.generateContent(prompt);
     const response = result.response;

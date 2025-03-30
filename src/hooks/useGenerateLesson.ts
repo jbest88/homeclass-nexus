@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@supabase/auth-helpers-react";
@@ -5,11 +6,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-export type AIProvider = 'gemini' | 'deepseek';
+export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-2.5-pro';
 
 export const useGenerateLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiProvider, setAIProvider] = useState<AIProvider>('gemini');
+  const [aiProvider, setAIProvider] = useState<AIProvider>('gemini-2.5-pro');
   const user = useUser();
   const navigate = useNavigate();
 

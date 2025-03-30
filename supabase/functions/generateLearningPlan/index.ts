@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -20,12 +21,19 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    const { subject } = await req.json();
-    console.log('Generating learning plan for subject:', subject);
+    const { subject, model = 'gemini-2.5-pro-exp-03-25' } = await req.json();
+    console.log(`Generating learning plan for subject: ${subject} using model: ${model}`);
 
     const prompt = `Create a detailed learning plan for ${subject}. Include key topics, recommended resources, and estimated time frames.`;
 
-    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+    // Choose the appropriate API endpoint based on the model
+    const apiEndpoint = model === 'gemini-2.5-pro-exp-03-25'
+      ? 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro-exp-03-25:generateContent'
+      : 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
+
+    console.log(`Using API endpoint: ${apiEndpoint}`);
+
+    const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

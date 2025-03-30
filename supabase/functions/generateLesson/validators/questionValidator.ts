@@ -5,7 +5,8 @@ import { GoogleGenerativeAI } from "npm:@google/generative-ai@^0.1.0";
 const validateQuestionWithAI = async (question: Question): Promise<boolean> => {
   try {
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Use the newer Gemini model for validation
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro-exp-03-25" });
 
     const prompt = `Validate this question and its answer(s). Return a JSON object with "isValid" (boolean) and "reason" (string) explaining why.
     
@@ -36,7 +37,7 @@ const validateQuestionWithAI = async (question: Question): Promise<boolean> => {
       "reason": "explanation"
     }`;
 
-    console.log('Sending validation prompt to Gemini:', prompt);
+    console.log('Sending validation prompt to Gemini 2.5:', prompt);
     
     const result = await model.generateContent(prompt);
     const responseText = result.response.text().trim();

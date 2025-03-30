@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,7 +17,10 @@ export const generateLearningPlan = async (subject: string): Promise<string> => 
     console.log('Calling generateLearningPlan function for subject:', subject);
     
     const { data, error } = await supabase.functions.invoke<GeminiResponse>('generateLearningPlan', {
-      body: { subject }
+      body: { 
+        subject,
+        model: 'gemini-2.5-pro-exp-03-25'
+      }
     });
 
     if (error) {

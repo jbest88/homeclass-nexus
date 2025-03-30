@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { generateLesson } from "./services/lessonService.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
@@ -17,16 +18,11 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    const { subject, userId, isRetry, aiProvider = 'gemini', isPlacementTest = false } = await req.json();
+    const { subject, userId, isRetry, aiProvider = 'gemini-pro', isPlacementTest = false, apiKey } = await req.json();
     console.log(`Generating ${isPlacementTest ? 'placement test' : 'lesson'} for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}, provider: ${aiProvider}`);
 
     if (!subject || !userId) {
       throw new Error("Missing required parameters: subject and userId are required");
-    }
-
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiApiKey) {
-      throw new Error("GEMINI_API_KEY is not configured");
     }
 
     // Initialize Supabase client
@@ -55,12 +51,12 @@ serve(async (req) => {
     console.log(`User's grade level: ${gradeLevelText}`);
 
     const lesson = await generateLesson(
-      geminiApiKey,
       subject,
       gradeLevelText,
       isRetry || false,
       aiProvider as AIProvider,
-      isPlacementTest
+      isPlacementTest,
+      apiKey
     );
     console.log("Lesson generated successfully");
 

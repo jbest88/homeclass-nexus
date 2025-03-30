@@ -1,22 +1,35 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { AIModelSelector } from "@/components/dashboard/AIModelSelector";
+import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 
 interface CreateLessonDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   subjects: string[];
   selectedSubject: string;
-  onSubjectChange: (value: string) => void;
-  onGenerate: (isPlacementTest: boolean) => void;
+  onSubjectChange: (subject: string) => void;
+  onGenerate: (isPlacementTest: boolean) => Promise<void>;
   isGenerating: boolean;
   gradeLevel: number | null;
 }
 
-export const CreateLessonDialog = ({
+export const CreateLessonDialog: React.FC<CreateLessonDialogProps> = ({
   isOpen,
   onOpenChange,
   subjects,
@@ -25,21 +38,28 @@ export const CreateLessonDialog = ({
   onGenerate,
   isGenerating,
   gradeLevel,
-}: CreateLessonDialogProps) => {
-  const [isPlacementTest, setIsPlacementTest] = useState(false);
+}) => {
+  const { 
+    aiProvider, 
+    setAIProvider, 
+    showApiKeyInput, 
+    setShowApiKeyInput,
+    apiKey,
+    setApiKey
+  } = useGenerateLesson();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Generate New Lesson</DialogTitle>
+          <DialogTitle>Create New Lesson</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Select
-              value={selectedSubject}
-              onValueChange={onSubjectChange}
-            >
+            <label htmlFor="subject" className="text-sm font-medium">
+              Subject
+            </label>
+            <Select value={selectedSubject} onValueChange={onSubjectChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a subject" />
               </SelectTrigger>
@@ -51,28 +71,43 @@ export const CreateLessonDialog = ({
                 ))}
               </SelectContent>
             </Select>
-            {gradeLevel !== null && (
-              <p className="text-sm text-muted-foreground">
-                Subjects shown are appropriate for {gradeLevel === 0 ? "Kindergarten" : `Grade ${gradeLevel}`}
-              </p>
-            )}
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="placement-test"
-              checked={isPlacementTest}
-              onCheckedChange={setIsPlacementTest}
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              AI Model
+            </label>
+            <AIModelSelector 
+              selectedModel={aiProvider} 
+              onModelChange={setAIProvider} 
+              showApiKeyInput={showApiKeyInput} 
+              setShowApiKeyInput={setShowApiKeyInput}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
             />
-            <Label htmlFor="placement-test">Generate as placement test</Label>
+            <p className="text-xs text-muted-foreground pt-1">
+              Different models may provide varying quality and speed of generated lessons.
+            </p>
           </div>
-          <Button
-            onClick={() => onGenerate(isPlacementTest)}
-            disabled={isGenerating || !selectedSubject}
-            className="w-full"
-          >
-            {isGenerating ? "Generating..." : "Generate"}
-          </Button>
         </div>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="default"
+            onClick={() => onGenerate(false)}
+            disabled={isGenerating || !selectedSubject}
+            className="w-full sm:w-auto"
+          >
+            {isGenerating ? "Generating..." : "Generate Lesson"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => onGenerate(true)}
+            disabled={isGenerating || !selectedSubject}
+            className="w-full sm:w-auto"
+          >
+            {isGenerating ? "Generating..." : "Create Placement Test"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

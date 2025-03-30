@@ -6,11 +6,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-2.5-pro';
+export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-2.5-pro' | 'openai';
 
 export const useGenerateLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiProvider, setAIProvider] = useState<AIProvider>('gemini-2.5-pro');
+  const [aiProvider, setAIProvider] = useState<AIProvider>('gemini-pro');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [apiKey, setApiKey] = useState("");
   const user = useUser();
   const navigate = useNavigate();
 
@@ -52,6 +54,7 @@ export const useGenerateLesson = () => {
           isRetry,
           aiProvider,
           isPlacementTest,
+          apiKey: apiKey || undefined, // Only send API key if provided
         },
       });
 
@@ -107,5 +110,9 @@ export const useGenerateLesson = () => {
     handleGenerateLesson,
     aiProvider,
     setAIProvider,
+    showApiKeyInput,
+    setShowApiKeyInput,
+    apiKey,
+    setApiKey
   };
 };

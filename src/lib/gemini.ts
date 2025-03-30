@@ -12,7 +12,7 @@ interface GeminiResponse {
   }>;
 }
 
-export const generateLearningPlan = async (subject: string): Promise<string> => {
+export const generateLearningPlan = async (subject: string, apiKey?: string): Promise<string> => {
   try {
     console.log('Calling generateLearningPlan function for subject:', subject);
     
@@ -20,7 +20,8 @@ export const generateLearningPlan = async (subject: string): Promise<string> => 
       body: { 
         subject,
         // Use the standard gemini-1.0-pro model which is widely available
-        model: 'gemini-1.0-pro'
+        model: 'gemini-1.0-pro',
+        apiKey: apiKey || undefined // Only send API key if provided
       }
     });
 

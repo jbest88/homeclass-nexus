@@ -2,8 +2,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -16,12 +14,20 @@ serve(async (req) => {
   }
 
   try {
-    if (!geminiApiKey) {
-      console.error('GEMINI_API_KEY is not set');
-      throw new Error('GEMINI_API_KEY is not configured');
+    // Get the default API key from environment, or use the provided one
+    let geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    
+    const { subject, model = 'gemini-1.0-pro', apiKey } = await req.json();
+    
+    // Use provided API key if available
+    if (apiKey) {
+      geminiApiKey = apiKey;
+      console.log('Using API key provided by client');
+    } else if (!geminiApiKey) {
+      console.error('GEMINI_API_KEY is not set and no API key provided by client');
+      throw new Error('API key is not configured');
     }
-
-    const { subject, model = 'gemini-1.0-pro' } = await req.json();
+    
     console.log(`Generating learning plan for subject: ${subject} using model: ${model}`);
 
     const prompt = `Create a detailed learning plan for ${subject}. Include key topics, recommended resources, and estimated time frames.`;

@@ -21,13 +21,13 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured');
     }
 
-    const { subject, model = 'gemini-1.5-flash' } = await req.json();
+    const { subject, model = 'gemini-1.0-pro' } = await req.json();
     console.log(`Generating learning plan for subject: ${subject} using model: ${model}`);
 
     const prompt = `Create a detailed learning plan for ${subject}. Include key topics, recommended resources, and estimated time frames.`;
 
-    // Use the updated model endpoint
-    const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    // Use the standard API endpoint format with the specified model
+    const apiEndpoint = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiApiKey}`;
     
     console.log(`Using API endpoint: ${apiEndpoint}`);
 
@@ -35,7 +35,6 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': geminiApiKey,
       },
       body: JSON.stringify({
         contents: [{

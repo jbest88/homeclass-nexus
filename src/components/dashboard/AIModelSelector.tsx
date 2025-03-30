@@ -37,8 +37,7 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
   setApiKey
 }) => {
   const modelOptions = [
-    { value: "gemini-pro", label: "Gemini Pro (Google)" },
-    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (Google)" },
+    { value: "gemini-1.0-pro", label: "Gemini 1.0 Pro (Google)" },
     { value: "openai", label: "OpenAI" },
     { value: "deepseek", label: "DeepSeek" },
   ];

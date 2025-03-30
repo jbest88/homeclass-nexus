@@ -6,11 +6,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-2.5-pro' | 'openai';
+export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-1.0-pro' | 'openai';
 
 export const useGenerateLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiProvider, setAIProvider] = useState<AIProvider>('gemini-pro');
+  const [aiProvider, setAIProvider] = useState<AIProvider>('gemini-1.0-pro');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const user = useUser();
@@ -60,7 +60,7 @@ export const useGenerateLesson = () => {
 
       if (generateError) {
         console.error("Error from generateLesson function:", generateError);
-        if (generateError.message.includes('API quota exceeded')) {
+        if (generateError.message && generateError.message.includes('API quota exceeded')) {
           toast.error("We're experiencing high demand. Please try again in a few minutes.");
         } else {
           toast.error("Failed to generate lesson. Please try again.");

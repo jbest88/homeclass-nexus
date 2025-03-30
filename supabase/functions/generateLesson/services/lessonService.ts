@@ -29,11 +29,11 @@ export async function generateLesson(
 
     if (isPlacementTest) {
       console.log("Generating placement test...");
-      const placementTestPrompt = LessonPromptTemplates.getPlacementTestPrompt(subject, grade);
+      const placementTestPrompt = LessonPromptTemplates.createLessonPrompt(subject, grade, "current");
       lessonContent = await generateWithAI(placementTestPrompt, aiProvider, apiKey);
     } else {
       console.log("Generating regular lesson...");
-      const lessonPrompt = LessonPromptTemplates.getLessonPrompt(subject, grade, isRetry);
+      const lessonPrompt = LessonPromptTemplates.createLessonPrompt(subject, grade, "current");
       lessonContent = await generateWithAI(lessonPrompt, aiProvider, apiKey);
     }
     
@@ -46,11 +46,11 @@ export async function generateLesson(
 
     while (attemptsLeft > 0) {
       try {
-        const questionsPrompt = LessonPromptTemplates.getQuestionsPrompt(lessonContent);
+        const questionsPrompt = LessonPromptTemplates.createQuestionsPrompt(lessonContent, grade);
         questionsText = await generateWithAI(questionsPrompt, aiProvider, apiKey);
         
         // Validate and parse the questions
-        questions = await validateQuestions(questionsText, apiProvider, apiKey);
+        questions = await validateQuestions(questionsText, aiProvider, apiKey);
         break; // Success! Exit the loop
         
       } catch (error) {

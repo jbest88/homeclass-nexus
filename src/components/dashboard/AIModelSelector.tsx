@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Settings } from "lucide-react";
 import { 
@@ -37,6 +36,7 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
   setApiKey
 }) => {
   const modelOptions = [
+    { value: "gemini-2.5-pro-exp-03-25", label: "Gemini 2.5 Pro (Experimental)" },
     { value: "gemini-1.0-pro", label: "Gemini 1.0 Pro (Google)" },
     { value: "openai", label: "OpenAI" },
     { value: "deepseek", label: "DeepSeek" },
@@ -52,7 +52,7 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
         value={selectedModel}
         onValueChange={(value) => onModelChange(value as AIProvider)}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[220px]">
           <SelectValue placeholder="Select Model" />
         </SelectTrigger>
         <SelectContent>

@@ -84,3 +84,85 @@ async function generateWithGemini(prompt: string, apiKey?: string, model: string
     throw error;
   }
 }
+
+async function generateWithDeepseek(prompt: string, apiKey?: string): Promise<string> {
+  const deepseekApiKey = apiKey || Deno.env.get("DEEPSEEK_API_KEY");
+
+  if (!deepseekApiKey) {
+    throw new Error("DeepSeek API key is not configured");
+  }
+
+  try {
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${deepseekApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("DeepSeek API error response:", errorText);
+      throw new Error(`DeepSeek API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      console.error("Unexpected DeepSeek API response format:", data);
+      throw new Error("Invalid response format from DeepSeek API");
+    }
+
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Error calling DeepSeek API:", error);
+    throw error;
+  }
+}
+
+async function generateWithOpenAI(prompt: string, apiKey?: string): Promise<string> {
+  const openAIApiKey = apiKey || Deno.env.get("OPENAI_API_KEY");
+
+  if (!openAIApiKey) {
+    throw new Error("OpenAI API key is not configured");
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openAIApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("OpenAI API error response:", errorText);
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      console.error("Unexpected OpenAI API response format:", data);
+      throw new Error("Invalid response format from OpenAI API");
+    }
+
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Error calling OpenAI API:", error);
+    throw error;
+  }
+}

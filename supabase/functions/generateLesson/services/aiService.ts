@@ -1,4 +1,4 @@
-export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-1.0-pro' | 'openai';
+export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-2.5-pro-exp-03-25' | 'openai';
 
 export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini', apiKey?: string): Promise<string> {
   try {
@@ -7,10 +7,8 @@ export async function generateWithAI(prompt: string, provider: AIProvider = 'gem
 
     if (provider === 'openai') {
       return await generateWithOpenAI(prompt, apiKey);
-    } else if (provider === 'gemini-1.0-pro') {
-      return await generateWithGemini(prompt, apiKey);
-    } else if (provider === 'gemini' || provider === 'gemini-pro') {
-      return await generateWithGemini(prompt, apiKey);
+    } else if (provider === 'gemini-2.5-pro-exp-03-25' || provider === 'gemini' || provider === 'gemini-pro') {
+      return await generateWithGemini(prompt, apiKey, provider);
     } else {
       return await generateWithDeepseek(prompt, apiKey);
     }
@@ -20,16 +18,17 @@ export async function generateWithAI(prompt: string, provider: AIProvider = 'gem
   }
 }
 
-async function generateWithGemini(prompt: string, apiKey?: string): Promise<string> {
-  // Use provided API key or fallback to environment variable
+async function generateWithGemini(prompt: string, apiKey?: string, model: string = 'gemini-2.5-pro-exp-03-25'): Promise<string> {
   const geminiApiKey = apiKey || Deno.env.get("GEMINI_API_KEY");
-  
+
   if (!geminiApiKey) {
     throw new Error("Gemini API key is not configured");
   }
 
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=' + geminiApiKey, {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -37,11 +36,7 @@ async function generateWithGemini(prompt: string, apiKey?: string): Promise<stri
       body: JSON.stringify({
         contents: [
           {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
+            parts: [{ text: prompt }]
           }
         ],
         generationConfig: {
@@ -86,90 +81,6 @@ async function generateWithGemini(prompt: string, apiKey?: string): Promise<stri
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error('Error calling Gemini API:', error);
-    throw error;
-  }
-}
-
-async function generateWithDeepseek(prompt: string, apiKey?: string): Promise<string> {
-  // Use provided API key or fallback to environment variable
-  const deepseekApiKey = apiKey || Deno.env.get("DEEPSEEK_API_KEY");
-  
-  if (!deepseekApiKey) {
-    throw new Error("DeepSeek API key is not configured");
-  }
-
-  try {
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${deepseekApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Deepseek API error response:', errorText);
-      throw new Error(`Deepseek API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('Unexpected Deepseek API response format:', data);
-      throw new Error('Invalid response format from Deepseek API');
-    }
-
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('Error calling Deepseek API:', error);
-    throw error;
-  }
-}
-
-async function generateWithOpenAI(prompt: string, apiKey?: string): Promise<string> {
-  // Use provided API key or fallback to environment variable
-  const openAIApiKey = apiKey || Deno.env.get("OPENAI_API_KEY");
-  
-  if (!openAIApiKey) {
-    throw new Error("OpenAI API key is not configured");
-  }
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openAIApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini", // Using the latest available model
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error response:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('Unexpected OpenAI API response format:', data);
-      throw new Error('Invalid response format from OpenAI API');
-    }
-
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('Error calling OpenAI API:', error);
     throw error;
   }
 }

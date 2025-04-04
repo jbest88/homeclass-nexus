@@ -73,14 +73,23 @@ serve(async (req) => {
       
       // Check for specific error types to return appropriate status codes
       let statusCode = 500;
-      if (error.message.includes('API quota exceeded') || error.message.includes('rate limit')) {
+      let errorMessage = error.message || "Unknown error occurred";
+      
+      if (errorMessage.includes('API quota exceeded') || errorMessage.includes('rate limit')) {
         statusCode = 429; // Too Many Requests
-      } else if (error.message.includes('Gateway') || error.message.includes('timeout')) {
+      } else if (
+        errorMessage.includes('Gateway') || 
+        errorMessage.includes('timeout') || 
+        errorMessage.includes('502') || 
+        errorMessage.includes('503') || 
+        errorMessage.includes('504')
+      ) {
         statusCode = 503; // Service Unavailable
+        errorMessage = "AI service is temporarily unavailable. Please try again later.";
       }
       
       return new Response(JSON.stringify({
-        error: error.message,
+        error: errorMessage,
         details: error.stack,
       }), {
         status: statusCode,
@@ -94,10 +103,10 @@ serve(async (req) => {
     console.error("Error in generateLesson function:", error);
     
     return new Response(JSON.stringify({
-      error: error.message,
+      error: error.message || "Unknown error occurred",
       details: error.stack,
     }), {
-      status: error.message.includes('API quota exceeded') ? 429 : 500,
+      status: 500,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",

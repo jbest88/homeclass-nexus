@@ -48,7 +48,7 @@ export const useGenerateLesson = () => {
       
       // Set up a timeout promise
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out")), 90000); // 90 seconds timeout
+        setTimeout(() => reject(new Error("Request timed out")), 60000); // 60 seconds timeout
       });
       
       // Create the function promise
@@ -63,13 +63,22 @@ export const useGenerateLesson = () => {
       });
       
       // Race between the function call and the timeout
-      const lessonData = await Promise.race([
-        functionPromise.then(result => {
-          if (result.error) throw result.error;
-          return result.data;
-        }),
+      const result = await Promise.race([
+        functionPromise,
         timeoutPromise
       ]);
+
+      // Check for errors in the response
+      if (result.error) {
+        console.error("Error from Edge Function:", result.error);
+        throw new Error(result.error.message || "Failed to generate lesson");
+      }
+
+      const lessonData = result.data;
+      if (!lessonData || !lessonData.title || !lessonData.content) {
+        console.error("Invalid lesson data returned:", lessonData);
+        throw new Error("Invalid lesson data returned from the server");
+      }
 
       console.log("Lesson generated, inserting into database...");
       const { data: insertData, error: insertError } = await supabase
@@ -107,10 +116,14 @@ export const useGenerateLesson = () => {
          (error.message.includes('API quota exceeded') || 
           error.message.includes('rate limit'))) {
         toast.error("We're experiencing high demand. Please try again in a few minutes.");
-      } else if (error.message && error.message.includes('Gateway')) {
-        toast.error("Connection error. Please try again in a few moments.");
+      } else if (error.message && 
+         (error.message.includes('Gateway') || 
+          error.message.includes('502') || 
+          error.message.includes('503') || 
+          error.message.includes('504'))) {
+        toast.error("Connection error with AI service. Please try again in a few moments.");
       } else {
-        toast.error(error.message || "Failed to generate lesson");
+        toast.error(error.message || "Failed to generate lesson. Please try again later.");
       }
       return null;
     } finally {

@@ -47,12 +47,21 @@ export const useGenerateLesson = () => {
       console.log("Calling generateLesson function...");
       
       // Set up a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
+      const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("Request timed out")), 60000); // 60 seconds timeout
       });
       
-      // Create the function promise
-      const functionPromise = supabase.functions.invoke("generateLesson", {
+      // Create the function promise with proper type annotation
+      const functionPromise = supabase.functions.invoke<{
+        data?: {
+          title: string;
+          content: string;
+          questions: any[];
+        };
+        error?: {
+          message: string;
+        };
+      }>("generateLesson", {
         body: { 
           subject, 
           userId: user.id,
@@ -68,7 +77,7 @@ export const useGenerateLesson = () => {
         timeoutPromise
       ]);
 
-      // Check for errors in the response
+      // Check for errors in the response with proper type checking
       if (result.error) {
         console.error("Error from Edge Function:", result.error);
         throw new Error(result.error.message || "Failed to generate lesson");

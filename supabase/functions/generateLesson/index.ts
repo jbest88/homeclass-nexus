@@ -52,21 +52,44 @@ serve(async (req) => {
     const gradeLevelText = gradeLevel === 0 ? "Kindergarten" : `Grade ${gradeLevel}`;
     console.log(`User's grade level: ${gradeLevelText}`);
 
-    const lesson = await generateLesson(
-      subject,
-      gradeLevelText,
-      isRetry || false,
-      aiProvider,
-      isPlacementTest
-    );
-    console.log("Lesson generated successfully");
+    try {
+      const lesson = await generateLesson(
+        subject,
+        gradeLevelText,
+        isRetry || false,
+        aiProvider,
+        isPlacementTest
+      );
+      console.log("Lesson generated successfully");
 
-    return new Response(JSON.stringify(lesson), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
-    });
+      return new Response(JSON.stringify(lesson), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      console.error("Error generating lesson content:", error);
+      
+      // Check for specific error types to return appropriate status codes
+      let statusCode = 500;
+      if (error.message.includes('API quota exceeded') || error.message.includes('rate limit')) {
+        statusCode = 429; // Too Many Requests
+      } else if (error.message.includes('Gateway') || error.message.includes('timeout')) {
+        statusCode = 503; // Service Unavailable
+      }
+      
+      return new Response(JSON.stringify({
+        error: error.message,
+        details: error.stack,
+      }), {
+        status: statusCode,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      });
+    }
   } catch (error) {
     console.error("Error in generateLesson function:", error);
     

@@ -45,7 +45,13 @@ export const useGenerateLesson = () => {
       ) ?? -1;
       
       console.log("Calling generateLesson function...");
-      const { data: lessonData, error: generateError } = await supabase.functions.invoke("generateLesson", {
+      
+      // Add a timeout for the function call
+      const timeoutDuration = 90000; // 90 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+      
+      const functionPromise = supabase.functions.invoke("generateLesson", {
         body: { 
           subject, 
           userId: user.id,
@@ -53,12 +59,23 @@ export const useGenerateLesson = () => {
           aiProvider,
           isPlacementTest,
         },
+        signal: controller.signal,
       });
+      
+      // Create a race between the function call and the timeout
+      const { data: lessonData, error: generateError } = await functionPromise;
+      
+      // Clear the timeout since the function completed
+      clearTimeout(timeoutId);
 
       if (generateError) {
         console.error("Error from generateLesson function:", generateError);
-        if (generateError.message && generateError.message.includes('API quota exceeded')) {
+        if (generateError.message && 
+           (generateError.message.includes('API quota exceeded') || 
+            generateError.message.includes('rate limit'))) {
           toast.error("We're experiencing high demand. Please try again in a few minutes.");
+        } else if (generateError.message && generateError.message.includes('Gateway')) {
+          toast.error("Connection error. Please try again in a few moments.");
         } else {
           toast.error("Failed to generate lesson. Please try again.");
         }
@@ -95,7 +112,11 @@ export const useGenerateLesson = () => {
       return insertData;
     } catch (error: any) {
       console.error("Error generating lesson:", error);
-      toast.error(error.message || "Failed to generate lesson");
+      if (error.name === 'AbortError') {
+        toast.error("Request timed out. Please try again.");
+      } else {
+        toast.error(error.message || "Failed to generate lesson");
+      }
       return null;
     } finally {
       setIsGenerating(false);

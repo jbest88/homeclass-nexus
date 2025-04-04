@@ -51,8 +51,8 @@ export const useGenerateLesson = () => {
         setTimeout(() => reject(new Error("Request timed out")), 60000); // 60 seconds timeout
       });
       
-      // Create the function promise with proper type annotation
-      const functionPromise = supabase.functions.invoke<{
+      // Define the response type for the function call
+      interface LessonResponse {
         data?: {
           title: string;
           content: string;
@@ -61,7 +61,10 @@ export const useGenerateLesson = () => {
         error?: {
           message: string;
         };
-      }>("generateLesson", {
+      }
+      
+      // Create the function promise with proper type annotation
+      const functionPromise = supabase.functions.invoke<LessonResponse>("generateLesson", {
         body: { 
           subject, 
           userId: user.id,

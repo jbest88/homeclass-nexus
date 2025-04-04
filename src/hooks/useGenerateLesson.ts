@@ -46,11 +46,12 @@ export const useGenerateLesson = () => {
       
       console.log("Calling generateLesson function...");
       
-      // Add a timeout for the function call
-      const timeoutDuration = 90000; // 90 seconds
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+      // Set up a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Request timed out")), 90000); // 90 seconds timeout
+      });
       
+      // Create the function promise
       const functionPromise = supabase.functions.invoke("generateLesson", {
         body: { 
           subject, 
@@ -58,29 +59,17 @@ export const useGenerateLesson = () => {
           isRetry,
           aiProvider,
           isPlacementTest,
-        },
-        signal: controller.signal,
+        }
       });
       
-      // Create a race between the function call and the timeout
-      const { data: lessonData, error: generateError } = await functionPromise;
-      
-      // Clear the timeout since the function completed
-      clearTimeout(timeoutId);
-
-      if (generateError) {
-        console.error("Error from generateLesson function:", generateError);
-        if (generateError.message && 
-           (generateError.message.includes('API quota exceeded') || 
-            generateError.message.includes('rate limit'))) {
-          toast.error("We're experiencing high demand. Please try again in a few minutes.");
-        } else if (generateError.message && generateError.message.includes('Gateway')) {
-          toast.error("Connection error. Please try again in a few moments.");
-        } else {
-          toast.error("Failed to generate lesson. Please try again.");
-        }
-        return null;
-      }
+      // Race between the function call and the timeout
+      const lessonData = await Promise.race([
+        functionPromise.then(result => {
+          if (result.error) throw result.error;
+          return result.data;
+        }),
+        timeoutPromise
+      ]);
 
       console.log("Lesson generated, inserting into database...");
       const { data: insertData, error: insertError } = await supabase
@@ -112,8 +101,14 @@ export const useGenerateLesson = () => {
       return insertData;
     } catch (error: any) {
       console.error("Error generating lesson:", error);
-      if (error.name === 'AbortError') {
+      if (error.message === "Request timed out") {
         toast.error("Request timed out. Please try again.");
+      } else if (error.message && 
+         (error.message.includes('API quota exceeded') || 
+          error.message.includes('rate limit'))) {
+        toast.error("We're experiencing high demand. Please try again in a few minutes.");
+      } else if (error.message && error.message.includes('Gateway')) {
+        toast.error("Connection error. Please try again in a few moments.");
       } else {
         toast.error(error.message || "Failed to generate lesson");
       }

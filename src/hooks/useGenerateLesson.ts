@@ -86,8 +86,14 @@ export const useGenerateLesson = () => {
         throw new Error(result.error.message || "Failed to generate lesson");
       }
 
+      // Ensure there's data in the response
+      if (!result.data) {
+        console.error("No data returned from the server");
+        throw new Error("No data returned from the server");
+      }
+
       const lessonData = result.data;
-      if (!lessonData || !lessonData.title || !lessonData.content) {
+      if (!lessonData.title || !lessonData.content) {
         console.error("Invalid lesson data returned:", lessonData);
         throw new Error("Invalid lesson data returned from the server");
       }

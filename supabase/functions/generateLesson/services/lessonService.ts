@@ -13,9 +13,8 @@ export async function generateLesson(
   subject: string,
   grade: string,
   isRetry: boolean = false,
-  aiProvider: AIProvider = 'gemini-pro',
-  isPlacementTest: boolean = false,
-  apiKey?: string
+  aiProvider: AIProvider = 'gemini-2.5-pro-exp-03-25',
+  isPlacementTest: boolean = false
 ): Promise<LessonContent> {
   console.log(`Starting generation for: {
   type: "${isPlacementTest ? 'PlacementTest' : 'Lesson'}",
@@ -30,11 +29,11 @@ export async function generateLesson(
     if (isPlacementTest) {
       console.log("Generating placement test...");
       const placementTestPrompt = LessonPromptTemplates.createLessonPrompt(subject, grade, "current");
-      lessonContent = await generateWithAI(placementTestPrompt, aiProvider, apiKey);
+      lessonContent = await generateWithAI(placementTestPrompt, aiProvider);
     } else {
       console.log("Generating regular lesson...");
       const lessonPrompt = LessonPromptTemplates.createLessonPrompt(subject, grade, "current");
-      lessonContent = await generateWithAI(lessonPrompt, aiProvider, apiKey);
+      lessonContent = await generateWithAI(lessonPrompt, aiProvider);
     }
     
     console.log("Generated content length:", lessonContent.length);
@@ -47,10 +46,10 @@ export async function generateLesson(
     while (attemptsLeft > 0) {
       try {
         const questionsPrompt = LessonPromptTemplates.createQuestionsPrompt(lessonContent, grade);
-        questionsText = await generateWithAI(questionsPrompt, aiProvider, apiKey);
+        questionsText = await generateWithAI(questionsPrompt, aiProvider);
         
         // Validate and parse the questions
-        questions = await validateQuestions(questionsText, aiProvider, apiKey);
+        questions = await validateQuestions(questionsText, aiProvider);
         break; // Success! Exit the loop
         
       } catch (error) {

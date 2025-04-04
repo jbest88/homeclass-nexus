@@ -18,7 +18,9 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    const { subject, userId, isRetry, aiProvider = 'gemini-pro', isPlacementTest = false, apiKey } = await req.json();
+    const { subject, userId, isRetry, isPlacementTest = false } = await req.json();
+    const aiProvider: AIProvider = 'gemini-2.5-pro-exp-03-25';
+    
     console.log(`Generating ${isPlacementTest ? 'placement test' : 'lesson'} for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}, provider: ${aiProvider}`);
 
     if (!subject || !userId) {
@@ -54,9 +56,8 @@ serve(async (req) => {
       subject,
       gradeLevelText,
       isRetry || false,
-      aiProvider as AIProvider,
-      isPlacementTest,
-      apiKey
+      aiProvider,
+      isPlacementTest
     );
     console.log("Lesson generated successfully");
 

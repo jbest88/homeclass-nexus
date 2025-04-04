@@ -39,14 +39,7 @@ export const CreateLessonDialog: React.FC<CreateLessonDialogProps> = ({
   isGenerating,
   gradeLevel,
 }) => {
-  const { 
-    aiProvider, 
-    setAIProvider, 
-    showApiKeyInput, 
-    setShowApiKeyInput,
-    apiKey,
-    setApiKey
-  } = useGenerateLesson();
+  const { aiProvider } = useGenerateLesson();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -79,14 +72,10 @@ export const CreateLessonDialog: React.FC<CreateLessonDialogProps> = ({
             </label>
             <AIModelSelector 
               selectedModel={aiProvider} 
-              onModelChange={setAIProvider} 
-              showApiKeyInput={showApiKeyInput} 
-              setShowApiKeyInput={setShowApiKeyInput}
-              apiKey={apiKey}
-              setApiKey={setApiKey}
+              onModelChange={() => {}} 
             />
             <p className="text-xs text-muted-foreground pt-1">
-              Different models may provide varying quality and speed of generated lessons.
+              Using Gemini 2.5 Pro (Experimental) for optimal lesson quality.
             </p>
           </div>
         </div>

@@ -1,32 +1,27 @@
-export type AIProvider = 'gemini' | 'deepseek' | 'gemini-pro' | 'gemini-2.5-pro-exp-03-25' | 'openai';
 
-export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini', apiKey?: string): Promise<string> {
+export type AIProvider = 'gemini-2.5-pro-exp-03-25';
+
+export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini-2.5-pro-exp-03-25'): Promise<string> {
   try {
     console.log(`Generating with ${provider}...`);
     console.log('Prompt:', prompt);
 
-    if (provider === 'openai') {
-      return await generateWithOpenAI(prompt, apiKey);
-    } else if (provider === 'gemini-2.5-pro-exp-03-25' || provider === 'gemini' || provider === 'gemini-pro') {
-      return await generateWithGemini(prompt, apiKey, provider);
-    } else {
-      return await generateWithDeepseek(prompt, apiKey);
-    }
+    return await generateWithGemini(prompt);
   } catch (error) {
     console.error(`Error in ${provider} generation:`, error);
     throw error;
   }
 }
 
-async function generateWithGemini(prompt: string, apiKey?: string, model: string = 'gemini-2.5-pro-exp-03-25'): Promise<string> {
-  const geminiApiKey = apiKey || Deno.env.get("GEMINI_API_KEY");
+async function generateWithGemini(prompt: string): Promise<string> {
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
   if (!geminiApiKey) {
     throw new Error("Gemini API key is not configured");
   }
 
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key=${geminiApiKey}`;
     
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -81,88 +76,6 @@ async function generateWithGemini(prompt: string, apiKey?: string, model: string
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error('Error calling Gemini API:', error);
-    throw error;
-  }
-}
-
-async function generateWithDeepseek(prompt: string, apiKey?: string): Promise<string> {
-  const deepseekApiKey = apiKey || Deno.env.get("DEEPSEEK_API_KEY");
-
-  if (!deepseekApiKey) {
-    throw new Error("DeepSeek API key is not configured");
-  }
-
-  try {
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${deepseekApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("DeepSeek API error response:", errorText);
-      throw new Error(`DeepSeek API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (!data.choices?.[0]?.message?.content) {
-      console.error("Unexpected DeepSeek API response format:", data);
-      throw new Error("Invalid response format from DeepSeek API");
-    }
-
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error("Error calling DeepSeek API:", error);
-    throw error;
-  }
-}
-
-async function generateWithOpenAI(prompt: string, apiKey?: string): Promise<string> {
-  const openAIApiKey = apiKey || Deno.env.get("OPENAI_API_KEY");
-
-  if (!openAIApiKey) {
-    throw new Error("OpenAI API key is not configured");
-  }
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openAIApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenAI API error response:", errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (!data.choices?.[0]?.message?.content) {
-      console.error("Unexpected OpenAI API response format:", data);
-      throw new Error("Invalid response format from OpenAI API");
-    }
-
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error("Error calling OpenAI API:", error);
     throw error;
   }
 }

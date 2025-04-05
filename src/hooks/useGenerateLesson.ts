@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-export type AIProvider = 'gemini-2.5-pro-exp-03-25';
+export type AIProvider = 'gemini-1.5-pro' | 'gemini-2.5-pro-exp-03-25' | 'gemini-1.0-pro';
 
 // Define a proper type for the response from the generateLesson function
 interface LessonContent {
@@ -24,7 +24,7 @@ interface LessonResponse {
 
 export const useGenerateLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiProvider] = useState<AIProvider>('gemini-2.5-pro-exp-03-25');
+  const [aiProvider] = useState<AIProvider>('gemini-1.5-pro');
   const user = useUser();
   const navigate = useNavigate();
 
@@ -77,10 +77,16 @@ export const useGenerateLesson = () => {
       });
       
       // Race between the function call and the timeout
-      const response = await Promise.race([
-        functionPromise,
-        timeoutPromise
-      ]);
+      let response;
+      try {
+        response = await Promise.race([
+          functionPromise,
+          timeoutPromise
+        ]);
+      } catch (error) {
+        console.error("Error during function call:", error);
+        throw new Error(error instanceof Error ? error.message : "Unknown error during function call");
+      }
 
       // Check for errors in the response
       if (response.error) {
@@ -133,6 +139,8 @@ export const useGenerateLesson = () => {
       return insertData;
     } catch (error: any) {
       console.error("Error generating lesson:", error);
+      
+      // Enhanced error handling with more specific messages
       if (error.message === "Request timed out") {
         toast.error("Request timed out. Please try again.");
       } else if (error.message && 
@@ -141,10 +149,13 @@ export const useGenerateLesson = () => {
         toast.error("We're experiencing high demand. Please try again in a few minutes.");
       } else if (error.message && 
          (error.message.includes('Gateway') || 
+          error.message.includes('temporarily unavailable') || 
           error.message.includes('502') || 
           error.message.includes('503') || 
           error.message.includes('504'))) {
         toast.error("Connection error with AI service. Please try again in a few moments.");
+      } else if (error.message && error.message.includes('No content generated')) {
+        toast.error("AI model couldn't generate content at this time. Please try again or choose a different subject.");
       } else {
         toast.error(error.message || "Failed to generate lesson. Please try again later.");
       }

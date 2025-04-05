@@ -77,26 +77,29 @@ export const useGenerateLesson = () => {
       });
       
       // Race between the function call and the timeout
-      const result = await Promise.race([
+      const response = await Promise.race([
         functionPromise,
         timeoutPromise
       ]);
 
       // Check for errors in the response
-      if (result.error) {
-        console.error("Error from Edge Function:", result.error);
-        throw new Error(result.error.message || "Failed to generate lesson");
+      if (response.error) {
+        console.error("Error from Edge Function:", response.error);
+        throw new Error(response.error.message || "Failed to generate lesson");
       }
 
       // Ensure there's data in the response
-      if (!result.data) {
+      if (!response.data) {
         console.error("No data returned from the server");
         throw new Error("No data returned from the server");
       }
 
-      // Now we can safely access properties on result.data
-      if (!result.data.title || !result.data.content) {
-        console.error("Invalid lesson data returned:", result.data);
+      // Extract the actual data we need
+      const lessonData = response.data as LessonContent;
+      
+      // Now we can safely access properties
+      if (!lessonData.title || !lessonData.content) {
+        console.error("Invalid lesson data returned:", lessonData);
         throw new Error("Invalid lesson data returned from the server");
       }
 
@@ -106,9 +109,9 @@ export const useGenerateLesson = () => {
         .insert({
           user_id: user.id,
           subject,
-          title: result.data.title,
-          content: result.data.content,
-          questions: result.data.questions,
+          title: lessonData.title,
+          content: lessonData.content,
+          questions: lessonData.questions,
           order_index: maxOrderIndex + 1,
         })
         .select()

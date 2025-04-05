@@ -8,6 +8,20 @@ import { useQuery } from "@tanstack/react-query";
 
 export type AIProvider = 'gemini-2.5-pro-exp-03-25';
 
+// Define a proper type for the response from the generateLesson function
+interface LessonContent {
+  title: string;
+  content: string;
+  questions: any[];
+}
+
+interface LessonResponse {
+  data?: LessonContent;
+  error?: {
+    message: string;
+  };
+}
+
 export const useGenerateLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiProvider] = useState<AIProvider>('gemini-2.5-pro-exp-03-25');
@@ -51,18 +65,6 @@ export const useGenerateLesson = () => {
         setTimeout(() => reject(new Error("Request timed out")), 60000); // 60 seconds timeout
       });
       
-      // Define the response type for the function call
-      interface LessonResponse {
-        data?: {
-          title: string;
-          content: string;
-          questions: any[];
-        };
-        error?: {
-          message: string;
-        };
-      }
-      
       // Create the function promise with proper type annotation
       const functionPromise = supabase.functions.invoke<LessonResponse>("generateLesson", {
         body: { 
@@ -80,7 +82,7 @@ export const useGenerateLesson = () => {
         timeoutPromise
       ]);
 
-      // Check for errors in the response with proper type checking
+      // Check for errors in the response
       if (result.error) {
         console.error("Error from Edge Function:", result.error);
         throw new Error(result.error.message || "Failed to generate lesson");
@@ -92,9 +94,9 @@ export const useGenerateLesson = () => {
         throw new Error("No data returned from the server");
       }
 
-      const lessonData = result.data;
-      if (!lessonData.title || !lessonData.content) {
-        console.error("Invalid lesson data returned:", lessonData);
+      // Now we can safely access properties on result.data
+      if (!result.data.title || !result.data.content) {
+        console.error("Invalid lesson data returned:", result.data);
         throw new Error("Invalid lesson data returned from the server");
       }
 
@@ -104,9 +106,9 @@ export const useGenerateLesson = () => {
         .insert({
           user_id: user.id,
           subject,
-          title: lessonData.title,
-          content: lessonData.content,
-          questions: lessonData.questions,
+          title: result.data.title,
+          content: result.data.content,
+          questions: result.data.questions,
           order_index: maxOrderIndex + 1,
         })
         .select()

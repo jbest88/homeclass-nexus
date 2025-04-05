@@ -23,14 +23,19 @@ export const AIModelSelector: React.FC<AIModelSelectorProps> = ({
       <Select
         value={selectedModel}
         onValueChange={(value) => onModelChange(value as AIProvider)}
-        disabled={true}
       >
         <SelectTrigger className="w-[220px]">
-          <SelectValue placeholder="Gemini 2.5 Pro (Experimental)" />
+          <SelectValue placeholder="Select AI Model" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="gemini-2.5-pro-exp-03-25">
             Gemini 2.5 Pro (Experimental)
+          </SelectItem>
+          <SelectItem value="gemini-1.5-pro">
+            Gemini 1.5 Pro
+          </SelectItem>
+          <SelectItem value="gemini-1.0-pro">
+            Gemini 1.0 Pro
           </SelectItem>
         </SelectContent>
       </Select>

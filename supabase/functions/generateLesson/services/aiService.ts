@@ -1,39 +1,39 @@
 
-export type AIProvider = 'gemini-2.5-pro-exp-03-25';
+export type AIProvider = 'gemini-1.5-pro' | 'gemini-1.0-pro' | 'gemini-2.5-pro-exp-03-25';
 
 export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini-2.5-pro-exp-03-25'): Promise<string> {
   try {
     console.log(`Generating with ${provider}...`);
     console.log('Prompt:', prompt);
 
-    return await generateWithGemini(prompt);
+    return await generateWithGemini(prompt, provider);
   } catch (error) {
     console.error(`Error in ${provider} generation:`, error);
     throw error;
   }
 }
 
-async function generateWithGemini(prompt: string): Promise<string> {
+async function generateWithGemini(prompt: string, provider: AIProvider): Promise<string> {
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
   if (!geminiApiKey) {
     throw new Error("Gemini API key is not configured");
   }
 
-  const maxRetries = 5; // Increase from 3 to 5
+  const maxRetries = 3;
   let retries = 0;
   let lastError;
 
   while (retries < maxRetries) {
     try {
-      console.log(`Attempt ${retries + 1} of ${maxRetries} to call Gemini API`);
+      console.log(`Attempt ${retries + 1} of ${maxRetries} to call Gemini API using model: ${provider}`);
       
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro/generateContent?key=${geminiApiKey}`;
+      let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${provider}/generateContent?key=${geminiApiKey}`;
       
       console.log("Using endpoint:", endpoint);
       
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 45000); // 45 second timeout (shorter than client timeout)
+      const timeout = setTimeout(() => controller.abort(), 45000); // 45 second timeout
       
       try {
         console.log("Sending request to Gemini API...");
@@ -84,21 +84,10 @@ async function generateWithGemini(prompt: string): Promise<string> {
                         `Status: ${response.status} ${response.statusText}`, 
                         `Body: ${errorText}`);
           
-          // Always retry 502, 503, 504 errors regardless of retry count
-          if (response.status === 502 || response.status === 503 || response.status === 504) {
+          if (response.status >= 500 && response.status < 600) {
             retries++;
-            
-            // Add exponential backoff with jitter
-            const baseDelay = Math.pow(2, retries) * 1000; // 2s, 4s, 8s, etc.
-            const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
-            const delay = baseDelay + jitter;
-            console.log(`Gateway error received (${response.status}). Retrying after ${delay}ms delay...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
             continue;
-          }
-          
-          if (response.status === 429) {
-            throw new Error("API quota exceeded or rate limited");
           }
           
           throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
@@ -107,66 +96,29 @@ async function generateWithGemini(prompt: string): Promise<string> {
         const data = await response.json();
         console.log("Response received from Gemini API", JSON.stringify(data).substring(0, 500) + "...");
         
-        if (!data.candidates || data.candidates.length === 0) {
-          console.error('Empty candidates array in Gemini API response:', JSON.stringify(data));
+        // Properly handle the response structure based on the actual API response
+        if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && 
+            data.candidates[0].content.parts && data.candidates[0].content.parts.length > 0) {
           
-          // Try with a different model
-          retries++;
-          if (retries < maxRetries) {
-            console.log("Retrying with a different model endpoint...");
-            // Switch to the standard Gemini 1.0 Pro model
-            const fallbackEndpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${geminiApiKey}`;
-            
-            const fallbackResponse = await fetch(fallbackEndpoint, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [{ text: prompt }]
-                  }
-                ],
-                generationConfig: {
-                  temperature: 0.7,
-                  topK: 40,
-                  topP: 0.95,
-                  maxOutputTokens: 2048,
-                }
-              })
-            });
-            
-            if (!fallbackResponse.ok) {
-              console.error("Fallback model also failed");
-              throw new Error("Failed to generate content with both primary and fallback models");
-            }
-            
-            const fallbackData = await fallbackResponse.json();
-            
-            if (!fallbackData.candidates || fallbackData.candidates.length === 0) {
-              throw new Error('No content generated by either Gemini model');
-            }
-            
-            console.log('Successfully received valid response from fallback Gemini model');
-            return fallbackData.candidates[0].content.parts[0].text;
+          const text = data.candidates[0].content.parts[0].text;
+          if (text && text.trim() !== '') {
+            console.log('Successfully received valid response from Gemini API');
+            return text;
+          } else {
+            console.error('Empty text in Gemini API response');
+            throw new Error('Empty text in Gemini API response');
+          }
+        } else {
+          console.error('Invalid or unexpected response structure from Gemini API:', JSON.stringify(data));
+          
+          // Check for specific error types in the response
+          if (data.error) {
+            console.error('API error details:', data.error);
+            throw new Error(data.error.message || 'API error without details');
           }
           
-          throw new Error('No content generated by Gemini API');
-        }
-        
-        if (!data.candidates[0]?.content?.parts || data.candidates[0].content.parts.length === 0) {
-          console.error('Invalid response structure from Gemini API:', JSON.stringify(data));
           throw new Error('Invalid response format from Gemini API');
         }
-        
-        if (!data.candidates[0].content.parts[0].text) {
-          console.error('No text in Gemini API response:', JSON.stringify(data));
-          throw new Error('No text content in Gemini API response');
-        }
-
-        console.log('Successfully received valid response from Gemini API');
-        return data.candidates[0].content.parts[0].text;
       } finally {
         clearTimeout(timeout);
       }
@@ -174,51 +126,17 @@ async function generateWithGemini(prompt: string): Promise<string> {
       console.error(`Error on attempt ${retries + 1}:`, error);
       
       lastError = error;
+      retries++;
       
-      // If it's a timeout error, retry
-      if (error.name === 'AbortError') {
-        console.log('Request timed out, retrying...');
-        retries++;
-        
-        if (retries >= maxRetries) {
-          console.error(`Failed after ${maxRetries} attempts due to timeout`);
-          throw new Error('Request timed out after multiple attempts');
-        }
-        
-        // Add exponential backoff with jitter
-        const baseDelay = Math.pow(2, retries) * 1000;
-        const jitter = Math.random() * 1000;
-        const delay = baseDelay + jitter;
-        console.log(`Retrying after ${delay}ms delay...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
+      if (retries >= maxRetries) {
+        console.error(`Failed after ${maxRetries} attempts with error:`, error);
+        throw error;
       }
       
-      // If it's a specific error we want to retry
-      if (error.message && (
-          error.message.includes('502') || 
-          error.message.includes('503') || 
-          error.message.includes('504') || 
-          error.message.includes('timeout') ||
-          error.message.includes('Gateway'))) {
-        retries++;
-        
-        if (retries >= maxRetries) {
-          console.error(`Failed after ${maxRetries} attempts`);
-          throw new Error(`Service temporarily unavailable after ${maxRetries} attempts`);
-        }
-        
-        // Add exponential backoff with jitter
-        const baseDelay = Math.pow(2, retries) * 1000;
-        const jitter = Math.random() * 1000;
-        const delay = baseDelay + jitter;
-        console.log(`Retrying after ${delay}ms delay...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      
-      // For other errors, throw immediately
-      throw error;
+      // Add exponential backoff
+      const delay = Math.pow(2, retries) * 1000;
+      console.log(`Retrying after ${delay}ms delay...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AIModelSelector } from "@/components/dashboard/AIModelSelector";
-import { useGenerateLesson } from "@/hooks/useGenerateLesson";
+import { useGenerateLesson, AIProvider } from "@/hooks/useGenerateLesson";
 
 interface CreateLessonDialogProps {
   isOpen: boolean;
@@ -39,7 +39,11 @@ export const CreateLessonDialog: React.FC<CreateLessonDialogProps> = ({
   isGenerating,
   gradeLevel,
 }) => {
-  const { aiProvider } = useGenerateLesson();
+  const { aiProvider, setAiProvider } = useGenerateLesson();
+  
+  const handleModelChange = (model: AIProvider) => {
+    setAiProvider(model);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -72,10 +76,10 @@ export const CreateLessonDialog: React.FC<CreateLessonDialogProps> = ({
             </label>
             <AIModelSelector 
               selectedModel={aiProvider} 
-              onModelChange={() => {}} 
+              onModelChange={handleModelChange} 
             />
             <p className="text-xs text-muted-foreground pt-1">
-              Using Gemini 2.5 Pro (Experimental) for optimal lesson quality.
+              Select the AI model to use for lesson generation.
             </p>
           </div>
         </div>

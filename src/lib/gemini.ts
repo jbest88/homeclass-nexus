@@ -20,7 +20,7 @@ export const generateLearningPlan = async (subject: string, apiKey?: string): Pr
       body: { 
         subject,
         // Use the standard gemini-1.0-pro model which is widely available
-        model: 'gemini-1.0-pro',
+        model: 'gemini-2.5-pro-exp-03-25',
         apiKey: apiKey || undefined // Only send API key if provided
       }
     });

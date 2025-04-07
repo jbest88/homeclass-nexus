@@ -1,19 +1,17 @@
 
-export type AIProvider = 'gemini-1.5-pro' | 'gemini-1.0-pro' | 'gemini-1.5-flash';
-
-export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini-1.5-pro'): Promise<string> {
+export async function generateWithAI(prompt: string): Promise<string> {
   try {
-    console.log(`Generating with ${provider}...`);
+    console.log(`Generating with Gemini...`);
     console.log('Prompt:', prompt);
 
-    return await generateWithGemini(prompt, provider);
+    return await generateWithGemini(prompt);
   } catch (error) {
-    console.error(`Error in ${provider} generation:`, error);
+    console.error(`Error in Gemini generation:`, error);
     throw error;
   }
 }
 
-async function generateWithGemini(prompt: string, provider: AIProvider): Promise<string> {
+async function generateWithGemini(prompt: string): Promise<string> {
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
   if (!geminiApiKey) {
@@ -26,9 +24,9 @@ async function generateWithGemini(prompt: string, provider: AIProvider): Promise
 
   while (retries < maxRetries) {
     try {
-      console.log(`Attempt ${retries + 1} of ${maxRetries} to call Gemini API using model: ${provider}`);
+      console.log(`Attempt ${retries + 1} of ${maxRetries} to call Gemini API`);
       
-      // Always use the specific model name the user requested regardless of the provider parameter
+      // Always use the specific model name
       let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25/generateContent?key=${geminiApiKey}`;
       
       console.log("Using endpoint:", endpoint);

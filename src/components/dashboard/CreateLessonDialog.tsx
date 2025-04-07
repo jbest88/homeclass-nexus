@@ -15,8 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AIModelSelector } from "@/components/dashboard/AIModelSelector";
-import { useGenerateLesson, AIProvider } from "@/hooks/useGenerateLesson";
+import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 
 interface CreateLessonDialogProps {
   isOpen: boolean;
@@ -39,12 +38,6 @@ export const CreateLessonDialog: React.FC<CreateLessonDialogProps> = ({
   isGenerating,
   gradeLevel,
 }) => {
-  const { aiProvider, setAiProvider } = useGenerateLesson();
-  
-  const handleModelChange = (model: AIProvider) => {
-    setAiProvider(model);
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -68,19 +61,6 @@ export const CreateLessonDialog: React.FC<CreateLessonDialogProps> = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              AI Model
-            </label>
-            <AIModelSelector 
-              selectedModel={aiProvider} 
-              onModelChange={handleModelChange} 
-            />
-            <p className="text-xs text-muted-foreground pt-1">
-              Select the AI model to use for lesson generation.
-            </p>
           </div>
         </div>
         <DialogFooter className="flex flex-col sm:flex-row gap-2">

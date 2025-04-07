@@ -1,5 +1,5 @@
 
-import { generateWithAI, AIProvider } from "./aiService.ts";
+import { generateWithAI } from "./aiService.ts";
 import { validateQuestions } from "../validators/questionValidator.ts";
 import * as LessonPromptTemplates from "../prompts/index.ts";
 
@@ -13,14 +13,12 @@ export async function generateLesson(
   subject: string,
   grade: string,
   isRetry: boolean = false,
-  aiProvider: AIProvider = 'gemini-2.5-pro-exp-03-25',
   isPlacementTest: boolean = false
 ): Promise<LessonContent> {
   console.log(`Starting generation for: {
   type: "${isPlacementTest ? 'PlacementTest' : 'Lesson'}",
   subject: "${subject}",
-  grade: "${grade}",
-  provider: "${aiProvider}"
+  grade: "${grade}"
 }`);
 
   try {
@@ -31,11 +29,11 @@ export async function generateLesson(
       if (isPlacementTest) {
         console.log("Generating placement test...");
         const placementTestPrompt = LessonPromptTemplates.createLessonPrompt(subject, grade, "current");
-        lessonContent = await generateWithAI(placementTestPrompt, aiProvider);
+        lessonContent = await generateWithAI(placementTestPrompt);
       } else {
         console.log("Generating regular lesson...");
         const lessonPrompt = LessonPromptTemplates.createLessonPrompt(subject, grade, "current");
-        lessonContent = await generateWithAI(lessonPrompt, aiProvider);
+        lessonContent = await generateWithAI(lessonPrompt);
       }
     } catch (error) {
       console.error("Error generating lesson content:", error);
@@ -57,7 +55,7 @@ export async function generateLesson(
     while (attemptsLeft > 0) {
       try {
         const questionsPrompt = LessonPromptTemplates.createQuestionsPrompt(lessonContent, grade);
-        questionsText = await generateWithAI(questionsPrompt, aiProvider);
+        questionsText = await generateWithAI(questionsPrompt);
         
         if (!questionsText || questionsText.trim() === '') {
           throw new Error("Empty questions response received from AI provider");
@@ -67,7 +65,7 @@ export async function generateLesson(
         console.log("Questions preview:", questionsText.substring(0, 200) + "...");
         
         // Validate and parse the questions
-        questions = await validateQuestions(questionsText, aiProvider);
+        questions = await validateQuestions(questionsText);
         
         if (!questions || !Array.isArray(questions) || questions.length === 0) {
           throw new Error("Invalid or empty questions array after validation");

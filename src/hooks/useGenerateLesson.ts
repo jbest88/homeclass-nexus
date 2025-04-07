@@ -6,8 +6,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-export type AIProvider = 'gemini-1.5-pro' | 'gemini-1.0-pro' | 'gemini-1.5-flash';
-
 // Define a proper type for the response from the generateLesson function
 interface LessonContent {
   title: string;
@@ -24,7 +22,6 @@ interface LessonResponse {
 
 export const useGenerateLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiProvider, setAiProvider] = useState<AIProvider>('gemini-1.5-pro');
   const user = useUser();
   const navigate = useNavigate();
 
@@ -52,7 +49,7 @@ export const useGenerateLesson = () => {
 
     try {
       setIsGenerating(true);
-      console.log("Starting lesson generation with provider:", aiProvider);
+      console.log("Starting lesson generation...");
       
       const maxOrderIndex = generatedLessons?.reduce((max, lesson) => 
         lesson.subject === subject ? Math.max(max, lesson.order_index) : max, -1
@@ -71,7 +68,6 @@ export const useGenerateLesson = () => {
           subject, 
           userId: user.id,
           isRetry,
-          aiProvider,
           isPlacementTest,
         }
       });
@@ -167,8 +163,6 @@ export const useGenerateLesson = () => {
 
   return {
     isGenerating,
-    handleGenerateLesson,
-    aiProvider,
-    setAiProvider
+    handleGenerateLesson
   };
 };

@@ -1,7 +1,7 @@
 
-export type AIProvider = 'gemini-1.5-pro' | 'gemini-1.0-pro' | 'gemini-2.5-pro-exp-03-25';
+export type AIProvider = 'gemini-1.5-pro' | 'gemini-1.0-pro' | 'gemini-1.5-flash';
 
-export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini-2.5-pro-exp-03-25'): Promise<string> {
+export async function generateWithAI(prompt: string, provider: AIProvider = 'gemini-1.5-pro'): Promise<string> {
   try {
     console.log(`Generating with ${provider}...`);
     console.log('Prompt:', prompt);

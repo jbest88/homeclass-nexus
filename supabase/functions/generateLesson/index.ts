@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    const { subject, userId, isRetry, aiProvider = 'gemini-2.5-pro-exp-03-25', isPlacementTest = false } = await req.json();
+    const { subject, userId, isRetry, aiProvider = 'gemini-1.5-pro', isPlacementTest = false } = await req.json();
     
     console.log(`Generating ${isPlacementTest ? 'placement test' : 'lesson'} for subject: ${subject}, userId: ${userId}, isRetry: ${isRetry}, provider: ${aiProvider}`);
 

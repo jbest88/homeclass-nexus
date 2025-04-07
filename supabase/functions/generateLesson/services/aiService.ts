@@ -28,7 +28,8 @@ async function generateWithGemini(prompt: string, provider: AIProvider): Promise
     try {
       console.log(`Attempt ${retries + 1} of ${maxRetries} to call Gemini API using model: ${provider}`);
       
-      let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${provider}/generateContent?key=${geminiApiKey}`;
+      // Always use the specific model name the user requested regardless of the provider parameter
+      let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-03-25/generateContent?key=${geminiApiKey}`;
       
       console.log("Using endpoint:", endpoint);
       

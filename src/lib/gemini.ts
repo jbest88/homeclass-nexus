@@ -19,8 +19,8 @@ export const generateLearningPlan = async (subject: string, apiKey?: string): Pr
     const { data, error } = await supabase.functions.invoke<GeminiResponse>('generateLearningPlan', {
       body: { 
         subject,
-        // Use the standard gemini-1.0-pro model which is widely available
-        model: 'gemini-2.5-pro-exp-03-25',
+        // Use the exact model specified by the user
+        model: 'gemini-2.5-pro-preview-03-25',
         apiKey: apiKey || undefined // Only send API key if provided
       }
     });

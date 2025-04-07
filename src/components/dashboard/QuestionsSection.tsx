@@ -1,10 +1,11 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { QuestionComponent } from "./QuestionComponent";
-import { QuestionActionButtons } from "./QuestionActionButtons";
+import { QuestionComponent } from "../lesson/QuestionComponent";
+import { QuestionActionButtons } from "../lesson/QuestionActionButtons";
 import { useQuestionResponses } from "@/hooks/useQuestionResponses";
 import { useGenerateLesson } from "@/hooks/useGenerateLesson";
 import { useLearningPath } from "@/hooks/useLearningPath";

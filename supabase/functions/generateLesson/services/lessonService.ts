@@ -1,6 +1,6 @@
-import { generateWithAI } from "./aiService.ts"; // Uses hardcoded model
+import { generateWithAI } from "./aiService"; // Uses hardcoded model
 // Import the new prompt creator function (adjust path if needed)
-import { createCombinedLessonPrompt } from "../prompts/index.ts";
+import { createCombinedLessonPrompt } from "../prompts/index.js";
 // We will do validation directly here, so questionValidator import might be removed
 
 export interface LessonContent {

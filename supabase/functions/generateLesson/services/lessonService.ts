@@ -1,132 +1,136 @@
-import { generateWithAI } from "./aiService.ts"; // generateWithAI now uses the hardcoded model
-import { validateQuestions } from "../validators/questionValidator.ts"; // Assuming path is correct
-import * as LessonPromptTemplates from "../prompts/index.ts"; // Assuming path is correct
+import { generateWithAI } from "./aiService.ts"; // Uses hardcoded model
+// Import the new prompt creator function (adjust path if needed)
+import { createCombinedLessonPrompt } from "../prompts/index.ts";
+// We will do validation directly here, so questionValidator import might be removed
 
 export interface LessonContent {
   title: string;
   content: string;
-  questions: any[]; // Consider defining a stricter Question type
+  questions: any[]; // Consider a stricter Question type definition
 }
 
-// Removed aiProvider parameter from signature
+// Updated function signature (aiProvider removed previously)
 export async function generateLesson(
   subject: string,
   grade: string,
-  isRetry: boolean = false, // Note: isRetry isn't currently used to modify prompts/logic here
+  isRetry: boolean = false, // Still not used, consider removing if not needed
   isPlacementTest: boolean = false
 ): Promise<LessonContent> {
-  // Log generation details (model is now hardcoded in aiService)
-  console.log(`Starting generation for: {
-  type: "${isPlacementTest ? 'PlacementTest' : 'Lesson'}",
+
+  const lessonTypeLog = isPlacementTest ? "PlacementTest" : "Lesson";
+  console.log(`Starting single-call generation for: {
+  type: "${lessonTypeLog}",
   subject: "${subject}",
   grade: "${grade}"
 }`);
 
   try {
-    let lessonContent: string;
+    // 1. Create the combined prompt
+    const combinedPrompt = createCombinedLessonPrompt(subject, grade, isPlacementTest);
 
-    // --- Generate initial lesson content ---
+    // 2. Call AI only ONCE
+    console.log("Calling AI with combined prompt (using hardcoded model)...");
+    const lessonJsonString = await generateWithAI(combinedPrompt);
+
+    if (!lessonJsonString || lessonJsonString.trim() === '') {
+      throw new Error("Empty response received from AI provider for combined lesson content.");
+    }
+
+    console.log("AI response received length:", lessonJsonString.length);
+    console.log("AI response preview:", lessonJsonString.substring(0, 300) + "...");
+
+    // 3. Parse and Validate the single JSON response
+    let parsedLesson: LessonContent;
     try {
-      // Determine the correct prompt template (assuming "current" is desired)
-      const promptTemplateType = "current";
-      const prompt = LessonPromptTemplates.createLessonPrompt(subject, grade, promptTemplateType);
+      // Attempt to clean potential markdown/extraneous text before parsing
+      let cleanedJsonString = lessonJsonString.trim();
+      const jsonMatch = cleanedJsonString.match(/```json\s*([\s\S]*?)\s*```|(\{[\s\S]*\})/); // Look for ```json ... ``` or starting {
 
-      const contentType = isPlacementTest ? 'placement test' : 'regular lesson';
-      console.log(`Generating ${contentType} (using hardcoded model gemini-2.5-pro-exp-03-25)...`);
+       if (jsonMatch) {
+           cleanedJsonString = jsonMatch[1] || jsonMatch[2] || cleanedJsonString; // Extract content
+           cleanedJsonString = cleanedJsonString.trim();
+           console.log("Attempting to parse extracted JSON block...");
+       } else {
+           console.warn("Could not definitively extract JSON block from AI response, attempting parse on raw response.");
+       }
 
-      // Call generateWithAI without the model name argument
-      lessonContent = await generateWithAI(prompt);
+      parsedLesson = JSON.parse(cleanedJsonString);
 
-    } catch (error) {
-      console.error("Error generating initial lesson/test content:", error);
-      throw new Error(`Failed to generate initial content: ${error.message}`);
-    }
-
-    if (!lessonContent || lessonContent.trim() === '') {
-      throw new Error("Empty response received from AI provider for initial content");
-    }
-
-    console.log("Generated content length:", lessonContent.length);
-    console.log("Content preview:", lessonContent.substring(0, 200) + "...");
-
-    // --- Generate and validate questions ---
-    let questionsText = "";
-    let attemptsLeft = 3;
-    let questions: any[] = []; // Use specific type if available
-
-    while (attemptsLeft > 0) {
-      const questionAttempt = 4 - attemptsLeft; // 1, 2, 3
-      try {
-        console.log(`Attempt ${questionAttempt} to generate questions (using hardcoded model gemini-2.5-pro-exp-03-25)...`);
-        const questionsPrompt = LessonPromptTemplates.createQuestionsPrompt(lessonContent, grade);
-
-        // Call generateWithAI without the model name argument
-        questionsText = await generateWithAI(questionsPrompt);
-
-        if (!questionsText || questionsText.trim() === '') {
-          throw new Error("Empty questions response received from AI provider");
-        }
-
-        console.log("Generated questions text length:", questionsText.length);
-        console.log("Questions preview:", questionsText.substring(0, 200) + "...");
-
-        // Validate and parse the questions
-        // Assuming validateQuestions handles JSON parsing and structural validation
-        questions = await validateQuestions(questionsText);
-
-        if (!questions || !Array.isArray(questions) || questions.length === 0) {
-           console.error("Invalid or empty questions array after validation. Raw text received:", questionsText);
-           throw new Error("Invalid or empty questions array after validation");
-        }
-
-        console.log(`Successfully generated and validated ${questions.length} questions on attempt ${questionAttempt}.`);
-        break; // Success! Exit the loop
-
-      } catch (error) {
-        attemptsLeft--;
-        console.error(`Attempt ${questionAttempt}: Error generating/validating questions:`, error);
-
-        if (attemptsLeft === 0) {
-          console.warn("Failed to generate valid questions after 3 attempts, using default fallback questions.");
-          // Use the provided fallback questions
-          questions = [
-             { "question": "What is the main topic of this lesson?", "type": "multiple-choice", "options": ["Option 1", "Option 2", "Option 3", "Option 4"], "answer": "Option 1" },
-             { "question": "Select all concepts covered in this lesson.", "type": "multiple-answer", "options": ["Concept 1", "Concept 2", "Concept 3", "Concept 4"], "correctAnswers": ["Concept 1", "Concept 2"] },
-             { "question": "The content in this lesson is accurate.", "type": "true-false", "answer": "true" },
-             { "question": "What is the best description of this subject?", "type": "dropdown", "options": ["Description 1", "Description 2", "Description 3", "Description 4"], "answer": "Description 1" },
-             { "question": "Which example best illustrates the main concept?", "type": "multiple-choice", "options": ["Example 1", "Example 2", "Example 3", "Example 4"], "answer": "Example 1" }
-          ];
-          break; // Exit loop after applying fallback
-        } else {
-          console.log(`Waiting 2 seconds before retry #${questionAttempt + 1}...`);
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait before retrying
-        }
+      // --- Basic Structure Validation ---
+      if (!parsedLesson || typeof parsedLesson !== 'object') {
+        throw new Error("Parsed response is not a valid object.");
       }
-    } // End while loop for questions
+      if (!parsedLesson.title || typeof parsedLesson.title !== 'string' || parsedLesson.title.trim() === '') {
+        throw new Error("Missing or invalid 'title' (string) in parsed response.");
+      }
+      if (!parsedLesson.content || typeof parsedLesson.content !== 'string' || parsedLesson.content.trim() === '') {
+         throw new Error("Missing or invalid 'content' (string) in parsed response.");
+      }
+      if (!parsedLesson.questions || !Array.isArray(parsedLesson.questions)) {
+        throw new Error("Missing or invalid 'questions' (array) in parsed response.");
+      }
+      // Optionally add length check for questions array if needed parsedLesson.questions.length !== 5 etc.
 
-    // --- Extract title ---
-    let title = "Lesson on " + subject; // Default title
-    const contentLines = lessonContent.trim().split('\n');
-    if (contentLines.length > 0) {
-        const firstLine = contentLines[0].trim();
-        if (firstLine.startsWith('#')) { // Basic check for markdown header
-             title = firstLine.replace(/^#+\s*/, ''); // Remove leading '#' and spaces
-        } else if (firstLine.length > 0 && firstLine.length < 100) { // Use short first lines
-            title = firstLine;
-        }
+
+      // --- Detailed Per-Question Validation (Optional but recommended) ---
+      for (let i = 0; i < parsedLesson.questions.length; i++) {
+          const q = parsedLesson.questions[i];
+          if (!q || typeof q !== 'object') throw new Error(`Question at index ${i} is not a valid object.`);
+          if (!q.question || typeof q.question !== 'string') throw new Error(`Invalid/missing 'question' (string) at index ${i}`);
+          if (!q.type || typeof q.type !== 'string') throw new Error(`Invalid/missing 'type' (string) at index ${i}`);
+
+           // Add field checks based on type (similar to previous validateQuestions logic)
+          if (['multiple-choice', 'multiple-answer', 'dropdown'].includes(q.type)) {
+              if (!q.options || !Array.isArray(q.options) || q.options.length < 2) { // Need at least 2 options usually
+                   throw new Error(`Invalid/missing 'options' (array, min 2 elements) at index ${i} for type ${q.type}`);
+              }
+          }
+           if (['multiple-choice', 'true-false', 'dropdown'].includes(q.type)) {
+               // Allow boolean for true/false answer? Check your requirements. Assuming string for now.
+               if (q.answer === undefined || q.answer === null || typeof q.answer !== 'string') {
+                   throw new Error(`Invalid or missing 'answer' (string) at index ${i} for type ${q.type}`);
+               }
+               if (q.hasOwnProperty('correctAnswers')) { // Should NOT have correctAnswers
+                    throw new Error(`Field 'correctAnswers' should not be present for type ${q.type} at index ${i}`);
+               }
+           } else if (q.type === 'multiple-answer') {
+               if (!q.correctAnswers || !Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) { // Allow empty array? Usually need at least one correct.
+                   throw new Error(`Invalid or missing 'correctAnswers' (array, min 1 element) at index ${i} for type ${q.type}`);
+               }
+                if (q.hasOwnProperty('answer')) { // Should NOT have answer
+                    throw new Error(`Field 'answer' should not be present for type ${q.type} at index ${i}`);
+               }
+           }
+      }
+      // --- End Validation ---
+
+      console.log("Successfully parsed and validated combined lesson structure.");
+      // Ensure the returned object matches the LessonContent interface
+      return {
+          title: parsedLesson.title,
+          content: parsedLesson.content,
+          questions: parsedLesson.questions
+      };
+
+    } catch (parseOrValidationError) {
+      console.error("Error parsing or validating the AI's JSON response:", parseOrValidationError);
+      console.error("Raw AI response that failed parsing/validation:", lessonJsonString); // Log the raw string
+      // Decide how to handle this - throwing error is often best for backend
+      throw new Error(`Failed to parse or validate the lesson structure received from AI: ${parseOrValidationError.message}`);
+      // --- Fallback Option (Instead of throwing): ---
+      // console.warn("Returning default error lesson structure due to parsing/validation failure.");
+      // return {
+      //   title: `Error Generating Lesson: ${subject}`,
+      //   content: "Could not generate valid lesson content and questions. Please try again.",
+      //   questions: [],
+      // };
+       // --- End Fallback Option ---
     }
-    console.log(`Extracted Title: "${title}"`);
-
-    // --- Return final structure ---
-    return {
-      title,
-      content: lessonContent,
-      questions, // Contains either generated or fallback questions
-    };
 
   } catch (error) {
-    console.error("Error processing lesson generation in generateLesson:", error);
+    // Catch errors from the AI call itself or errors thrown from parsing/validation block
+    console.error(`Error during single-call generation for ${subject} (${grade}):`, error);
     // Re-throw the error to be caught by the main handler in index.ts
-    throw error;
+    throw error; // Let index.ts handle returning the final error response (e.g., 500 or 503)
   }
 }

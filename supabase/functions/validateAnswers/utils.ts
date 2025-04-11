@@ -84,7 +84,7 @@ export const evaluateExponentExpression = (expr: string): number => {
       .replace(/([0-9])²/g, '$1^2')
       .replace(/([0-9])³/g, '$1^3');
 
-    const parts = normalized.split(/([×\+\-\/])/);
+    const parts = normalized.split(/([×+-/])/);
     const evaluated = parts.map(part => {
       if (part.includes('^')) {
         const [base, exponent] = part.split('^').map(Number);

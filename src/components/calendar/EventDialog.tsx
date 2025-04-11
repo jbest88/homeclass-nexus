@@ -6,6 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { CalendarPlus } from "lucide-react";
 
 interface EventDialogProps {
+  eventData: {
+    title: string;
+    description: string;
+    startTime: string;
+    endTime: string;
+  };
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   editingEvent: {
@@ -15,14 +21,8 @@ interface EventDialogProps {
     startTime: string;
     endTime: string;
   } | null;
-  onSubmit: (e: React.FormEvent) => void;
-  onEventDataChange: (data: any) => void;
-  eventData: {
-    title: string;
-    description: string;
-    startTime: string;
-    endTime: string;
-  };
+  onSubmit: (e: React.FormEvent) => void;  
+  onEventDataChange: (data: EventDialogProps["eventData"]) => void;
 }
 
 const EventDialog = ({

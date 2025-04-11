@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Question } from "@/types/questions";
+import { MultipleAnswerQuestion, Question } from "@/types/questions";
 
 export const useAnswerValidation = () => {
   const validateAnswer = async (
@@ -14,9 +14,11 @@ export const useAnswerValidation = () => {
       ? [...userAnswer].sort() 
       : userAnswer;
 
-    const correctAnswers = question.type === 'multiple-answer'
-      ? [...(question as any).correctAnswers].sort()
-      : question.answer;
+    const correctAnswers =
+      question.type === "multiple-answer"
+        ? [...(question as MultipleAnswerQuestion).correctAnswers].sort()
+        : question.answer;
+
 
     const response = await supabase.functions.invoke("validateAnswerWithAI", {
       body: {

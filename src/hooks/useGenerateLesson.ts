@@ -5,12 +5,13 @@ import { useUser } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Question } from "@/types/questions";
 
 // Define a proper type for the response from the generateLesson function
 interface LessonContent {
   title: string;
   content: string;
-  questions: any[];
+  questions: Question[];
 }
 
 interface LessonResponse {
@@ -133,25 +134,29 @@ export const useGenerateLesson = () => {
       navigate(`/generated-lesson/${insertData.id}`);
       
       return insertData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating lesson:", error);
-      
-      // Enhanced error handling with more specific messages
-      if (error.message === "Request timed out") {
-        toast.error("Request timed out. Please try again.");
-      } else if (error.message && 
-         (error.message.includes('API quota exceeded') || 
-          error.message.includes('rate limit'))) {
-        toast.error("We're experiencing high demand. Please try again in a few minutes.");
-      } else if (error.message && 
-         (error.message.includes('Gateway') || 
-          error.message.includes('temporarily unavailable') || 
-          error.message.includes('502') || 
-          error.message.includes('503') || 
-          error.message.includes('504'))) {
-        toast.error("Connection error with AI service. Please try again in a few moments.");
-      } else if (error.message && error.message.includes('No content generated')) {
-        toast.error("AI model couldn't generate content at this time. Please try again or choose a different subject.");
+
+      if (error instanceof Error) {
+        // Enhanced error handling with more specific messages
+        if (error.message === "Request timed out") {
+          toast.error("Request timed out. Please try again.");
+        } else if (error.message && 
+           (error.message.includes('API quota exceeded') || 
+            error.message.includes('rate limit'))) {
+          toast.error("We're experiencing high demand. Please try again in a few minutes.");
+        } else if (error.message && 
+           (error.message.includes('Gateway') || 
+            error.message.includes('temporarily unavailable') || 
+            error.message.includes('502') || 
+            error.message.includes('503') || 
+            error.message.includes('504'))) {
+          toast.error("Connection error with AI service. Please try again in a few moments.");
+        } else if (error.message && error.message.includes('No content generated')) {
+          toast.error("AI model couldn't generate content at this time. Please try again or choose a different subject.");
+        } else {
+          toast.error(error.message || "Failed to generate lesson. Please try again later.");
+        }
       } else {
         toast.error(error.message || "Failed to generate lesson. Please try again later.");
       }

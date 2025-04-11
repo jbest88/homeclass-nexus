@@ -176,7 +176,7 @@ const CalendarPage = () => {
     }
   };
 
-  const handleEditEvent = (event: any) => {
+  const handleEditEvent = (event: unknown) => {
     setEditingEvent({
       id: event.id,
       title: event.title,

@@ -1,3 +1,4 @@
+import { Question } from "../../../../src/types/questions";
 import { generateWithAI } from "./aiService"; // Uses hardcoded model
 // Import the new prompt creator function (adjust path if needed)
 import { createCombinedLessonPrompt } from "../prompts/index.js";
@@ -5,8 +6,8 @@ import { createCombinedLessonPrompt } from "../prompts/index.js";
 
 export interface LessonContent {
   title: string;
-  content: string;
-  questions: any[]; // Consider a stricter Question type definition
+  content: string; // Consider a stricter Question type definition
+  questions: Question[];
 }
 
 // Updated function signature (aiProvider removed previously)
@@ -90,14 +91,14 @@ export async function generateLesson(
                if (q.answer === undefined || q.answer === null || typeof q.answer !== 'string') {
                    throw new Error(`Invalid or missing 'answer' (string) at index ${i} for type ${q.type}`);
                }
-               if (q.hasOwnProperty('correctAnswers')) { // Should NOT have correctAnswers
+               if (Object.prototype.hasOwnProperty.call(q, 'correctAnswers')) { // Should NOT have correctAnswers
                     throw new Error(`Field 'correctAnswers' should not be present for type ${q.type} at index ${i}`);
                }
            } else if (q.type === 'multiple-answer') {
                if (!q.correctAnswers || !Array.isArray(q.correctAnswers) || q.correctAnswers.length === 0) { // Allow empty array? Usually need at least one correct.
                    throw new Error(`Invalid or missing 'correctAnswers' (array, min 1 element) at index ${i} for type ${q.type}`);
                }
-                if (q.hasOwnProperty('answer')) { // Should NOT have answer
+                if (Object.prototype.hasOwnProperty.call(q, 'answer')) { // Should NOT have answer
                     throw new Error(`Field 'answer' should not be present for type ${q.type} at index ${i}`);
                }
            }

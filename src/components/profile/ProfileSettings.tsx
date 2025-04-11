@@ -12,6 +12,13 @@ import SecurityTab from "./tabs/SecurityTab";
 import { NotificationPreferences, PrivacySettings, SocialLinks } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 
+
+type PortfolioItem = {
+  title: string;
+  description: string;
+  url: string;
+};
+
 interface ProfileSettingsProps {
   onClose?: () => void;
 }
@@ -29,8 +36,8 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
   
   const [bio, setBio] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
-  const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);  
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>({
     email: true,
@@ -116,12 +123,12 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
       toast.error("Please sign in to save your profile");
       return;
     }
-
+    
     try {
       const date = month && day && year 
         ? new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
         : null;
-
+    
       if (date && isNaN(date.getTime())) {
         toast.error("Invalid date selected");
         return;
@@ -134,7 +141,7 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
           grade_override: gradeOverride,
           bio,
           interests,
-          skills,
+          skills,          
           portfolio_items: portfolioItems,
           social_links: socialLinks as Json,
           notification_preferences: notificationPreferences as unknown as Json,

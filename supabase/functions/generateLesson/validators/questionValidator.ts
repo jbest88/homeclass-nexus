@@ -2,7 +2,7 @@
 import { generateWithAI } from "../services/aiService.ts"; // Ensure path is correct
 
 // Removed aiProvider parameter from the function signature
-export async function validateQuestions(questionsText: string): Promise<any[]> {
+export async function validateQuestions(questionsText: string): Promise<unknown[]> {
   try {
     // Try to parse the questions as JSON directly
     try {

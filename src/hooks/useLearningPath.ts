@@ -147,7 +147,7 @@ export const useLearningPath = () => {
       ]);
 
       return { pathId };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error managing learning path:', error);
       toast.error('Failed to update learning path');
       return null;

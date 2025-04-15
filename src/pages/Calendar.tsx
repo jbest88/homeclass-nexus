@@ -1,6 +1,7 @@
-import { Calendar as CalendarIcon } from "lucide-react";
+
+import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -148,7 +149,7 @@ export default function Calendar() {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
+              <CalendarComponent
                 mode="single"
                 selected={date}
                 onSelect={setDate}

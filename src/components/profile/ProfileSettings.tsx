@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
@@ -30,21 +31,14 @@ export function ProfileSettings() {
         return;
       }
 
-      setName(profileData?.full_name || "");
+      setName(profileData?.username || "");
       setBio(profileData?.bio || "");
       setImageUrl(profileData?.avatar_url || "");
 
-      const { data: portfolioData, error: portfolioError } = await supabase
-        .from("portfolio_items")
-        .select("*")
-        .eq("user_id", user.id);
-
-      if (portfolioError) {
-        toast.error("Failed to load portfolio items");
-        return;
+      // Load portfolio items from the profile JSON field
+      if (profileData?.portfolio_items) {
+        setPortfolioItems(profileData.portfolio_items as PortfolioItem[] || []);
       }
-
-      setPortfolioItems(portfolioData as PortfolioItem[] || []);
     };
 
     fetchProfile();
@@ -56,7 +50,7 @@ export function ProfileSettings() {
 
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: e.target.value })
+      .update({ username: e.target.value })
       .eq("id", user.id);
 
     if (error) {
@@ -107,11 +101,9 @@ export function ProfileSettings() {
     if (!user) return;
     
     const { error } = await supabase
-      .from("portfolio_items")
-      .upsert(items.map(item => ({
-        ...item,
-        user_id: user.id
-      })));
+      .from("profiles")
+      .update({ portfolio_items: items })
+      .eq("id", user.id);
 
     if (error) {
       toast.error("Failed to update portfolio items");

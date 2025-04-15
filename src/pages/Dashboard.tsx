@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -8,7 +7,7 @@ import { getSubjectsForGrade } from "@/utils/gradeSubjects";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import ProfileSettings from "@/components/profile/ProfileSettings";
+import { ProfileSettings } from "@/components/profile/ProfileSettings";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { CreateLessonDialog } from "@/components/dashboard/CreateLessonDialog";
 import { DashboardContent } from "@/components/dashboard/DashboardContent";
@@ -100,7 +99,7 @@ const Dashboard = () => {
           <DialogHeader>
             <DialogTitle>Profile Settings</DialogTitle>
           </DialogHeader>
-          <ProfileSettings onClose={() => setIsProfileOpen(false)} />
+          <ProfileSettings />
         </DialogContent>
       </Dialog>
 

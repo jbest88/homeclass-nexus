@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@supabase/auth-helpers-react";
@@ -49,7 +50,7 @@ export const useGenerateLesson = () => {
 
     try {
       setIsGenerating(true);
-      console.log("Starting lesson generation...");
+      console.log("Starting simplified lesson generation...");
       
       const maxOrderIndex = generatedLessons?.reduce((max, lesson) => 
         lesson.subject === subject ? Math.max(max, lesson.order_index) : max, -1
@@ -111,7 +112,7 @@ export const useGenerateLesson = () => {
           subject,
           title: lessonData.title,
           content: lessonData.content,
-          questions: lessonData.questions,
+          questions: lessonData.questions || [], // This will be an empty array from our simplified version
           order_index: maxOrderIndex + 1,
         })
         .select()

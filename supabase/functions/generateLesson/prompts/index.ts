@@ -1,10 +1,14 @@
+
 // prompts/index.ts
 
-/** @deprecated Use createCombinedLessonPrompt instead */
+/** @deprecated Use createLessonOnlyPrompt instead */
 export { createLessonPrompt } from './lessonPrompt.ts';
 
-/** @deprecated Use createCombinedLessonPrompt instead */
+/** @deprecated Use createLessonOnlyPrompt instead */
 export { createQuestionsPrompt } from './questionsPrompt.ts';
 
-// New recommended function for generating complete lessons
+/** @deprecated Use createLessonOnlyPrompt instead */
 export { createCombinedLessonPrompt } from './combinedLessonPrompt.ts';
+
+// New simplified prompt function for generating lesson content only
+export { createLessonOnlyPrompt } from './lessonOnlyPrompt.ts';

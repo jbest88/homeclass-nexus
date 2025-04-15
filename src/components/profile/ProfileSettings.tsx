@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PortfolioItem } from "@/types/profile";
+import { Json } from "@/integrations/supabase/types";
 
 export function ProfileSettings() {
   const [name, setName] = useState("");
@@ -37,7 +38,27 @@ export function ProfileSettings() {
 
       // Load portfolio items from the profile JSON field
       if (profileData?.portfolio_items) {
-        setPortfolioItems(profileData.portfolio_items as PortfolioItem[] || []);
+        // Cast the Json[] to PortfolioItem[] with proper type checking
+        const portfolioData = profileData.portfolio_items as Json[];
+        const typedPortfolioItems: PortfolioItem[] = portfolioData.map(item => {
+          // Ensure each item has the required properties of PortfolioItem
+          if (typeof item === 'object' && item !== null) {
+            return {
+              id: (item as any).id?.toString() || Math.random().toString(),
+              title: (item as any).title?.toString() || "",
+              description: (item as any).description?.toString() || "",
+              url: (item as any).url?.toString() || "",
+              imageUrl: (item as any).imageUrl?.toString() || ""
+            };
+          }
+          // Fallback for invalid items
+          return {
+            id: Math.random().toString(),
+            title: "",
+            description: ""
+          };
+        });
+        setPortfolioItems(typedPortfolioItems);
       }
     };
 
@@ -100,9 +121,21 @@ export function ProfileSettings() {
   const handlePortfolioItemsChange = async (items: PortfolioItem[]) => {
     if (!user) return;
     
+    // Convert PortfolioItem[] to Json[] for database storage
+    const jsonItems = items.map(item => {
+      // Create a plain object from the PortfolioItem
+      return {
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        url: item.url || "",
+        imageUrl: item.imageUrl || ""
+      };
+    }) as unknown as Json[];
+    
     const { error } = await supabase
       .from("profiles")
-      .update({ portfolio_items: items })
+      .update({ portfolio_items: jsonItems })
       .eq("id", user.id);
 
     if (error) {

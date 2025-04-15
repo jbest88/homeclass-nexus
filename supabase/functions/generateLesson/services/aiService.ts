@@ -50,9 +50,9 @@ async function generateWithGemini(prompt: string): Promise<string> {
 
       console.log("Using fixed endpoint:", endpoint);
 
-      // CHANGED: Increased timeout to 60 seconds
+      // CHANGED: Increased timeout to 90 seconds
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(new Error(`Request timed out after 60 seconds`)), 60000);
+      const timeout = setTimeout(() => controller.abort(new Error(`Request timed out after 90 seconds`)), 90000);
 
       let response: Response;
       try {

@@ -1,5 +1,4 @@
 
-
 import { generateWithAI } from "./aiService.ts"; // Added .ts extension
 import { createLessonOnlyPrompt } from "../prompts/index.ts"; // Changed from .js to .ts extension
 
@@ -26,10 +25,14 @@ export async function generateLesson(
   try {
     // 1. Create a simpler prompt focused only on lesson content
     const lessonPrompt = createLessonOnlyPrompt(subject, grade, isPlacementTest);
+    console.log("Prompt length:", lessonPrompt.length);
 
-    // 2. Call AI only ONCE for the lesson content
-    console.log("Calling AI with lesson-only prompt (using hardcoded model)...");
+    // 2. Call AI with timeout monitoring
+    const startTime = Date.now();
+    console.log("Calling AI with lesson-only prompt...");
     const lessonResponse = await generateWithAI(lessonPrompt);
+    const endTime = Date.now();
+    console.log(`AI response time: ${endTime - startTime}ms`);
 
     if (!lessonResponse || lessonResponse.trim() === '') {
       throw new Error("Empty response received from AI provider for lesson content.");
@@ -38,9 +41,10 @@ export async function generateLesson(
     console.log("AI response received length:", lessonResponse.length);
     console.log("AI response preview:", lessonResponse.substring(0, 300) + "...");
 
-    // 3. Parse and Validate the JSON response
+    // 3. Parse and Validate the JSON response with timing
     let parsedLesson: LessonContent;
     try {
+      const parseStartTime = Date.now();
       // Attempt to clean potential markdown/extraneous text before parsing
       let cleanedJsonString = lessonResponse.trim();
       const jsonMatch = cleanedJsonString.match(/```json\s*([\s\S]*?)\s*```|(\{[\s\S]*\})/);
@@ -54,6 +58,7 @@ export async function generateLesson(
       }
 
       parsedLesson = JSON.parse(cleanedJsonString);
+      console.log(`JSON parsing completed in ${Date.now() - parseStartTime}ms`);
 
       // Basic Structure Validation
       if (!parsedLesson || typeof parsedLesson !== 'object') {

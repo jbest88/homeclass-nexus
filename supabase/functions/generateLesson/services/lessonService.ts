@@ -1,5 +1,5 @@
 
-import { generateWithAI } from "./aiService"; // Uses hardcoded model
+import { generateWithAI } from "./aiService.ts"; // Added .ts extension
 import { createLessonOnlyPrompt } from "../prompts/index.js";
 
 export interface LessonContent {

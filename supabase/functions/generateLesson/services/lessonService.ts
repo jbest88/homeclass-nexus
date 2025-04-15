@@ -1,6 +1,7 @@
 
+
 import { generateWithAI } from "./aiService.ts"; // Added .ts extension
-import { createLessonOnlyPrompt } from "../prompts/index.js";
+import { createLessonOnlyPrompt } from "../prompts/index.ts"; // Changed from .js to .ts extension
 
 export interface LessonContent {
   title: string;

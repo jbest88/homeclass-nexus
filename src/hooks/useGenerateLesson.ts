@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@supabase/auth-helpers-react";
@@ -58,12 +57,10 @@ export const useGenerateLesson = () => {
       
       console.log("Calling generateLesson function...");
       
-      // CHANGED: Increase the timeout from 60 seconds to 120 seconds
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out")), 120000); // 120 seconds timeout (doubled)
+        setTimeout(() => reject(new Error("Request timed out")), 120000);
       });
       
-      // Create the function promise with proper type annotation
       const functionPromise = supabase.functions.invoke<LessonResponse>("generateLesson", {
         body: { 
           subject, 
@@ -73,7 +70,6 @@ export const useGenerateLesson = () => {
         }
       });
       
-      // Race between the function call and the timeout
       let response;
       try {
         response = await Promise.race([
@@ -81,8 +77,9 @@ export const useGenerateLesson = () => {
           timeoutPromise
         ]);
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error during function call";
         console.error("Error during function call:", error);
-        throw new Error(error instanceof Error ? error.message : "Unknown error during function call");
+        throw new Error(errorMessage);
       }
 
       // Check for errors in the response
@@ -134,31 +131,24 @@ export const useGenerateLesson = () => {
       navigate(`/generated-lesson/${insertData.id}`);
       
       return insertData;
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error generating lesson:", error);
-
-      if (error instanceof Error) {
-        // Enhanced error handling with more specific messages
-        if (error.message === "Request timed out") {
-          toast.error("Request timed out. Please try again.");
-        } else if (error.message && 
-           (error.message.includes('API quota exceeded') || 
-            error.message.includes('rate limit'))) {
-          toast.error("We're experiencing high demand. Please try again in a few minutes.");
-        } else if (error.message && 
-           (error.message.includes('Gateway') || 
-            error.message.includes('temporarily unavailable') || 
-            error.message.includes('502') || 
-            error.message.includes('503') || 
-            error.message.includes('504'))) {
-          toast.error("Connection error with AI service. Please try again in a few moments.");
-        } else if (error.message && error.message.includes('No content generated')) {
-          toast.error("AI model couldn't generate content at this time. Please try again or choose a different subject.");
-        } else {
-          toast.error(error.message || "Failed to generate lesson. Please try again later.");
-        }
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      if (errorMessage === "Request timed out") {
+        toast.error("Request timed out. Please try again.");
+      } else if (errorMessage.includes('API quota exceeded') || errorMessage.includes('rate limit')) {
+        toast.error("We're experiencing high demand. Please try again in a few minutes.");
+      } else if (errorMessage.includes('Gateway') || 
+                 errorMessage.includes('temporarily unavailable') || 
+                 errorMessage.includes('502') || 
+                 errorMessage.includes('503') || 
+                 errorMessage.includes('504')) {
+        toast.error("Connection error with AI service. Please try again in a few moments.");
+      } else if (errorMessage.includes('No content generated')) {
+        toast.error("AI model couldn't generate content at this time. Please try again or choose a different subject.");
       } else {
-        toast.error(error.message || "Failed to generate lesson. Please try again later.");
+        toast.error(errorMessage || "Failed to generate lesson. Please try again later.");
       }
       return null;
     } finally {

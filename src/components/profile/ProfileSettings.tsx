@@ -1,229 +1,222 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useUser } from "@supabase/auth-helpers-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Json } from "@/integrations/supabase/types";
-import GeneralTab from "./tabs/GeneralTab";
-import PrivacyTab from "./tabs/PrivacyTab";
-import NotificationsTab from "./tabs/NotificationsTab";
-import SecurityTab from "./tabs/SecurityTab";
-import { NotificationPreferences, PrivacySettings, SocialLinks } from "./types";
-import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PortfolioItem } from "@/types/profile";
 
-
-type PortfolioItem = {
-  title: string;
-  description: string;
-  url: string;
-};
-
-interface ProfileSettingsProps {
-  onClose?: () => void;
-}
-
-const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
-  const user = useUser();
-  const queryClient = useQueryClient();
-  const [birthday, setBirthday] = useState<Date>();
-  const [gradeLevel, setGradeLevel] = useState<number | null>(null);
-  const [gradeOverride, setGradeOverride] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [month, setMonth] = useState<string>("");
-  const [day, setDay] = useState<string>("");
-  const [year, setYear] = useState<string>("");
-  
+export function ProfileSettings() {
+  const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [interests, setInterests] = useState<string[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);  
+  const [imageUrl, setImageUrl] = useState("");
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
-  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>({
-    email: true,
-    push: true,
-    in_app: true,
-  });
-  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
-    profile_visibility: "public",
-    portfolio_visibility: "public",
-  });
-  const [languagePreference, setLanguagePreference] = useState("en");
-  const [timezone, setTimezone] = useState("UTC");
+  const user = useUser();
 
   useEffect(() => {
-    const fetchOrCreateProfile = async () => {
+    const fetchProfile = async () => {
       if (!user) return;
-      
-      try {
-        setIsLoading(true);
-        
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
 
-        if (error) throw error;
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
 
-        if (!profile) {
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({ id: user.id });
-
-          if (insertError) throw insertError;
-          return;
-        }
-
-        if (profile.birthday) {
-          const date = new Date(profile.birthday);
-          setBirthday(date);
-          setMonth((date.getMonth() + 1).toString());
-          setDay(date.getDate().toString());
-          setYear(date.getFullYear().toString());
-        }
-        if (profile.grade_level !== null) setGradeLevel(profile.grade_level);
-        if (profile.grade_override !== null) setGradeOverride(profile.grade_override);
-        if (profile.bio) setBio(profile.bio);
-        if (profile.interests) setInterests(profile.interests as string[]);
-        if (profile.skills) setSkills(profile.skills as string[]);
-        if (profile.portfolio_items) setPortfolioItems(profile.portfolio_items);
-        if (profile.social_links) setSocialLinks(profile.social_links as SocialLinks);
-        if (profile.notification_preferences) {
-          const notifPrefs = profile.notification_preferences as { [key: string]: boolean };
-          setNotificationPreferences({
-            email: notifPrefs.email ?? true,
-            push: notifPrefs.push ?? true,
-            in_app: notifPrefs.in_app ?? true
-          });
-        }
-        if (profile.privacy_settings) {
-          const privacyPrefs = profile.privacy_settings as { [key: string]: string };
-          setPrivacySettings({
-            profile_visibility: privacyPrefs.profile_visibility ?? "public",
-            portfolio_visibility: privacyPrefs.portfolio_visibility ?? "public"
-          });
-        }
-        if (profile.language_preference) setLanguagePreference(profile.language_preference);
-        if (profile.timezone) setTimezone(profile.timezone);
-
-      } catch (error) {
-        console.error("Error fetching/creating profile:", error);
-        toast.error("Failed to load profile settings");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchOrCreateProfile();
-  }, [user]);
-
-  const handleSaveProfile = async () => {
-    if (!user) {
-      toast.error("Please sign in to save your profile");
-      return;
-    }
-    
-    try {
-      const date = month && day && year 
-        ? new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-        : null;
-    
-      if (date && isNaN(date.getTime())) {
-        toast.error("Invalid date selected");
+      if (profileError) {
+        toast.error("Failed to load profile");
         return;
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          birthday: date?.toISOString().split('T')[0],
-          grade_override: gradeOverride,
-          bio,
-          interests,
-          skills,          
-          portfolio_items: portfolioItems,
-          social_links: socialLinks as Json,
-          notification_preferences: notificationPreferences as unknown as Json,
-          privacy_settings: privacySettings as unknown as Json,
-          language_preference: languagePreference,
-          timezone,
-        })
-        .eq("id", user.id);
+      setName(profileData?.full_name || "");
+      setBio(profileData?.bio || "");
+      setImageUrl(profileData?.avatar_url || "");
 
-      if (error) throw error;
-      
-      await queryClient.invalidateQueries({ queryKey: ["profile"] });
-      
-      toast.success("Profile updated successfully!");
-      
-      if (onClose) {
-        onClose();
+      const { data: portfolioData, error: portfolioError } = await supabase
+        .from("portfolio_items")
+        .select("*")
+        .eq("user_id", user.id);
+
+      if (portfolioError) {
+        toast.error("Failed to load portfolio items");
+        return;
       }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
+
+      setPortfolioItems(portfolioData as PortfolioItem[] || []);
+    };
+
+    fetchProfile();
+  }, [user]);
+
+  const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: e.target.value })
+      .eq("id", user.id);
+
+    if (error) {
+      toast.error("Failed to update name");
+      return;
     }
+
+    toast.success("Name updated successfully");
   };
 
-  if (isLoading) {
-    return <div>Loading profile settings...</div>;
-  }
+  const handleBioChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setBio(e.target.value);
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ bio: e.target.value })
+      .eq("id", user.id);
+
+    if (error) {
+      toast.error("Failed to update bio");
+      return;
+    }
+
+    toast.success("Bio updated successfully");
+  };
+
+  const handleImageUrlChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setImageUrl(e.target.value);
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: e.target.value })
+      .eq("id", user.id);
+
+    if (error) {
+      toast.error("Failed to update image URL");
+      return;
+    }
+
+    toast.success("Image URL updated successfully");
+  };
+
+  const handlePortfolioItemsChange = async (items: PortfolioItem[]) => {
+    if (!user) return;
+    
+    const { error } = await supabase
+      .from("portfolio_items")
+      .upsert(items.map(item => ({
+        ...item,
+        user_id: user.id
+      })));
+
+    if (error) {
+      toast.error("Failed to update portfolio items");
+      return;
+    }
+
+    setPortfolioItems(items);
+    toast.success("Portfolio items updated successfully");
+  };
 
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="privacy">Privacy</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="general">
-          <GeneralTab
-            month={month}
-            setMonth={setMonth}
-            day={day}
-            setDay={setDay}
-            year={year}
-            setYear={setYear}
-            gradeLevel={gradeLevel}
-            bio={bio}
-            setBio={setBio}
-            languagePreference={languagePreference}
-            setLanguagePreference={setLanguagePreference}
-            timezone={timezone}
-            setTimezone={setTimezone}
-            gradeOverride={gradeOverride}
-            setGradeOverride={setGradeOverride}
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-4">
+        <Avatar>
+          <AvatarImage src={imageUrl} alt={name} />
+          <AvatarFallback>{name?.slice(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div>
+          <Label htmlFor="image-url">Image URL</Label>
+          <Input
+            id="image-url"
+            type="text"
+            value={imageUrl}
+            onChange={handleImageUrlChange}
           />
-        </TabsContent>
-
-        <TabsContent value="privacy">
-          <PrivacyTab
-            privacySettings={privacySettings}
-            setPrivacySettings={setPrivacySettings}
-          />
-        </TabsContent>
-
-        <TabsContent value="notifications">
-          <NotificationsTab
-            notificationPreferences={notificationPreferences}
-            setNotificationPreferences={setNotificationPreferences}
-          />
-        </TabsContent>
-
-        <TabsContent value="security">
-          <SecurityTab />
-        </TabsContent>
-      </Tabs>
-
-      <Button onClick={handleSaveProfile} className="w-full">
-        Save Changes
-      </Button>
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="name">Name</Label>
+        <Input id="name" type="text" value={name} onChange={handleNameChange} />
+      </div>
+      <div>
+        <Label htmlFor="bio">Bio</Label>
+        <textarea
+          id="bio"
+          value={bio}
+          onChange={handleBioChange}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+      </div>
+      <div>
+        <Label>Portfolio Items</Label>
+        {portfolioItems.map((item, index) => (
+          <div key={item.id} className="flex flex-col gap-2">
+            <Label htmlFor={`portfolio-title-${index}`}>Title</Label>
+            <Input
+              id={`portfolio-title-${index}`}
+              type="text"
+              value={item.title}
+              onChange={(e) => {
+                const newItems = [...portfolioItems];
+                newItems[index].title = e.target.value;
+                handlePortfolioItemsChange(newItems);
+              }}
+            />
+            <Label htmlFor={`portfolio-description-${index}`}>Description</Label>
+            <Input
+              id={`portfolio-description-${index}`}
+              type="text"
+              value={item.description}
+              onChange={(e) => {
+                const newItems = [...portfolioItems];
+                newItems[index].description = e.target.value;
+                handlePortfolioItemsChange(newItems);
+              }}
+            />
+            <Label htmlFor={`portfolio-url-${index}`}>URL</Label>
+            <Input
+              id={`portfolio-url-${index}`}
+              type="text"
+              value={item.url || ""}
+              onChange={(e) => {
+                const newItems = [...portfolioItems];
+                newItems[index].url = e.target.value;
+                handlePortfolioItemsChange(newItems);
+              }}
+            />
+            <Label htmlFor={`portfolio-image-url-${index}`}>Image URL</Label>
+            <Input
+              id={`portfolio-image-url-${index}`}
+              type="text"
+              value={item.imageUrl || ""}
+              onChange={(e) => {
+                const newItems = [...portfolioItems];
+                newItems[index].imageUrl = e.target.value;
+                handlePortfolioItemsChange(newItems);
+              }}
+            />
+          </div>
+        ))}
+        <Button
+          onClick={() => {
+            const newItem: PortfolioItem = {
+              id: Math.random().toString(),
+              title: "",
+              description: "",
+              url: "",
+              imageUrl: "",
+            };
+            handlePortfolioItemsChange([...portfolioItems, newItem]);
+          }}
+        >
+          Add Portfolio Item
+        </Button>
+      </div>
     </div>
   );
-};
-
-export default ProfileSettings;
+}

@@ -58,9 +58,9 @@ export const useGenerateLesson = () => {
       
       console.log("Calling generateLesson function...");
       
-      // Set up a timeout promise
+      // CHANGED: Increase the timeout from 60 seconds to 120 seconds
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out")), 60000); // 60 seconds timeout
+        setTimeout(() => reject(new Error("Request timed out")), 120000); // 120 seconds timeout (doubled)
       });
       
       // Create the function promise with proper type annotation

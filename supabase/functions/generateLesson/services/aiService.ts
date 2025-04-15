@@ -1,12 +1,13 @@
+
 /**
- * Generates content using the hardcoded Gemini model ("gemini-2.5-pro-exp-03-25").
+ * Generates content using the hardcoded Gemini model ("gemini-2.5-pro-preview-03-25").
  * @param prompt The prompt to send to the AI.
  * @returns The generated text content.
  * @throws Error if generation fails after retries.
  */
 export async function generateWithAI(prompt: string): Promise<string> {
   // Hardcoded model name for consistency in logic and logging
-  const hardcodedModelName = "gemini-2.5-pro-exp-03-25";
+  const hardcodedModelName = "gemini-2.5-pro-preview-03-25";
   try {
     console.log(`Generating with hardcoded Gemini model: ${hardcodedModelName}...`);
     // Log only a snippet of the prompt for security/brevity
@@ -23,7 +24,7 @@ export async function generateWithAI(prompt: string): Promise<string> {
 
 /**
  * Internal function to interact with the Gemini API using the hardcoded model
- * ("gemini-2.5-pro-exp-03-25") with retry logic.
+ * ("gemini-2.5-pro-preview-03-25") with retry logic.
  */
 async function generateWithGemini(prompt: string): Promise<string> {
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
@@ -32,8 +33,8 @@ async function generateWithGemini(prompt: string): Promise<string> {
     throw new Error("Gemini API key is not configured in environment variables");
   }
 
-  // *** Hardcoded model name as per your requirement ***
-  const hardcodedModelName = "gemini-2.5-pro-exp-03-25";
+  // *** Hardcoded model name as per the requirement ***
+  const hardcodedModelName = "gemini-2.5-pro-preview-03-25";
 
   const maxRetries = 3;
   let retries = 0;
@@ -49,8 +50,9 @@ async function generateWithGemini(prompt: string): Promise<string> {
 
       console.log("Using fixed endpoint:", endpoint);
 
+      // CHANGED: Increased timeout to 60 seconds
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(new Error(`Request timed out after 45 seconds`)), 45000);
+      const timeout = setTimeout(() => controller.abort(new Error(`Request timed out after 60 seconds`)), 60000);
 
       let response: Response;
       try {
@@ -70,7 +72,7 @@ async function generateWithGemini(prompt: string): Promise<string> {
               temperature: 0.7,
               topK: 40,
               topP: 0.95,
-              maxOutputTokens: 4096, // Increased from 2048, adjust as needed
+              maxOutputTokens: 4096, // Increased from 2048, helps reduce MAX_TOKENS errors
             },
             safetySettings: [
               { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
@@ -95,8 +97,8 @@ async function generateWithGemini(prompt: string): Promise<string> {
         console.error(`Gemini API error response (Attempt ${attempt}, Model ${hardcodedModelName}): Status: ${status} ${statusText}, Body: ${errorBody}`);
         lastError = new Error(`Gemini API error: ${status} ${statusText}. Body: ${errorBody}`);
 
-        // Retry only on 5xx server errors
-        if (status >= 500 && status < 600) {
+        // Retry on 5xx server errors and 429 rate limit errors
+        if ((status >= 500 && status < 600) || status === 429) {
           retries++;
           if (retries < maxRetries) {
             const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
@@ -108,7 +110,7 @@ async function generateWithGemini(prompt: string): Promise<string> {
             throw lastError;
           }
         } else {
-           // Throw immediately for non-retriable errors (e.g., 404 if model is invalid, 400, 429)
+           // Throw immediately for non-retriable errors (e.g., 404 if model is invalid, 400)
            throw lastError;
         }
       }
@@ -155,14 +157,17 @@ async function generateWithGemini(prompt: string): Promise<string> {
         throw lastError;
       }
 
-      // Retry only on specific errors like timeout
-      const shouldRetryExplicitly = error.message.includes('timed out');
+      // Improved retry logic: retry on timeout, network errors, and server errors
+      const shouldRetryExplicitly = error.message.includes('timed out') || 
+                                  error.message.includes('network') || 
+                                  error.message.includes('failed') ||
+                                  error.message.includes('unavailable');
       if (shouldRetryExplicitly) {
            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
            console.log(`Retrying after ${delay.toFixed(0)}ms delay following error: ${error.message}`);
            await new Promise(resolve => setTimeout(resolve, delay));
       } else {
-           // Don't retry other errors caught here (like 4xx, validation, safety thrown above)
+           // Don't retry other errors caught here (like validation, safety, etc.)
            throw lastError;
       }
     }

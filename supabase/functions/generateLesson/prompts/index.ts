@@ -8,7 +8,7 @@ export { createLessonPrompt } from './lessonPrompt.ts';
 export { createQuestionsPrompt } from './questionsPrompt.ts';
 
 /** @deprecated Use createLessonOnlyPrompt instead */
-export { createCombinedLessonPrompt } from './createCombinedLessonPrompt.ts'; // Fixed import path
+export { createCombinedLessonPrompt } from './createCombinedLessonPrompt.ts';
 
 // New simplified prompt function for generating lesson content only
 export { createLessonOnlyPrompt } from './lessonOnlyPrompt.ts';

@@ -1,13 +1,14 @@
+
 import { ValidationResult } from '../types.ts';
 import { normalizeText, isAllOfTheAbove, isNumberComparisonQuestion } from '../utils.ts';
 import { wordToNumber } from './numberUtils.ts';
 import type { MultipleAnswerValidationOptions } from './types.ts';
 
-export const validateMultipleAnswer = async ({
-  userAnswers,
-  correctAnswers,
-  question
-}: MultipleAnswerValidationOptions): Promise<ValidationResult> => {
+export const validateMultipleAnswer = async (
+  userAnswers: string[],
+  correctAnswers: string[],
+  question?: string
+): Promise<ValidationResult> => {
   if (!Array.isArray(userAnswers) || !Array.isArray(correctAnswers)) {
     return {
       isCorrect: false,

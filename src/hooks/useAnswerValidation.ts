@@ -20,7 +20,6 @@ export const useAnswerValidation = () => {
         ? [...(question as MultipleAnswerQuestion).correctAnswers].sort()
         : question.answer;
 
-
     const response = await supabase.functions.invoke("validateAnswerWithAI", {
       body: {
         question: question.question,

@@ -18,8 +18,7 @@ serve(async (req) => {
     console.log('Validating answer:', { question, userAnswers, correctAnswers, type });
 
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
-    // Use a currently supported model instead of gemini-2.5-pro-preview-03-25
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro-preview-03-25" });
 
     // Format answers for display
     const userAnswersStr = Array.isArray(userAnswers) 

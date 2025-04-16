@@ -1,11 +1,11 @@
+
 /**
- * Creates a prompt asking the AI to generate the lesson content (title and content)
- * as a plain JSON object. The content must be formatted with hard returns for clear
- * sections and readability.
+ * Creates a prompt asking the AI to generate only the lesson content (title and content)
+ * without questions, formatted as a simple JSON object.
  *
  * @param subject The subject of the lesson.
  * @param gradeLevelText The target grade level (e.g., "Grade 5", "Kindergarten").
- * @param isPlacementTest If true, tailor the lesson for a placement test.
+ * @param isPlacementTest If true, tailor content for a placement test.
  * @returns The prompt string for the AI call.
  */
 export function createLessonOnlyPrompt(
@@ -14,40 +14,48 @@ export function createLessonOnlyPrompt(
   isPlacementTest: boolean = false
 ): string {
   const lessonType = isPlacementTest ? "placement test" : "lesson";
-
-  // Define the required JSON structure.
-  // NOTE: The "content" field should have hard returns (i.e. newlines) to clearly separate sections.
+  
+  // Define the expected JSON output structure clearly for the AI
   const jsonStructure = `{
-  "title": "string (A concise, descriptive title for the ${lessonType}, without any prefixes)",
-  "content": "string (The full lesson content for the ${lessonType}, formatted with hard returns between sections. Use Markdown for headings, lists, and any other formatting as needed.)"
+  "title": "string (A concise, descriptive title for the ${lessonType}, without prefixes like 'Title:')",
+  "content": "string (The full educational content for the ${lessonType}, following structure/presentation guidelines below. Markdown is acceptable.)"
 }`;
 
   const prompt = `
-You are an expert instructional designer. Generate a ${lessonType} on "${subject}" for ${gradeLevelText}.
+You are an expert instructional designer. Generate a ${lessonType} about "${subject}" suitable for ${gradeLevelText}.
 
-IMPORTANT: Your response MUST be a single, valid JSON object with exactly two keys: "title" and "content". Do NOT include any extra text, code fences, logs, or commentary.
+Your response MUST be a single, valid JSON object conforming precisely to the structure specified below. Do NOT include any introductory text, explanations, comments, markdown formatting around the JSON, or anything else other than the JSON object itself.
 
 **Required JSON Output Structure:**
 \`\`\`json
 ${jsonStructure}
 \`\`\`
 
-**Instructions for the JSON Fields:**
+**Detailed Instructions for JSON Fields:**
 
-1. **title**  
-   - Provide a concise, descriptive title for the lesson (without any prefixes such as "Title:").
+1.  **"title" Field:**
+    * Generate a clear, descriptive title for the lesson (without any prefix like "Title:").
 
-2. **content**  
-   - Create engaging, well-structured lesson content that targets the academic level of ${gradeLevelText}.
-   - Format the content using clear, hard returns (newlines) so that each section is visibly separated.
-   - Include a title heading, an introduction, and clearly defined sections (e.g., "Core Concepts", "Exploring Each Sense", "Applications & Activities") with Markdown headings.
-   - Use bullet lists or numbering for items (e.g., for senses or steps in an activity).
-   - Ensure that paragraphs are separated by hard returns, not just space.
-   - The content should be a continuous string that includes all markdown formatting as plain text within the JSON "content" value.
+2.  **"content" Field:**
+    * Generate engaging and academically sound lesson content.
+    * **Academic Requirements:**
+        * Target the upper-middle range for ${gradeLevelText}.
+        * Use precise, grade-appropriate terminology.
+        * Balance theory and practical application.
+    * **Content Structure (Follow this structure within the content string):**
+        * Core Concepts: Clear principles, definitions, foundational understanding.
+        * Concept Development (for each key concept): Include theoretical foundation, worked examples (step-by-step, real-world), and understanding checks.
+        * Connections: Link to related topics, practical relevance, other subjects.
+        * Applications: Problem-solving, examples, activities, extensions.
+    * **Display/Presentation (Apply these within the content string using Markdown):**
+        * Use clear headings (e.g., \`## Core Concepts\`).
+        * Use lists (bullet/numbered) and short paragraphs.
+        * Highlight key terms (**bold** or *italics*).
+        * Describe where diagrams/visuals would be helpful.
+        * Ensure readability.
+    * **Critical Content Guidelines:** Clear language, step-by-step examples, focus on understanding and application, maintain engagement.
 
-Before outputting, validate that the JSON is strictly correct and includes nothing other than the JSON object with "title" and "content".
-
-OUTPUT ONLY the JSON without any additional text.
+**Final Output:** Remember, provide ONLY the raw JSON object adhering strictly to the specified structure. Verify JSON syntax validity before outputting.
 `;
 
   return prompt;

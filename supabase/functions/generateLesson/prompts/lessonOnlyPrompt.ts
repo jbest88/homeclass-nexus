@@ -1,10 +1,11 @@
 /**
- * Creates a prompt asking the AI to generate only the lesson content (title and content)
- * without any questions or extraneous commentary. The response must be a JSON object.
+ * Creates a prompt asking the AI to generate the lesson content (title and content)
+ * as a plain JSON object. The output must include ONLY the JSON object with exactly
+ * two keys: "title" and "content".
  *
  * @param subject The subject of the lesson.
  * @param gradeLevelText The target grade level (e.g., "Grade 5", "Kindergarten").
- * @param isPlacementTest If true, tailor content for a placement test.
+ * @param isPlacementTest If true, tailor the lesson for a placement test.
  * @returns The prompt string for the AI call.
  */
 export function createLessonOnlyPrompt(
@@ -13,49 +14,39 @@ export function createLessonOnlyPrompt(
   isPlacementTest: boolean = false
 ): string {
   const lessonType = isPlacementTest ? "placement test" : "lesson";
-  
-  // Define the exact JSON structure the AI must adhere to.
+
+  // Define the required JSON structure
   const jsonStructure = `{
-  "title": "string (A concise, descriptive title for the ${lessonType}, without any prefix like 'Title:')",
-  "content": "string (The complete lesson content for the ${lessonType}. Include clear headings, bullet points, examples, and markdown formatting as specified below.)"
+  "title": "string (A concise, descriptive title for the ${lessonType}, without prefixes)",
+  "content": "string (The full lesson content for the ${lessonType}, using markdown for headings, lists, examples, etc. Render all content as plain text within this value)"
 }`;
 
   const prompt = `
-You are an expert instructional designer. Generate a ${lessonType} on "${subject}" suitable for ${gradeLevelText}.
+You are an expert instructional designer. Generate a ${lessonType} on "${subject}" for ${gradeLevelText}.
 
-Your response MUST be a single, valid JSON object that strictly follows the JSON structure specified below. Do NOT include any introductory text, explanations, code blocks, markdown formatting (outside of the content), or any additional commentary.
+IMPORTANT: Your response MUST be a single, valid JSON object containing exactly these two keys: "title" and "content". DO NOT include any extra text, logging, introductions, or formatting outside this JSON.
 
 **Required JSON Output Structure:**
 \`\`\`json
 ${jsonStructure}
 \`\`\`
 
-**Instructions for the JSON Fields:**
+**Instructions for Content:**
 
-1. **"title":**
-   - Generate a clear, concise title for the lesson.
-   - Do not include any prefixes (e.g., "Title:"), just the title text.
+1. **Title:**  
+   - Provide a concise, descriptive title that fits the ${lessonType}.  
+   - Do not include any additional prefixes or commentary.
 
-2. **"content":**
-   - Write engaging, academically sound lesson content that targets the academic level of ${gradeLevelText}.
-   - **Content Requirements:**
-     - **Core Concepts:** Present clear principles, definitions, and foundational understanding.
-     - **Concept Development:** For each key concept, include:
-       - A theoretical foundation.
-       - Step-by-step worked examples with real-world relevance.
-       - Understanding checks or brief recaps.
-     - **Connections:** Make connections to related topics, practical applications, and interdisciplinary links.
-     - **Applications:** Provide problem-solving activities, practical examples, and extension questions.
-   - **Display Guidelines (using Markdown):**
-     - Use clear headings (e.g., \`## Core Concepts\`).
-     - Use bullet or numbered lists and concise paragraphs.
-     - Bold or italicize key terms.
-     - Include suggestions for where diagrams or visuals would enhance understanding.
-   - Ensure the content is well-structured, engaging, and easy to follow.
+2. **Content:**  
+   - Create engaging and well-structured lesson content that targets the academic level of ${gradeLevelText}.  
+   - Include clear headings (using Markdown, e.g., \`## Core Concepts\`), bullet points, and short paragraphs.  
+   - Cover the following aspects:
+     - **Core Concepts:** Definitions and essential principles.
+     - **Concept Development:** Theoretical explanations, step-by-step examples, and checks for understanding.
+     - **Connections and Applications:** Practical activities, interdisciplinary links, and visual suggestions.
+   - Ensure the complete lesson is rendered as a plain string within the "content" value. Do not include any serialized objects or code markers.
 
-**Final Output:**  
-Your output should contain only the raw JSON object with the fields "title" and "content", and nothing else. Validate the JSON to ensure it is correct.
-`;
+Before outputting, validate that the JSON is strictly correct and contains nothing other than the JSON object with "title" and "content".`;
 
   return prompt;
 }
